@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -14,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tallycat/tallycat/internal/grpcserver"
 	"github.com/tallycat/tallycat/internal/httpserver"
+	"github.com/tallycat/tallycat/internal/repository/duckdb"
 	logspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -35,8 +37,12 @@ var serverCmd = &cobra.Command{
 OpenTelemetry LogsService interface. The server listens for gRPC connections
 and processes log data according to the OpenTelemetry protocol.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+
 		ctx, cancel := context.WithCancel(cmd.Context())
 		defer cancel()
+
+		logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		slog.SetDefault(logger)
 
 		slog.Info("Starting OpenTelemetry logs collector server",
 			"grpcAddr", grpcAddr,
@@ -53,7 +59,21 @@ and processes log data according to the OpenTelemetry protocol.`,
 
 		srv := grpcserver.NewServer(grpcAddr, opts...)
 
-		logsService := grpcserver.NewLogsServiceServer()
+		pool, err := duckdb.NewConnectionPool(&duckdb.Config{
+			DatabasePath:    "tallycat.db",
+			MaxOpenConns:    10,
+			MaxIdleConns:    5,
+			ConnMaxLifetime: time.Hour,
+			ConnMaxIdleTime: time.Minute * 5,
+		}, logger)
+
+		if err != nil {
+			return fmt.Errorf("failed to create connection pool: %w", err)
+		}
+
+		schemaRepo := duckdb.NewSchemaRepository(pool.(*duckdb.ConnectionPool), logger)
+
+		logsService := grpcserver.NewLogsServiceServer(schemaRepo, logger)
 		srv.RegisterService(&logspb.LogsService_ServiceDesc, logsService)
 
 		httpSrv := httpserver.New(httpAddr)

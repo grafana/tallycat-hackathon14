@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	_ "github.com/marcboeker/go-duckdb/v2"
 	"github.com/tallycat/tallycat/internal/repository"
 )
 
