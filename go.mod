@@ -3,6 +3,7 @@ module github.com/tallycat/tallycat
 go 1.24.2
 
 require (
+	github.com/go-chi/chi v1.5.5
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.125.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
@@ -15,6 +16,7 @@ require (
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/go-chi/cors v1.2.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

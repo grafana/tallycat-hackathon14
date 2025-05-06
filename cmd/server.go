@@ -13,16 +13,18 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/tallycat/tallycat/internal/grpcserver"
+	"github.com/tallycat/tallycat/internal/httpserver"
 	logspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
 var (
-	serverAddr           string
+	grpcAddr             string
 	maxConcurrentStreams uint32
 	connectionTimeout    time.Duration
 	shutdownTimeout      time.Duration
+	httpAddr             string
 )
 
 // serverCmd represents the server command
@@ -37,7 +39,8 @@ and processes log data according to the OpenTelemetry protocol.`,
 		defer cancel()
 
 		slog.Info("Starting OpenTelemetry logs collector server",
-			"addr", serverAddr,
+			"grpcAddr", grpcAddr,
+			"httpAddr", httpAddr,
 			"maxConcurrentStreams", maxConcurrentStreams,
 			"connectionTimeout", connectionTimeout,
 			"shutdownTimeout", shutdownTimeout,
@@ -48,15 +51,21 @@ and processes log data according to the OpenTelemetry protocol.`,
 			grpc.ConnectionTimeout(connectionTimeout),
 		}
 
-		srv := grpcserver.NewServer(serverAddr, opts...)
+		srv := grpcserver.NewServer(grpcAddr, opts...)
 
 		logsService := grpcserver.NewLogsServiceServer()
 		srv.RegisterService(&logspb.LogsService_ServiceDesc, logsService)
+
+		httpSrv := httpserver.New(httpAddr)
 
 		g, _ := errgroup.WithContext(ctx)
 
 		g.Go(func() error {
 			return srv.Start()
+		})
+
+		g.Go(func() error {
+			return httpSrv.Start()
 		})
 
 		g.Go(func() error {
@@ -87,6 +96,7 @@ and processes log data according to the OpenTelemetry protocol.`,
 		go func() {
 			defer close(shutdownDone)
 			srv.Stop()
+			httpSrv.Shutdown(shutdownCtx)
 		}()
 
 		select {
@@ -105,10 +115,11 @@ func init() {
 	rootCmd.AddCommand(serverCmd)
 
 	// Here you will define your flags and configuration settings.
-	serverCmd.Flags().StringVarP(&serverAddr, "addr", "a", ":4317", "Address to listen on (default: :4317)")
+	serverCmd.Flags().StringVarP(&grpcAddr, "grpc-addr", "g", ":4317", "Address to listen on for gRPC server (default: :4317)")
 	serverCmd.Flags().Uint32Var(&maxConcurrentStreams, "max-streams", 1000, "Maximum number of concurrent streams")
 	serverCmd.Flags().DurationVar(&connectionTimeout, "connection-timeout", 10*time.Second, "Connection timeout duration")
 	serverCmd.Flags().DurationVar(&shutdownTimeout, "shutdown-timeout", 30*time.Second, "Graceful shutdown timeout duration")
+	serverCmd.Flags().StringVarP(&httpAddr, "http-addr", "H", ":8080", "Address to listen on for HTTP server (default: :8080)")
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
