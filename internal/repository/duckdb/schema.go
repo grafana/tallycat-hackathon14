@@ -29,12 +29,12 @@ func (r *SchemaRepository) CreateSchemaTable(ctx context.Context) error {
 			signal_type TEXT,
 			metric_type TEXT,
 			unit TEXT,
-			service_name TEXT,
 			scope_name TEXT,
 			scope_version TEXT,
 			field_names TEXT[],
 			field_types JSON,
 			field_sources JSON,
+			field_cardinality JSON,
 			seen_count INTEGER,
 			created_at TIMESTAMP DEFAULT now(),
 			updated_at TIMESTAMP
@@ -47,11 +47,6 @@ func (r *SchemaRepository) CreateSchemaTable(ctx context.Context) error {
 }
 
 func (r *SchemaRepository) RegisterSchema(ctx context.Context, schema *repository.Schema) error {
-	fieldNamesJSON, err := json.Marshal(schema.FieldNames)
-	if err != nil {
-		return fmt.Errorf("failed to marshal field names: %w", err)
-	}
-
 	fieldTypesJSON, err := json.Marshal(schema.FieldTypes)
 	if err != nil {
 		return fmt.Errorf("failed to marshal field types: %w", err)
@@ -62,12 +57,23 @@ func (r *SchemaRepository) RegisterSchema(ctx context.Context, schema *repositor
 		return fmt.Errorf("failed to marshal field sources: %w", err)
 	}
 
+	fieldCardinalityJSON, err := json.Marshal(schema.FieldCardinality)
+	if err != nil {
+		return fmt.Errorf("failed to marshal field cardinality: %w", err)
+	}
+
+	fieldNamesArray := buildDuckDBStringArray(schema.FieldNames)
+
 	query := `
 		INSERT INTO otel_schema_catalog (
-			schema_id, signal_type, metric_type, unit, service_name,
+			schema_id, signal_type, metric_type, unit,
 			scope_name, scope_version, field_names, field_types,
-			field_sources, seen_count, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			field_sources, field_cardinality, seen_count, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ` + fieldNamesArray + `, ?, ?, ?, ?, ?)
+		ON CONFLICT (schema_id) DO UPDATE SET
+			seen_count = otel_schema_catalog.seen_count + excluded.seen_count,
+			updated_at = excluded.updated_at
+		WHERE excluded.updated_at > otel_schema_catalog.updated_at;
 	`
 
 	db := r.pool.GetConnection()
@@ -76,14 +82,12 @@ func (r *SchemaRepository) RegisterSchema(ctx context.Context, schema *repositor
 		schema.SignalType,
 		schema.MetricType,
 		schema.Unit,
-		schema.ServiceName,
 		schema.ScopeName,
 		schema.ScopeVersion,
-		fieldNamesJSON,
 		fieldTypesJSON,
 		fieldSourcesJSON,
+		fieldCardinalityJSON,
 		schema.SeenCount,
-		schema.CreatedAt,
 		schema.UpdatedAt,
 	)
 
@@ -116,7 +120,6 @@ func (r *SchemaRepository) GetSchema(ctx context.Context, schemaID string) (*rep
 		&schema.SignalType,
 		&metricType,
 		&unit,
-		&schema.ServiceName,
 		&schema.ScopeName,
 		&schema.ScopeVersion,
 		&fieldNamesJSON,

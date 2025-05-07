@@ -12,7 +12,30 @@
             "program": "${workspaceFolder}",
             "args": [
                 "server"
-            ]
+            ],
+            "buildFlags": "-tags=duckdb"
+        },
+        {
+            "name": "Test Current File",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${fileDirname}",
+            "buildFlags": "-tags=duckdb",
+            "env": {
+                "CGO_ENABLED": "1"
+            }
+        },
+        {
+            "name": "Test Package",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}/internal/integration",
+            "buildFlags": "-tags=duckdb",
+            "env": {
+                "CGO_ENABLED": "1"
+            }
         }
     ]
 }

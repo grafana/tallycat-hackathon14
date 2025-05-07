@@ -3,6 +3,7 @@ package schema
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"log/slog"
 	"sort"
 	"strings"
 
@@ -12,119 +13,107 @@ import (
 	"go.opentelemetry.io/collector/pdata/ptrace"
 )
 
-// SchemaField represents a single field in the schema
 type SchemaField struct {
-	Name              string // e.g. "http.status_code"
-	Type              string // "string", "int", etc.
-	Source            string // "resource", "attribute", "datapoint", "span", "body", etc.
+	Name              string
+	Type              string
+	Source            string
 	IsHighCardinality bool
 	Example           string
 }
 
-// BaseSchema contains shared metadata across all schema types
 type BaseSchema struct {
-	SchemaID   string
-	SignalType string
-	ScopeName  string
-	Resource   map[string]string
-	Fields     []SchemaField
-	SeenCount  int
+	SchemaID     string
+	SignalType   string
+	ScopeName    string
+	ScopeVersion string
+	Fields       []SchemaField
+	SeenCount    int
 }
 
-// MetricSchema represents the schema for a metric
 type MetricSchema struct {
 	BaseSchema
 	MetricType  string
 	Unit        string
 	IsMonotonic bool
-	Temporality string // "delta", "cumulative", etc.
+	Temporality string
 }
 
-// LogSchema represents the schema for a log
 type LogSchema struct {
 	BaseSchema
-	BodyType    string // "string", "json", etc.
+	BodyType    string
 	HasSeverity bool
 }
 
-// TraceSchema represents the schema for a trace
 type TraceSchema struct {
 	BaseSchema
-	SpanKind  string // "client", "server", etc.
+	SpanKind  string
 	HasStatus bool
 	HasEvents bool
 }
 
-// ExtractLogSchemas extracts schema metadata from logs
 func ExtractLogSchemas(logs plog.Logs) []LogSchema {
 	// TODO: Implement log schema extraction
 	return nil
 }
 
-// ExtractTraceSchemas extracts schema metadata from traces
 func ExtractTraceSchemas(traces ptrace.Traces) []TraceSchema {
 	// TODO: Implement trace schema extraction
 	return nil
 }
 
 func ExtractMetricSchema(metrics pmetric.Metrics) []MetricSchema {
-	// Map to track unique schemas by their ID
 	schemaMap := make(map[string]*MetricSchema)
 
-	// Process each resource metric
 	for i := 0; i < metrics.ResourceMetrics().Len(); i++ {
 		rm := metrics.ResourceMetrics().At(i)
 		resourceAttrs := flattenAttributeTypes(rm.Resource().Attributes())
 
-		// Process each scope metric
 		for j := 0; j < rm.ScopeMetrics().Len(); j++ {
 			sm := rm.ScopeMetrics().At(j)
 			scopeName := sm.Scope().Name()
+			scopeVersion := sm.Scope().Version()
 			scopeAttrs := flattenAttributeTypes(sm.Scope().Attributes())
 
-			// Process each metric
 			for k := 0; k < sm.Metrics().Len(); k++ {
 				m := sm.Metrics().At(k)
 
-				// Create schema fields from all sources
 				fields := make([]SchemaField, 0)
 
-				// Add resource attributes
 				for name, attrType := range resourceAttrs {
 					fields = append(fields, SchemaField{
-						Name:   name,
-						Type:   string(attrType),
-						Source: "resource",
+						Name:              name,
+						Type:              string(attrType),
+						Source:            "resource",
+						IsHighCardinality: isHighCardinality(name, attrType, "resource"),
 					})
 				}
 
-				// Add scope attributes
 				for name, attrType := range scopeAttrs {
 					fields = append(fields, SchemaField{
-						Name:   name,
-						Type:   string(attrType),
-						Source: "scope",
+						Name:              name,
+						Type:              string(attrType),
+						Source:            "scope",
+						IsHighCardinality: isHighCardinality(name, attrType, "scope"),
 					})
 				}
 
-				// Add metric attributes from data points
 				dpAttrs := extractDataPointAttributeTypes(m)
 				for name, attrType := range dpAttrs {
 					fields = append(fields, SchemaField{
-						Name:   name,
-						Type:   string(attrType),
-						Source: "datapoint",
+						Name:              name,
+						Type:              string(attrType),
+						Source:            "datapoint",
+						IsHighCardinality: isHighCardinality(name, attrType, "datapoint"),
 					})
 				}
 
-				// Create schema metadata
 				schema := &MetricSchema{
 					BaseSchema: BaseSchema{
-						SignalType: "metric",
-						ScopeName:  scopeName,
-						Resource:   make(map[string]string), // Empty map since we don't store values
-						Fields:     fields,
-						SeenCount:  1,
+						SignalType:   "metric",
+						ScopeName:    scopeName,
+						ScopeVersion: scopeVersion,
+						Fields:       fields,
+						SeenCount:    1,
 					},
 					MetricType:  string(convertMetricType(m.Type())),
 					Unit:        m.Unit(),
@@ -132,10 +121,10 @@ func ExtractMetricSchema(metrics pmetric.Metrics) []MetricSchema {
 					Temporality: string(convertTemporality(m)),
 				}
 
-				// Generate schema ID
 				schema.SchemaID = generateSchemaID(schema)
 
-				// Update or create schema in map
+				slog.Debug("extracted schema", "schema_id", schema.SchemaID, "metric", m.Name())
+
 				if existing, ok := schemaMap[schema.SchemaID]; ok {
 					existing.SeenCount++
 				} else {
@@ -145,16 +134,13 @@ func ExtractMetricSchema(metrics pmetric.Metrics) []MetricSchema {
 		}
 	}
 
-	// Convert map to slice
 	result := make([]MetricSchema, 0, len(schemaMap))
 	for _, schema := range schemaMap {
 		result = append(result, *schema)
 	}
-
 	return result
 }
 
-// flattenAttributeTypes converts pcommon.Map to a map of value types
 func flattenAttributeTypes(attrs pcommon.Map) map[string]ValueType {
 	result := make(map[string]ValueType, attrs.Len())
 	attrs.Range(func(k string, v pcommon.Value) bool {
@@ -164,10 +150,8 @@ func flattenAttributeTypes(attrs pcommon.Map) map[string]ValueType {
 	return result
 }
 
-// extractDataPointAttributeTypes extracts all unique attribute types from data points
 func extractDataPointAttributeTypes(m pmetric.Metric) map[string]ValueType {
 	attrs := make(map[string]ValueType)
-
 	switch m.Type() {
 	case pmetric.MetricTypeGauge:
 		for i := 0; i < m.Gauge().DataPoints().Len(); i++ {
@@ -190,11 +174,9 @@ func extractDataPointAttributeTypes(m pmetric.Metric) map[string]ValueType {
 			mergeAttributeTypes(attrs, m.Summary().DataPoints().At(i).Attributes())
 		}
 	}
-
 	return attrs
 }
 
-// mergeAttributeTypes merges attribute types from a pcommon.Map into our type map
 func mergeAttributeTypes(target map[string]ValueType, source pcommon.Map) {
 	source.Range(func(k string, v pcommon.Value) bool {
 		if _, exists := target[k]; !exists {
@@ -204,7 +186,6 @@ func mergeAttributeTypes(target map[string]ValueType, source pcommon.Map) {
 	})
 }
 
-// ValueType represents the type of a value
 type ValueType string
 
 const (
@@ -216,7 +197,6 @@ const (
 	ValueTypeArray  ValueType = "Array"
 )
 
-// convertValueType converts pcommon.ValueType to our ValueType
 func convertValueType(t pcommon.ValueType) ValueType {
 	switch t {
 	case pcommon.ValueTypeStr:
@@ -236,7 +216,6 @@ func convertValueType(t pcommon.ValueType) ValueType {
 	}
 }
 
-// convertMetricType converts pmetric.MetricType to string
 func convertMetricType(t pmetric.MetricType) string {
 	switch t {
 	case pmetric.MetricTypeGauge:
@@ -254,55 +233,36 @@ func convertMetricType(t pmetric.MetricType) string {
 	}
 }
 
-// isMonotonic determines if a metric is monotonic
 func isMonotonic(m pmetric.Metric) bool {
-	if m.Type() == pmetric.MetricTypeSum {
-		return m.Sum().IsMonotonic()
-	}
-	return false
+	return m.Type() == pmetric.MetricTypeSum && m.Sum().IsMonotonic()
 }
 
-// convertTemporality converts metric aggregation temporality to string
 func convertTemporality(m pmetric.Metric) string {
 	switch m.Type() {
 	case pmetric.MetricTypeSum:
-		switch m.Sum().AggregationTemporality() {
-		case pmetric.AggregationTemporalityDelta:
-			return "delta"
-		case pmetric.AggregationTemporalityCumulative:
-			return "cumulative"
-		default:
-			return "unspecified"
-		}
+		return fromTemporality(m.Sum().AggregationTemporality())
 	case pmetric.MetricTypeHistogram:
-		switch m.Histogram().AggregationTemporality() {
-		case pmetric.AggregationTemporalityDelta:
-			return "delta"
-		case pmetric.AggregationTemporalityCumulative:
-			return "cumulative"
-		default:
-			return "unspecified"
-		}
+		return fromTemporality(m.Histogram().AggregationTemporality())
 	case pmetric.MetricTypeExponentialHistogram:
-		switch m.ExponentialHistogram().AggregationTemporality() {
-		case pmetric.AggregationTemporalityDelta:
-			return "delta"
-		case pmetric.AggregationTemporalityCumulative:
-			return "cumulative"
-		default:
-			return "unspecified"
-		}
+		return fromTemporality(m.ExponentialHistogram().AggregationTemporality())
 	default:
 		return "unspecified"
 	}
 }
 
-// generateSchemaID creates a deterministic hash of the schema
-func generateSchemaID(schema *MetricSchema) string {
-	// Create a deterministic string representation of the schema
-	var sb strings.Builder
+func fromTemporality(t pmetric.AggregationTemporality) string {
+	switch t {
+	case pmetric.AggregationTemporalityDelta:
+		return "delta"
+	case pmetric.AggregationTemporalityCumulative:
+		return "cumulative"
+	default:
+		return "unspecified"
+	}
+}
 
-	// Add metadata fields
+func generateSchemaID(schema *MetricSchema) string {
+	var sb strings.Builder
 	sb.WriteString(schema.SignalType)
 	sb.WriteString("|")
 	sb.WriteString(schema.ScopeName)
@@ -314,30 +274,36 @@ func generateSchemaID(schema *MetricSchema) string {
 	sb.WriteString(schema.Temporality)
 	sb.WriteString("|")
 
-	// Sort fields by name for deterministic output
-	fieldNames := make([]string, 0, len(schema.Fields))
+	// Sort by field name
+	sort.Slice(schema.Fields, func(i, j int) bool {
+		return schema.Fields[i].Name < schema.Fields[j].Name
+	})
+
 	for _, f := range schema.Fields {
-		fieldNames = append(fieldNames, f.Name)
-	}
-	sort.Strings(fieldNames)
-
-	// Add sorted fields
-	for _, name := range fieldNames {
-		for _, f := range schema.Fields {
-			if f.Name == name {
-				sb.WriteString(name)
-				sb.WriteString(":")
-				sb.WriteString(f.Type)
-				sb.WriteString(":")
-				sb.WriteString(f.Source)
-				sb.WriteString("|")
-				break
-			}
-		}
+		sb.WriteString(f.Name)
+		sb.WriteString(":")
+		sb.WriteString(f.Type)
+		sb.WriteString(":")
+		sb.WriteString(f.Source)
+		sb.WriteString("|")
 	}
 
-	// Create SHA-256 hash
 	h := sha256.New()
 	h.Write([]byte(sb.String()))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// isHighCardinality uses heuristics to determine if a field is high cardinality.
+func isHighCardinality(name string, t ValueType, source string) bool {
+	lc := strings.ToLower(name)
+	if strings.Contains(lc, "id") || strings.Contains(lc, "uuid") {
+		return true
+	}
+	if lc == "trace_id" || lc == "span_id" {
+		return true
+	}
+	if source == "datapoint" && t == ValueTypeString {
+		return true
+	}
+	return false
 }
