@@ -3,8 +3,8 @@ module github.com/tallycat/tallycat
 go 1.24.2
 
 require (
-	github.com/go-chi/chi/v5 v5.2.1
-	github.com/go-chi/chi/v5 v5.2.1
+	github.com/cespare/xxhash/v2 v2.3.0
+	github.com/go-chi/chi v1.5.5
 	github.com/go-chi/cors v1.2.1
 	github.com/marcboeker/go-duckdb/v2 v2.2.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.125.0
@@ -18,7 +18,6 @@ require (
 
 require (
 	github.com/apache/arrow-go/v18 v18.1.0 // indirect
-	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/duckdb/duckdb-go-bindings v0.1.14 // indirect
 	github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.9 // indirect
@@ -36,7 +35,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
-	github.com/marcboeker/go-duckdb v1.8.5 // indirect
 	github.com/marcboeker/go-duckdb/arrowmapping v0.0.7 // indirect
 	github.com/marcboeker/go-duckdb/mapping v0.0.7 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
