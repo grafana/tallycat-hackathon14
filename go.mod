@@ -4,6 +4,9 @@ go 1.24.2
 
 require (
 	github.com/go-chi/chi v1.5.5
+	github.com/go-chi/chi/v5 v5.2.1
+	github.com/go-chi/cors v1.2.1
+	github.com/marcboeker/go-duckdb/v2 v2.2.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.125.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
@@ -23,7 +26,6 @@ require (
 	github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.9 // indirect
 	github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.9 // indirect
 	github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.9 // indirect
-	github.com/go-chi/cors v1.2.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -37,7 +39,6 @@ require (
 	github.com/marcboeker/go-duckdb v1.8.5 // indirect
 	github.com/marcboeker/go-duckdb/arrowmapping v0.0.7 // indirect
 	github.com/marcboeker/go-duckdb/mapping v0.0.7 // indirect
-	github.com/marcboeker/go-duckdb/v2 v2.2.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.125.0 // indirect
