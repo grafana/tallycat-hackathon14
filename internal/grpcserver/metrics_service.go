@@ -3,7 +3,6 @@ package grpcserver
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
@@ -34,6 +33,7 @@ func (s *MetricsServiceServer) Export(ctx context.Context, req *metricspb.Export
 
 	for _, rm := range req.ResourceMetrics {
 		resourceMetric := rms.AppendEmpty()
+		resourceMetric.SetSchemaUrl(rm.SchemaUrl)
 
 		// Convert resource attributes
 		if rm.Resource != nil {
@@ -48,6 +48,7 @@ func (s *MetricsServiceServer) Export(ctx context.Context, req *metricspb.Export
 
 		for _, sm := range rm.ScopeMetrics {
 			scopeMetric := sms.AppendEmpty()
+			scopeMetric.SetSchemaUrl(sm.SchemaUrl)
 
 			// Convert scope
 			if sm.Scope != nil {
@@ -77,7 +78,7 @@ func (s *MetricsServiceServer) Export(ctx context.Context, req *metricspb.Export
 						dataPoint.SetTimestamp(pcommon.Timestamp(dp.TimeUnixNano))
 						dataPoint.SetDoubleValue(dp.GetAsDouble())
 
-						// Convert attributes
+						// Convert data point attributes
 						for _, attr := range dp.Attributes {
 							dataPoint.Attributes().PutStr(attr.Key, attr.Value.GetStringValue())
 						}
@@ -96,7 +97,7 @@ func (s *MetricsServiceServer) Export(ctx context.Context, req *metricspb.Export
 						dataPoint.SetTimestamp(pcommon.Timestamp(dp.TimeUnixNano))
 						dataPoint.SetDoubleValue(dp.GetAsDouble())
 
-						// Convert attributes
+						// Convert data point attributes
 						for _, attr := range dp.Attributes {
 							dataPoint.Attributes().PutStr(attr.Key, attr.Value.GetStringValue())
 						}
@@ -119,7 +120,7 @@ func (s *MetricsServiceServer) Export(ctx context.Context, req *metricspb.Export
 						dataPoint.BucketCounts().FromRaw(dp.BucketCounts)
 						dataPoint.ExplicitBounds().FromRaw(dp.ExplicitBounds)
 
-						// Convert attributes
+						// Convert data point attributes
 						for _, attr := range dp.Attributes {
 							dataPoint.Attributes().PutStr(attr.Key, attr.Value.GetStringValue())
 						}
@@ -142,19 +143,7 @@ func (s *MetricsServiceServer) Export(ctx context.Context, req *metricspb.Export
 						dataPoint.SetScale(dp.Scale)
 						dataPoint.SetZeroCount(dp.ZeroCount)
 
-						// Convert positive/negative buckets
-						if dp.Positive != nil {
-							pos := dataPoint.Positive()
-							pos.SetOffset(dp.Positive.Offset)
-							pos.BucketCounts().FromRaw(dp.Positive.BucketCounts)
-						}
-						if dp.Negative != nil {
-							neg := dataPoint.Negative()
-							neg.SetOffset(dp.Negative.Offset)
-							neg.BucketCounts().FromRaw(dp.Negative.BucketCounts)
-						}
-
-						// Convert attributes
+						// Convert data point attributes
 						for _, attr := range dp.Attributes {
 							dataPoint.Attributes().PutStr(attr.Key, attr.Value.GetStringValue())
 						}
@@ -172,16 +161,7 @@ func (s *MetricsServiceServer) Export(ctx context.Context, req *metricspb.Export
 						dataPoint.SetCount(dp.Count)
 						dataPoint.SetSum(dp.Sum)
 
-						// Convert quantile values
-						qvs := dataPoint.QuantileValues()
-						qvs.EnsureCapacity(len(dp.QuantileValues))
-						for _, qv := range dp.QuantileValues {
-							quantileValue := qvs.AppendEmpty()
-							quantileValue.SetQuantile(qv.Quantile)
-							quantileValue.SetValue(qv.Value)
-						}
-
-						// Convert attributes
+						// Convert data point attributes
 						for _, attr := range dp.Attributes {
 							dataPoint.Attributes().PutStr(attr.Key, attr.Value.GetStringValue())
 						}
@@ -196,35 +176,38 @@ func (s *MetricsServiceServer) Export(ctx context.Context, req *metricspb.Export
 
 	// Register each schema
 	for _, metricSchema := range schemas {
-		// Convert MetricSchema to repository.Schema
+		// Convert to repository schema
 		repoSchema := &repository.Schema{
 			SchemaID:         metricSchema.SchemaID,
 			SignalType:       metricSchema.SignalType,
+			SignalKey:        metricSchema.SignalKey,
 			ScopeName:        metricSchema.ScopeName,
 			ScopeVersion:     metricSchema.ScopeVersion,
+			SchemaURL:        metricSchema.SchemaURL,
+			MetricType:       &metricSchema.MetricType,
+			Unit:             &metricSchema.Unit,
 			FieldNames:       make([]string, len(metricSchema.Fields)),
 			FieldTypes:       make(map[string]string, len(metricSchema.Fields)),
 			FieldSources:     make(map[string]string, len(metricSchema.Fields)),
 			FieldCardinality: make(map[string]bool, len(metricSchema.Fields)),
 			SeenCount:        metricSchema.SeenCount,
-			UpdatedAt:        time.Now(),
+			CreatedAt:        metricSchema.CreatedAt,
+			UpdatedAt:        metricSchema.UpdatedAt,
 		}
-
-		// Convert metric type and unit
-		metricType := string(metricSchema.MetricType)
-		repoSchema.MetricType = &metricType
-		repoSchema.Unit = &metricSchema.Unit
 
 		// Convert fields
 		for i, field := range metricSchema.Fields {
 			repoSchema.FieldNames[i] = field.Name
-			repoSchema.FieldTypes[field.Name] = field.Type
+			repoSchema.FieldTypes[field.Name] = string(field.Type)
 			repoSchema.FieldSources[field.Name] = field.Source
 			repoSchema.FieldCardinality[field.Name] = field.IsHighCardinality
 		}
 
+		// Register schema
 		if err := s.schemaRepo.RegisterSchema(ctx, repoSchema); err != nil {
-			s.logger.Error("failed to register schema", "error", err, "schema_id", repoSchema.SchemaID)
+			s.logger.Error("failed to register schema",
+				"error", err,
+				"schema_id", metricSchema.SchemaID)
 			return nil, err
 		}
 	}

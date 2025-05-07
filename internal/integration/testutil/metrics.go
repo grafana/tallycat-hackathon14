@@ -21,6 +21,7 @@ func ConvertPmetricToRequest(md pmetric.Metrics) *metricspb.ExportMetricsService
 				Attributes: convertAttributes(rm.Resource().Attributes()),
 			},
 			ScopeMetrics: make([]*metricpb.ScopeMetrics, 0, rm.ScopeMetrics().Len()),
+			SchemaUrl:    rm.SchemaUrl(),
 		}
 
 		for j := 0; j < rm.ScopeMetrics().Len(); j++ {
@@ -30,7 +31,8 @@ func ConvertPmetricToRequest(md pmetric.Metrics) *metricspb.ExportMetricsService
 					Name:    sm.Scope().Name(),
 					Version: sm.Scope().Version(),
 				},
-				Metrics: make([]*metricpb.Metric, 0, sm.Metrics().Len()),
+				Metrics:   make([]*metricpb.Metric, 0, sm.Metrics().Len()),
+				SchemaUrl: sm.SchemaUrl(),
 			}
 
 			for k := 0; k < sm.Metrics().Len(); k++ {

@@ -1,7 +1,6 @@
 package testutil
 
 import (
-	"context"
 	"database/sql"
 	"log/slog"
 	"net"
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tallycat/tallycat/internal/grpcserver"
 	"github.com/tallycat/tallycat/internal/repository/duckdb"
+	"github.com/tallycat/tallycat/internal/repository/duckdb/migrator"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	metricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
@@ -29,7 +29,7 @@ type TestDB struct {
 // NewTestDB creates a new test database instance
 func NewTestDB(t *testing.T) *TestDB {
 	pool, err := duckdb.NewConnectionPool(&duckdb.Config{
-		DatabasePath:    "tallycat.db",
+		DatabasePath:    "tallycat.db", // Use in-memory database for tests
 		MaxOpenConns:    10,
 		MaxIdleConns:    5,
 		ConnMaxLifetime: time.Hour,
@@ -54,14 +54,15 @@ func (db *TestDB) Close() error {
 
 // SetupTestDB sets up the test database with the required schema
 func (db *TestDB) SetupTestDB(t *testing.T) {
-	err := db.repo.CreateSchemaTable(context.Background())
+	// Apply migrations instead of direct schema creation
+	err := migrator.ApplyMigrations(db.conn)
 	require.NoError(t, err)
 }
 
 // CleanupTestDB cleans up the test database
 func (db *TestDB) CleanupTestDB(t *testing.T) {
-	_, err := db.conn.Exec("DROP TABLE IF EXISTS otel_schema_catalog")
-	require.NoError(t, err)
+	// Since we're using in-memory database, we don't need to explicitly clean up
+	// The database will be destroyed when the connection is closed
 }
 
 // TestServer represents a test gRPC server
