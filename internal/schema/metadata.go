@@ -545,12 +545,21 @@ func generateSchemaIDWithXXHash(schema SchemaIDGenerator) string {
 		fieldMap["has_events"] = s.HasEvents
 	}
 
-	// Add fields
+	// Add fields, but only include structural information
 	fields := getFields(schema)
-	sort.Slice(fields, func(i, j int) bool {
-		return fields[i].Name < fields[j].Name
+	structuralFields := make([]map[string]interface{}, len(fields))
+	for i, field := range fields {
+		structuralFields[i] = map[string]interface{}{
+			"name":                field.Name,
+			"type":                field.Type,
+			"source":              field.Source,
+			"is_high_cardinality": field.IsHighCardinality,
+		}
+	}
+	sort.Slice(structuralFields, func(i, j int) bool {
+		return structuralFields[i]["name"].(string) < structuralFields[j]["name"].(string)
 	})
-	fieldMap["fields"] = fields
+	fieldMap["fields"] = structuralFields
 
 	// Convert to JSON for hashing
 	data, err := json.Marshal(fieldMap)
