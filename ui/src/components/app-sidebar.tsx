@@ -1,14 +1,6 @@
 import * as React from "react"
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
   GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings2,
   SquareTerminal,
   ChevronLeft,
   ChevronRight,
@@ -42,21 +34,13 @@ const data = {
   ],
   navMain: [
     {
-      title: "Playground",
+      title: "Data Governance",
       url: "#",
       icon: SquareTerminal,
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
+          title: "Schema Catalog",
           url: "#",
         },
       ],

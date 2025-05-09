@@ -56,7 +56,7 @@ export const UserMenu = ({
     <div className="relative">
       <button
         ref={avatarRef}
-        className="flex items-center justify-center w-8 h-8 rounded-full bg-background text-foreground font-semibold hover:bg-muted focus:outline-none transition-colors"
+        className="flex items-center gap-2 w-auto h-8 rounded-full bg-muted text-primary font-semibold border border-border hover:bg-muted focus:outline-none transition-colors px-2"
         aria-label="User menu"
         tabIndex={0}
         onClick={handleToggle}
@@ -64,12 +64,13 @@ export const UserMenu = ({
         aria-haspopup="menu"
         aria-expanded={isUserMenuOpen}
       >
-        {userInitials}
+        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-primary font-semibold">{userInitials}</span>
+        <span className="font-medium text-sm text-sidebar-foreground hidden sm:block">{userName}</span>
       </button>
       {isUserMenuOpen && (
         <div
           ref={menuRef}
-          className="absolute right-0 mt-2 w-64 rounded-xl bg-popover shadow-lg border border-border z-50 p-2 animate-in fade-in"
+          className="absolute right-0 mt-2 w-64 rounded-xl bg-sidebar text-sidebar-foreground shadow-lg border border-sidebar-border z-50 p-2 animate-in fade-in"
           role="menu"
           tabIndex={-1}
         >
@@ -107,21 +108,21 @@ export const UserMenu = ({
               aria-label="Light mode"
               onClick={() => setTheme('light')}
             >
-              <Sun className="w-4 h-4" />
+              <Sun className="w-4 h-4 text-muted-foreground" />
             </button>
             <button
               className={`rounded-md p-1 ${theme === 'dark' ? 'bg-muted text-primary' : 'hover:bg-muted text-muted-foreground'}`}
               aria-label="Dark mode"
               onClick={() => setTheme('dark')}
             >
-              <Moon className="w-4 h-4" />
+              <Moon className="w-4 h-4 text-muted-foreground" />
             </button>
             <button
               className={`rounded-md p-1 ${theme === 'system' ? 'bg-muted text-primary' : 'hover:bg-muted text-muted-foreground'}`}
               aria-label="System mode"
               onClick={() => setTheme('system')}
             >
-              <Monitor className="w-4 h-4" />
+              <Monitor className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
           <button className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-destructive/10 text-sm text-destructive" role="menuitem" tabIndex={0}>

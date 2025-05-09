@@ -1,6 +1,6 @@
 import React from 'react';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
-import { NotificationButton } from '@/components/notification-button';
+import { NotificationPopover } from '@/components/notification-popover';
 import { UserMenu } from '@/components/user-menu';
 
 interface AppHeaderProps {
@@ -22,7 +22,7 @@ export const AppHeader = ({
   }
 }: AppHeaderProps) => {
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between px-4 border-b border-border bg-background transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+    <header className="flex h-16 shrink-0 items-center justify-between px-4 border-b border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
       {/* Left section */}
       <div className="flex items-center gap-2">
         <Breadcrumb>
@@ -44,7 +44,7 @@ export const AppHeader = ({
       </div>
       {/* Right section */}
       <div className="flex items-center gap-4">
-        <NotificationButton />
+        <NotificationPopover />
         <UserMenu />
       </div>
     </header>
