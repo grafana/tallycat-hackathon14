@@ -35,7 +35,7 @@ export const BaseLayout = ({children}: {children: React.ReactNode}) => {
             <div className="flex items-center gap-4">
               {/* Notification button */}
               <button
-                className="relative rounded-full p-2 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
+                className="relative rounded-full p-2 hover:bg-muted focus:outline-none transition-colors"
                 aria-label="Notifications"
                 tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.currentTarget.click(); }}
@@ -93,7 +93,7 @@ export const BaseLayout = ({children}: {children: React.ReactNode}) => {
                   <div className="relative">
                     <button
                       ref={avatarRef}
-                      className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className="flex items-center justify-center w-8 h-8 rounded-full bg-background text-foreground font-semibold hover:bg-muted focus:outline-none transition-colors"
                       aria-label="User menu"
                       tabIndex={0}
                       onClick={() => setIsUserMenuOpen((open) => !open)}
