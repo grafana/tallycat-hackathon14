@@ -20,18 +20,14 @@ import {
 export function TeamSwitcher({
   teams,
 }: {
-  teams: {
+  teams: Array<{
     name: string
     logo: React.ElementType
     plan: string
-  }[]
+  }>
 }) {
   const { isMobile } = useSidebar()
   const [activeTeam, setActiveTeam] = React.useState(teams[0])
-
-  if (!activeTeam) {
-    return null
-  }
 
   return (
     <SidebarMenu>

@@ -1,12 +1,14 @@
-import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
-import { SidebarProvider } from '@/components/ui/sidebar'
+import React, { useEffect, useRef, useState } from 'react';
+import { Monitor, Moon, Sun } from 'lucide-react';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/app-sidebar'
 import { Separator } from '@/components/ui/separator'
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
-import React, { useState, useRef, useEffect } from 'react';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
+import { useTheme } from '@/components/theme-provider';
 
 
 export const BaseLayout = ({children}: {children: React.ReactNode}) => {
+    const { theme, setTheme } = useTheme();
     return (
       <>
         <SidebarProvider>
@@ -132,6 +134,31 @@ export const BaseLayout = ({children}: {children: React.ReactNode}) => {
                           <span>Notifications</span>
                         </button>
                         <div className="my-2 border-t border-border" />
+                        {/* Inline theme mode toggle */}
+                        <div className="w-full flex items-center gap-2 px-3 py-2">
+                          <span className="text-sm text-foreground">Theme</span>
+                          <button
+                            className={`ml-auto rounded-md p-1 ${theme === 'light' ? 'bg-muted text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+                            aria-label="Light mode"
+                            onClick={() => setTheme('light')}
+                          >
+                            <Sun className="w-4 h-4" />
+                          </button>
+                          <button
+                            className={`rounded-md p-1 ${theme === 'dark' ? 'bg-muted text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+                            aria-label="Dark mode"
+                            onClick={() => setTheme('dark')}
+                          >
+                            <Moon className="w-4 h-4" />
+                          </button>
+                          <button
+                            className={`rounded-md p-1 ${theme === 'system' ? 'bg-muted text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+                            aria-label="System mode"
+                            onClick={() => setTheme('system')}
+                          >
+                            <Monitor className="w-4 h-4" />
+                          </button>
+                        </div>
                         <button className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-destructive/10 text-sm text-destructive" role="menuitem" tabIndex={0}>
                           <span>Log out</span>
                         </button>
