@@ -1,0 +1,16 @@
+{
+  "framework": "react",
+  "typescript": true,
+  "projectName": "tallycat",
+  "mode": "file-router",
+  "tailwind": true,
+  "packageManager": "npm",
+  "toolchain": "eslint+prettier",
+  "variableValues": {},
+  "git": true,
+  "version": 1,
+  "existingAddOns": [
+    "tanstack-query",
+    "shadcn"
+  ]
+}
