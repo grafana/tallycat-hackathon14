@@ -1,0 +1,89 @@
+import { ChevronDown, Clock, Tag } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import type { TelemetryItem } from '@/types/telemetry'
+import { DataTypeIcon } from './telemetry-icons'
+import { getTelemetryTypeBgColor, formatDate, getStatusBadge } from '@/utils/telemetry'
+
+interface TelemetryCardProps {
+  item: TelemetryItem
+}
+
+export const TelemetryCard = ({ item }: TelemetryCardProps) => {
+  const statusBadge = getStatusBadge(item.status)
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+        <div className="flex items-center space-x-2">
+          <div
+            className={`flex h-8 w-8 items-center justify-center rounded-md ${getTelemetryTypeBgColor(item.type)}`}
+          >
+            <DataTypeIcon dataType={item.dataType} />
+          </div>
+          <CardTitle className="text-base">
+            <Link to={`/data-governance/schema-catalog`} className="hover:text-primary hover:underline">
+              {item.name}
+            </Link>
+          </CardTitle>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <ChevronDown className="h-4 w-4" />
+              <span className="sr-only">Open menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>View Details</DropdownMenuItem>
+            <DropdownMenuItem>Edit</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>Export</DropdownMenuItem>
+            <DropdownMenuItem className="text-red-500">Delete</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between py-1">
+          <span className="text-sm text-muted-foreground">Type</span>
+          <div className="flex items-center gap-1.5">
+            <DataTypeIcon dataType={item.dataType} />
+            <Badge variant="outline" className="capitalize">
+              {item.dataType}
+            </Badge>
+          </div>
+        </div>
+        <div className="flex items-center justify-between py-1">
+          <span className="text-sm text-muted-foreground">Status</span>
+          {statusBadge && (
+            <Badge variant="outline" className={statusBadge.className}>
+              {statusBadge.label}
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center justify-between py-1">
+          <span className="text-sm text-muted-foreground">Format</span>
+          <span className="text-sm font-mono">{item.format}</span>
+        </div>
+        <div className="mt-2">
+          <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
+        </div>
+      </CardContent>
+      <CardFooter className="border-t bg-muted/30 px-6 py-3">
+        <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Tag className="h-3 w-3" />
+            <span>{item.tags.length} tags</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            <span>{formatDate(item.lastUpdated)}</span>
+          </div>
+        </div>
+      </CardFooter>
+    </Card>
+  )
+} 

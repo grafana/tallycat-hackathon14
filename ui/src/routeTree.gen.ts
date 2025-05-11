@@ -12,6 +12,7 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as IndexImport } from './routes/index'
+import { Route as DataGovernanceSchemaCatalogImport } from './routes/data-governance/schema-catalog'
 
 // Create/Update Routes
 
@@ -20,6 +21,13 @@ const IndexRoute = IndexImport.update({
   path: '/',
   getParentRoute: () => rootRoute,
 } as any)
+
+const DataGovernanceSchemaCatalogRoute =
+  DataGovernanceSchemaCatalogImport.update({
+    id: '/data-governance/schema-catalog',
+    path: '/data-governance/schema-catalog',
+    getParentRoute: () => rootRoute,
+  } as any)
 
 // Populate the FileRoutesByPath interface
 
@@ -32,6 +40,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
+    '/data-governance/schema-catalog': {
+      id: '/data-governance/schema-catalog'
+      path: '/data-governance/schema-catalog'
+      fullPath: '/data-governance/schema-catalog'
+      preLoaderRoute: typeof DataGovernanceSchemaCatalogImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
@@ -39,32 +54,37 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/data-governance/schema-catalog': typeof DataGovernanceSchemaCatalogRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/data-governance/schema-catalog': typeof DataGovernanceSchemaCatalogRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
+  '/data-governance/schema-catalog': typeof DataGovernanceSchemaCatalogRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/data-governance/schema-catalog'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/data-governance/schema-catalog'
+  id: '__root__' | '/' | '/data-governance/schema-catalog'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DataGovernanceSchemaCatalogRoute: typeof DataGovernanceSchemaCatalogRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DataGovernanceSchemaCatalogRoute: DataGovernanceSchemaCatalogRoute,
 }
 
 export const routeTree = rootRoute
@@ -77,11 +97,15 @@ export const routeTree = rootRoute
     "__root__": {
       "filePath": "__root.tsx",
       "children": [
-        "/"
+        "/",
+        "/data-governance/schema-catalog"
       ]
     },
     "/": {
       "filePath": "index.tsx"
+    },
+    "/data-governance/schema-catalog": {
+      "filePath": "data-governance/schema-catalog.tsx"
     }
   }
 }

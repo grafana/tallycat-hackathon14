@@ -41,7 +41,7 @@ const data = {
       items: [
         {
           title: "Schema Catalog",
-          url: "#",
+          url: "/data-governance/schema-catalog",
         },
       ],
     },
@@ -49,6 +49,7 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+        
   const { state, toggleSidebar } = useSidebar();
   return (
     <Sidebar collapsible="icon" {...props} className="relative">
