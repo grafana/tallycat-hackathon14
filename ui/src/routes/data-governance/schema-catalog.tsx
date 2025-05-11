@@ -11,8 +11,118 @@ import { Tabs, TabsTrigger, TabsList } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useTelemetry } from '@/hooks/use-telemetry'
 import { TelemetryCard } from '@/components/telemetry/telemetry-card'
-import { TelemetryTableRow } from '@/components/telemetry/telemetry-table-row'
-import type { SortField, ViewMode } from '@/types/telemetry'
+import { DataTable } from '@/components/ui/data-table'
+import type { SortField, ViewMode, TelemetryItem } from '@/types/telemetry'
+import type { ColumnDef } from '@tanstack/react-table'
+import { DataTypeIcon } from '@/components/telemetry/telemetry-icons'
+import { getTelemetryTypeBgColor, formatDate, getStatusBadge } from '@/utils/telemetry'
+import { Link } from '@tanstack/react-router'
+
+const columns: ColumnDef<TelemetryItem>[] = [
+  {
+    accessorKey: "name",
+    header: "Name",
+    cell: ({ row }) => {
+      const item = row.original
+      return (
+        <div className="flex items-center gap-3">
+          <div
+            className={`flex h-8 w-8 items-center justify-center rounded-md ${getTelemetryTypeBgColor(
+              item.type,
+            )}`}
+          >
+            <DataTypeIcon dataType={item.dataType} />
+          </div>
+          <div>
+            <Link
+              to={`/data-governance/schema-catalog`}
+              className="font-medium hover:text-primary hover:underline"
+            >
+              {item.name}
+            </Link>
+            <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+          </div>
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: "type",
+    header: "Type",
+    cell: ({ row }) => {
+      const item = row.original
+      return (
+        <Badge variant="outline" className="capitalize">
+          {item.type}
+        </Badge>
+      )
+    },
+  },
+  {
+    accessorKey: "dataType",
+    header: "Data Type",
+    cell: ({ row }) => {
+      const item = row.original
+      return (
+        <div className="flex items-center gap-1.5">
+          <DataTypeIcon dataType={item.dataType} />
+          <span className="text-sm">{item.dataType}</span>
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const item = row.original
+      const statusBadge = getStatusBadge(item.status)
+      return statusBadge ? (
+        <Badge variant="outline" className={statusBadge.className}>
+          {statusBadge.label}
+        </Badge>
+      ) : null
+    },
+  },
+  {
+    accessorKey: "format",
+    header: "Format",
+    cell: ({ row }) => {
+      const item = row.original
+      return <span className="font-mono text-xs">{item.format}</span>
+    },
+  },
+  {
+    accessorKey: "lastUpdated",
+    header: "Last Updated",
+    cell: ({ row }) => {
+      const item = row.original
+      return formatDate(item.lastUpdated)
+    },
+  },
+  {
+    id: "actions",
+    cell: () => {
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <ChevronDown className="h-4 w-4" />
+              <span className="sr-only">Open menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>View Details</DropdownMenuItem>
+            <DropdownMenuItem>Edit</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>Export</DropdownMenuItem>
+            <DropdownMenuItem className="text-red-500">Delete</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    },
+  },
+]
 
 // Components
 const SearchBar = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
@@ -206,11 +316,7 @@ const ViewToggle = ({
   </div>
 )
 
-export const Route = createFileRoute('/data-governance/schema-catalog')({
-  component: SchemaCatalog,
-})
-
-function SchemaCatalog() {
+export const SchemaCatalog = () => {
   const {
     searchQuery,
     setSearchQuery,
@@ -232,139 +338,119 @@ function SchemaCatalog() {
   const { isLoading, error } = useTechnicalFacets()
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-medium">Telemetry Catalog</h1>
-        <p className="text-muted-foreground">Browse and manage your observability telemetry signals</p>
-      </div>
-
+    <div className="container mx-auto py-6">
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <SearchBar value={searchQuery} onChange={setSearchQuery} />
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-medium">Telemetry Catalog</h1>
+          <p className="text-muted-foreground">Browse and manage your observability telemetry signals</p>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <FilterDropdown
-              activeFilters={activeFilters}
-              activeFilterCount={activeFilterCount}
-              onToggleFilter={toggleFilter}
-              isLoading={isLoading}
-              error={error}
-            />
-            <SortDropdown
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={handleSort}
-            />
-            <ViewToggle
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-            />
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <SearchBar value={searchQuery} onChange={setSearchQuery} />
+
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterDropdown
+                activeFilters={activeFilters}
+                activeFilterCount={activeFilterCount}
+                onToggleFilter={toggleFilter}
+                isLoading={isLoading}
+                error={error}
+              />
+              <SortDropdown
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <ViewToggle
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+              />
+            </div>
           </div>
-        </div>
 
-        {activeFilterCount > 0 && (
-          <ActiveFilters
-            activeFilters={activeFilters}
-            removeFilter={removeFilter}
-            clearAllFilters={clearAllFilters}
-          />
-        )}
+          {activeFilterCount > 0 && (
+            <ActiveFilters
+              activeFilters={activeFilters}
+              removeFilter={removeFilter}
+              clearAllFilters={clearAllFilters}
+            />
+          )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList>
-            <TabsTrigger value="all">All Telemetry</TabsTrigger>
-            <TabsTrigger value="metric">Metrics</TabsTrigger>
-            <TabsTrigger value="log">Logs</TabsTrigger>
-            <TabsTrigger value="trace">Traces</TabsTrigger>
-          </TabsList>
-        </Tabs>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList>
+              <TabsTrigger value="all">All Telemetry</TabsTrigger>
+              <TabsTrigger value="metric">Metrics</TabsTrigger>
+              <TabsTrigger value="log">Logs</TabsTrigger>
+              <TabsTrigger value="trace">Traces</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Showing <span className="font-medium text-foreground">{filteredItems.length}</span> telemetry signals
-            {activeFilterCount > 0 && " with applied filters"}
-          </p>
-          <Select defaultValue="10">
-            <SelectTrigger className="w-[80px] h-8 text-xs">
-              <SelectValue placeholder="10 per page" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="20">20</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Showing <span className="font-medium text-foreground">{filteredItems.length}</span> telemetry signals
+              {activeFilterCount > 0 && " with applied filters"}
+            </p>
+            <Select defaultValue="10">
+              <SelectTrigger className="w-[80px] h-8 text-xs">
+                <SelectValue placeholder="10 per page" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Telemetry Grid */}
-        {viewMode === "grid" ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredItems.length === 0 ? (
-              <div className="col-span-full flex h-32 items-center justify-center rounded-md border">
-                <p className="text-muted-foreground">No telemetry signals found matching your criteria.</p>
+          {/* Results */}
+          <div className="mt-6">
+            {viewMode === "grid" ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredItems.map((item) => (
+                  <TelemetryCard key={item.id} item={item} />
+                ))}
               </div>
             ) : (
-              filteredItems.map((item) => (
-                <TelemetryCard key={item.id} item={item} />
-              ))
+              <DataTable
+                columns={columns}
+                data={filteredItems}
+                searchKey="name"
+                searchPlaceholder="Search telemetry signals..."
+                pageSize={10}
+                showColumnVisibility={true}
+                showPagination={true}
+                showSearch={true}
+              />
             )}
           </div>
-        ) : (
-          <div className="rounded-md border">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Name</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Type</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Data Type</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
-                  <th className="hidden px-4 py-3 text-left text-sm font-medium text-muted-foreground md:table-cell">
-                    Format
-                  </th>
-                  <th className="hidden px-4 py-3 text-left text-sm font-medium text-muted-foreground lg:table-cell">
-                    Updated
-                  </th>
-                  <th className="w-[50px]"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
-                      No telemetry signals found matching your criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredItems.map((item) => (
-                    <TelemetryTableRow key={item.id} item={item} />
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
 
-        <div className="flex items-center justify-between">
-          <Button variant="outline" size="sm" disabled>
-            Previous
-          </Button>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" className="h-8 w-8 p-0 font-medium">
-              1
+          <div className="flex items-center justify-between">
+            <Button variant="outline" size="sm" disabled>
+              Previous
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
-              2
-            </Button>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
-              3
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" className="h-8 w-8 p-0 font-medium">
+                1
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+                2
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+                3
+              </Button>
+            </div>
+            <Button variant="outline" size="sm" disabled>
+              Next
             </Button>
           </div>
-          <Button variant="outline" size="sm" disabled>
-            Next
-          </Button>
         </div>
       </div>
     </div>
   )
-} 
+}
+
+export const Route = createFileRoute('/data-governance/schema-catalog')({
+  component: SchemaCatalog,
+}) 
