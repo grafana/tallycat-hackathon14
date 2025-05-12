@@ -10,13 +10,16 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/tallycat/tallycat/internal/httpserver/api"
+	"github.com/tallycat/tallycat/internal/repository"
 )
 
 type Server struct {
 	httpServer *http.Server
+	schemaRepo repository.SchemaProvider
 }
 
-func New(addr string) *Server {
+func New(addr string, schemaRepo repository.SchemaProvider) *Server {
 	r := chi.NewRouter()
 	// Middlewares must be registered before routes or mounts
 	r.Use(middleware.RealIP)
@@ -42,12 +45,16 @@ func New(addr string) *Server {
 		w.Write([]byte("ok"))
 	})
 
-	return &Server{
+	// Register /api/v1/schemas handler
+	srv := &Server{
 		httpServer: &http.Server{
 			Addr:    addr,
 			Handler: r,
 		},
+		schemaRepo: schemaRepo,
 	}
+	r.Get("/api/v1/schemas", api.HandleListSchemas(srv.schemaRepo))
+	return srv
 }
 
 func (s *Server) Start() error {

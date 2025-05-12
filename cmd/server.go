@@ -60,7 +60,7 @@ and processes log data according to the OpenTelemetry protocol.`,
 		srv := grpcserver.NewServer(grpcAddr, opts...)
 
 		pool, err := duckdb.NewConnectionPool(&duckdb.Config{
-			DatabasePath:    "tallycat.db",
+			DatabasePath:    "/Users/nicolastakashi/workspace/github.com/nicolastakashi/tallycat/internal/grpcserver/tallycat.db",
 			MaxOpenConns:    10,
 			MaxIdleConns:    5,
 			ConnMaxLifetime: time.Hour,
@@ -76,7 +76,7 @@ and processes log data according to the OpenTelemetry protocol.`,
 		logsService := grpcserver.NewLogsServiceServer(schemaRepo, logger)
 		srv.RegisterService(&logspb.LogsService_ServiceDesc, logsService)
 
-		httpSrv := httpserver.New(httpAddr)
+		httpSrv := httpserver.New(httpAddr, schemaRepo)
 
 		g, _ := errgroup.WithContext(ctx)
 

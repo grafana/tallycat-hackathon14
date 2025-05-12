@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"time"
+
+	"github.com/tallycat/tallycat/internal/repository/query"
 )
 
 // Schema represents a telemetry schema in the repository
@@ -29,21 +31,6 @@ type SchemaProvider interface {
 	// RegisterSchema registers a new schema or updates an existing one
 	RegisterSchema(ctx context.Context, schema *Schema) error
 
-	// GetSchema retrieves a schema by its ID
-	GetSchema(ctx context.Context, schemaID string) (*Schema, error)
-
-	// GetSchemasByScope retrieves schemas by scope name and version
-	GetSchemasByScope(ctx context.Context, scopeName, scopeVersion string) ([]*Schema, error)
-
-	// GetSchemasBySignalType retrieves schemas by signal type
-	GetSchemasBySignalType(ctx context.Context, signalType string) ([]*Schema, error)
-
-	// UpdateSchemaSeenCount updates the seen count for a schema
-	UpdateSchemaSeenCount(ctx context.Context, schemaID string, count int) error
-
-	// DeleteSchema deletes a schema by its ID
-	DeleteSchema(ctx context.Context, schemaID string) error
-
-	// UpdateFieldCardinality updates the cardinality information for a field
-	UpdateFieldCardinality(ctx context.Context, fieldName string, isHighCardinality bool) error
+	// ListSchemas returns a paginated, filtered, and searched list of schemas
+	ListSchemas(ctx context.Context, params query.ListQueryParams) ([]*Schema, int, error)
 }
