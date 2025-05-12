@@ -338,10 +338,10 @@ export const SchemaCatalog = () => {
   const { isLoading, error } = useTechnicalFacets()
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="mx-auto">
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-medium">Telemetry Catalog</h1>
+          <h1 className="text-3xl font-medium">Schema Catalog</h1>
           <p className="text-muted-foreground">Browse and manage your observability telemetry signals</p>
         </div>
 
@@ -405,26 +405,25 @@ export const SchemaCatalog = () => {
           </div>
 
           {/* Results */}
-          <div className="mt-6">
-            {viewMode === "grid" ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredItems.map((item) => (
-                  <TelemetryCard key={item.id} item={item} />
-                ))}
-              </div>
-            ) : (
-              <DataTable
-                columns={columns}
-                data={filteredItems}
-                searchKey="name"
-                searchPlaceholder="Search telemetry signals..."
-                pageSize={10}
-                showColumnVisibility={true}
-                showPagination={true}
-                showSearch={true}
-              />
-            )}
-          </div>
+
+          {viewMode === "grid" ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredItems.map((item) => (
+                <TelemetryCard key={item.id} item={item} />
+              ))}
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={filteredItems}
+              searchKey="name"
+              searchPlaceholder="Search telemetry signals..."
+              pageSize={10}
+              showColumnVisibility={false}
+              showPagination={true}
+              showSearch={false}
+            />
+          )}
 
           <div className="flex items-center justify-between">
             <Button variant="outline" size="sm" disabled>
