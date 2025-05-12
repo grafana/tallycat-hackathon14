@@ -5,13 +5,14 @@ import "time"
 // SchemaListItem is the API response item for a schema in the catalog
 // (Fields: name, description, type, data_type, status, format, last_updated)
 type SchemaListItem struct {
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Type        string    `json:"type"`
-	DataType    string    `json:"dataType"`
-	Status      string    `json:"status"`
-	Format      string    `json:"format"`
-	LastUpdated time.Time `json:"lastUpdated"`
+	Name               string    `json:"name"`
+	Description        string    `json:"description"`
+	Type               string    `json:"type"`
+	DataType           string    `json:"dataType"`
+	Status             string    `json:"status"`
+	Format             string    `json:"format"`
+	LastUpdated        time.Time `json:"lastUpdated"`
+	SchemaVersionCount int       `json:"schemaVersionCount"` // Number of versions for this schema
 }
 
 type ListSchemasResponse struct {

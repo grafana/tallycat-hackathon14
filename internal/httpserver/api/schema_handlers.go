@@ -22,13 +22,14 @@ func HandleListSchemas(schemaRepo repository.SchemaProvider) http.HandlerFunc {
 		items := make([]SchemaListItem, 0, len(schemas))
 		for _, sch := range schemas {
 			item := SchemaListItem{
-				Name:        sch.SignalKey,
-				Description: "Test", // Not stored yet
-				Type:        sch.SignalType,
-				DataType:    ptr.Deref(sch.MetricType, ""),
-				Status:      "Active", // Default for now
-				Format:      "OTLP",   // Default for now
-				LastUpdated: sch.UpdatedAt,
+				Name:               sch.SignalKey,
+				Description:        "Test", // Not stored yet
+				Type:               sch.SignalType,
+				DataType:           ptr.Deref(sch.MetricType, ""),
+				Status:             "Active", // Default for now
+				Format:             "OTLP",   // Default for now
+				LastUpdated:        sch.UpdatedAt,
+				SchemaVersionCount: sch.SchemaVersionCount,
 			}
 			if item.Name == "" {
 				item.Name = sch.SchemaID

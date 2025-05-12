@@ -42,7 +42,7 @@ const columns: ColumnDef<TelemetryItem>[] = [
             >
               {item.name}
             </Link>
-            <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+            {/* <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p> */}
           </div>
         </div>
       )
@@ -71,6 +71,14 @@ const columns: ColumnDef<TelemetryItem>[] = [
           <span className="text-sm">{item.dataType}</span>
         </div>
       )
+    },
+  },
+  {
+    accessorKey: "schemaVersionCount",
+    header: "Schema Versions",
+    cell: ({ row }) => {
+      const item = row.original
+      return <span className="text-sm">{item.schemaVersionCount}</span>
     },
   },
   {

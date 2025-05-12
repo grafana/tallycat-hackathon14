@@ -23,7 +23,7 @@ export const formatDate = (dateString: string) => {
 }
 
 export const getStatusBadge = (status: Status) => {
-  switch (status) {
+  switch (status.toLowerCase()) {
     case "active":
       return {
         className: "bg-green-500/10 text-green-500 border-green-500/20",

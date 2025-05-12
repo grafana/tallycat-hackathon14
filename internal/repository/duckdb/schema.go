@@ -127,7 +127,11 @@ func (r *SchemaRepository) ListSchemas(ctx context.Context, params query.ListQue
 	}
 
 	// Count total
-	countQuery := `SELECT COUNT(*) FROM schema_core c JOIN schema_details d ON c.schema_id = d.schema_id WHERE 1=1` + where
+	countQuery := `
+		SELECT COUNT(DISTINCT (c.signal_type, c.signal_key))
+		FROM schema_core c
+		JOIN schema_details d ON c.schema_id = d.schema_id
+		WHERE 1=1` + where
 	db := r.pool.GetConnection()
 
 	// Use context timeout for count query
@@ -144,17 +148,41 @@ func (r *SchemaRepository) ListSchemas(ctx context.Context, params query.ListQue
 		return []*repository.Schema{}, 0, nil
 	}
 
-	// Build main query
+	// Build main query with grouping
 	queryStr := `
+		WITH latest_schemas AS (
+			SELECT 
+				c.schema_id,
+				c.signal_type,
+				c.signal_key,
+				c.scope_name,
+				c.scope_version,
+				d.metric_type,
+				d.unit,
+				d.field_names,
+				d.field_types,
+				d.field_sources,
+				d.field_cardinality,
+				c.seen_count,
+				c.created_at,
+				c.updated_at,
+				COUNT(*) OVER (PARTITION BY c.signal_type, c.signal_key) as version_count,
+				ROW_NUMBER() OVER (
+					PARTITION BY c.signal_type, c.signal_key 
+					ORDER BY c.updated_at DESC
+				) as rn
+			FROM schema_core c
+			JOIN schema_details d ON c.schema_id = d.schema_id
+			WHERE 1=1` + where + `
+		)
 		SELECT 
-			c.schema_id, c.signal_type, c.signal_key, c.scope_name, c.scope_version,
-			d.metric_type, d.unit, d.field_names, d.field_types,
-			d.field_sources, d.field_cardinality, c.seen_count,
-			c.created_at, c.updated_at
-		FROM schema_core c
-		JOIN schema_details d ON c.schema_id = d.schema_id
-		WHERE 1=1` + where + `
-		ORDER BY c.updated_at DESC
+			schema_id, signal_type, signal_key, scope_name, scope_version,
+			metric_type, unit, field_names, field_types,
+			field_sources, field_cardinality, seen_count,
+			created_at, updated_at, version_count
+		FROM latest_schemas
+		WHERE rn = 1
+		ORDER BY updated_at DESC
 		LIMIT ? OFFSET ?`
 
 	// Add pagination parameters
@@ -177,6 +205,7 @@ func (r *SchemaRepository) ListSchemas(ctx context.Context, params query.ListQue
 		var fieldNamesRaw []interface{}
 		var metricType, unit sql.NullString
 		var fieldTypesJSON, fieldSourcesJSON, fieldCardinalityJSON string
+		var versionCount int
 
 		if err := rows.Scan(
 			&schema.SchemaID,
@@ -193,6 +222,7 @@ func (r *SchemaRepository) ListSchemas(ctx context.Context, params query.ListQue
 			&schema.SeenCount,
 			&schema.CreatedAt,
 			&schema.UpdatedAt,
+			&versionCount,
 		); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan schema row: %w", err)
 		}
@@ -226,6 +256,9 @@ func (r *SchemaRepository) ListSchemas(ctx context.Context, params query.ListQue
 		if err := json.Unmarshal([]byte(fieldCardinalityJSON), &schema.FieldCardinality); err != nil {
 			return nil, 0, fmt.Errorf("failed to unmarshal field cardinality: %w", err)
 		}
+
+		// Store version count in a custom field
+		schema.SchemaVersionCount = versionCount
 
 		schemas = append(schemas, &schema)
 	}

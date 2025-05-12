@@ -23,6 +23,7 @@ export interface TelemetryItem {
   tags: string[]
   severity?: string
   spanKind?: string
+  schemaVersionCount: number
 }
 
 export interface FilterState {
