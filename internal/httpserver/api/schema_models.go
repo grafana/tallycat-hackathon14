@@ -8,15 +8,15 @@ type SchemaListItem struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Type        string    `json:"type"`
-	DataType    string    `json:"data_type"`
+	DataType    string    `json:"dataType"`
 	Status      string    `json:"status"`
 	Format      string    `json:"format"`
-	LastUpdated time.Time `json:"last_updated"`
+	LastUpdated time.Time `json:"lastUpdated"`
 }
 
 type ListSchemasResponse struct {
 	Schemas  []SchemaListItem `json:"schemas"`
 	Total    int              `json:"total"`
 	Page     int              `json:"page"`
-	PageSize int              `json:"page_size"`
+	PageSize int              `json:"pageSize"`
 }

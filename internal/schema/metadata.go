@@ -16,20 +16,20 @@ import (
 
 // SchemaVersion represents a specific version of a schema
 type SchemaVersion struct {
-	VersionID       string    `json:"version_id"`
-	SchemaID        string    `json:"schema_id"`
-	PreviousVersion string    `json:"previous_version,omitempty"`
-	ChangeType      string    `json:"change_type"`
-	ChangedAt       time.Time `json:"changed_at"`
+	VersionID       string    `json:"versionId"`
+	SchemaID        string    `json:"schemaId"`
+	PreviousVersion string    `json:"previousVersion,omitempty"`
+	ChangeType      string    `json:"changeType"`
+	ChangedAt       time.Time `json:"changedAt"`
 	Changes         []Change  `json:"changes"`
 }
 
 // Change represents a single change in a schema version
 type Change struct {
-	FieldName   string `json:"field_name"`
-	ChangeType  string `json:"change_type"` // ADD, REMOVE, MODIFY
-	OldValue    string `json:"old_value,omitempty"`
-	NewValue    string `json:"new_value,omitempty"`
+	FieldName   string `json:"fieldName"`
+	ChangeType  string `json:"changeType"` // ADD, REMOVE, MODIFY
+	OldValue    string `json:"oldValue,omitempty"`
+	NewValue    string `json:"newValue,omitempty"`
 	Description string `json:"description"`
 }
 
@@ -38,22 +38,22 @@ type SchemaField struct {
 	Name              string    `json:"name"`
 	Type              ValueType `json:"type"`
 	Source            string    `json:"source"`
-	IsHighCardinality bool      `json:"is_high_cardinality"`
+	IsHighCardinality bool      `json:"isHighCardinality"`
 	Example           string    `json:"example,omitempty"`
-	LastUpdated       time.Time `json:"last_updated"`
+	LastUpdated       time.Time `json:"lasUpdated"`
 }
 
 // BaseSchema represents the common fields for all schema types
 type BaseSchema struct {
-	SchemaID     string        `json:"schema_id"`
-	SignalType   string        `json:"signal_type"`
-	ScopeName    string        `json:"scope_name"`
-	ScopeVersion string        `json:"scope_version"`
-	SchemaURL    string        `json:"schema_url"`
+	SchemaID     string        `json:"schemaId"`
+	SignalType   string        `json:"signalType"`
+	ScopeName    string        `json:"scopeName"`
+	ScopeVersion string        `json:"scopeVersion"`
+	SchemaURL    string        `json:"schemaUrl"`
 	Fields       []SchemaField `json:"fields"`
-	SeenCount    int           `json:"seen_count"`
-	CreatedAt    time.Time     `json:"created_at"`
-	UpdatedAt    time.Time     `json:"updated_at"`
+	SeenCount    int           `json:"seenCount"`
+	CreatedAt    time.Time     `json:"createdAt"`
+	UpdatedAt    time.Time     `json:"updatedAt"`
 	Version      SchemaVersion `json:"version"`
 	Producers    []Producer    `json:"producers"`
 	Consumers    []Consumer    `json:"consumers"`
@@ -63,43 +63,43 @@ type BaseSchema struct {
 type Producer struct {
 	ID        string    `json:"id"`
 	Type      string    `json:"type"`
-	FirstSeen time.Time `json:"first_seen"`
-	LastSeen  time.Time `json:"last_seen"`
+	FirstSeen time.Time `json:"firstSeen"`
+	LastSeen  time.Time `json:"lastSeen"`
 }
 
 // Consumer represents a service that consumes this schema
 type Consumer struct {
 	ID        string    `json:"id"`
 	Type      string    `json:"type"`
-	FirstUsed time.Time `json:"first_used"`
-	LastUsed  time.Time `json:"last_used"`
+	FirstUsed time.Time `json:"firstUsed"`
+	LastUsed  time.Time `json:"lastUsed"`
 }
 
 // MetricSchema represents a metric schema
 type MetricSchema struct {
 	BaseSchema
-	SignalKey   string `json:"signal_key"` // metric name
-	MetricType  string `json:"metric_type"`
+	SignalKey   string `json:"signalKey"` // metric name
+	MetricType  string `json:"metricType"`
 	Unit        string `json:"unit"`
-	IsMonotonic bool   `json:"is_monotonic"`
+	IsMonotonic bool   `json:"isMonotonic"`
 	Temporality string `json:"temporality"`
 }
 
 // LogSchema represents a log schema
 type LogSchema struct {
 	BaseSchema
-	SignalKey   string `json:"signal_key"` // log identifier/name
-	BodyType    string `json:"body_type"`
-	HasSeverity bool   `json:"has_severity"`
+	SignalKey   string `json:"signalKey"` // log identifier/name
+	BodyType    string `json:"bodyType"`
+	HasSeverity bool   `json:"hasSeverity"`
 }
 
 // TraceSchema represents a trace schema
 type TraceSchema struct {
 	BaseSchema
-	SignalKey string `json:"signal_key"` // span operation
-	SpanKind  string `json:"span_kind"`
-	HasStatus bool   `json:"has_status"`
-	HasEvents bool   `json:"has_events"`
+	SignalKey string `json:"signalKey"` // span operation
+	SpanKind  string `json:"spanKind"`
+	HasStatus bool   `json:"hasStatus"`
+	HasEvents bool   `json:"hasEvents"`
 }
 
 // ValueType represents the type of a field value

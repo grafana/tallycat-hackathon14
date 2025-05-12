@@ -1,47 +1,26 @@
 "use client"
 
+import { useState } from 'react'
 import {
-  flexRender,
+  useReactTable,
   getCoreRowModel,
   getSortedRowModel,
   getPaginationRowModel,
   getFilteredRowModel,
-  useReactTable,
-} from "@tanstack/react-table"
-import type {
-  ColumnDef,
-  SortingState,
-  VisibilityState,
-  ColumnFiltersState,
-} from "@tanstack/react-table"
-import { useState } from "react"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Settings2 } from "lucide-react"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  type SortingState,
+  type ColumnFiltersState,
+  type VisibilityState,
+  flexRender,
+} from '@tanstack/react-table'
+import { Input } from './input'
+import { Button } from './button'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem } from './dropdown-menu'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './select'
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from './table'
+import { Settings2 } from 'lucide-react'
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
+export interface DataTableProps<TData, TValue> {
+  columns: any
   data: TData[]
   searchKey?: string
   searchPlaceholder?: string
@@ -49,6 +28,12 @@ interface DataTableProps<TData, TValue> {
   showColumnVisibility?: boolean
   showPagination?: boolean
   showSearch?: boolean
+  // New props for standardized pagination/summary
+  totalCount: number
+  currentPage: number
+  onPageChange: (page: number) => void
+  onPageSizeChange: (size: number) => void
+  summaryText?: string
 }
 
 export function DataTable<TData, TValue>({
@@ -60,6 +45,11 @@ export function DataTable<TData, TValue>({
   showColumnVisibility = true,
   showPagination = true,
   showSearch = true,
+  totalCount,
+  currentPage,
+  onPageChange,
+  onPageSizeChange,
+  summaryText,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -85,7 +75,11 @@ export function DataTable<TData, TValue>({
         pageSize,
       },
     },
+    manualPagination: true,
+    pageCount: Math.ceil(totalCount / pageSize),
   })
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
 
   return (
     <div className="space-y-4">
@@ -183,43 +177,49 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
       {showPagination && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">Rows per page</p>
-            <Select
-              value={`${table.getState().pagination.pageSize}`}
-              onValueChange={(value) => {
-                table.setPageSize(Number(value))
-              }}
-            >
-              <SelectTrigger className="h-8 w-[70px]">
-                <SelectValue
-                  placeholder={table.getState().pagination.pageSize}
-                />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
+          <div className="text-sm text-muted-foreground">
+            {summaryText ?? `Showing ${data.length} of ${totalCount} items`}
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={pageSize.toString()} onValueChange={(value) => onPageSizeChange(Number(value))}>
+              <SelectTrigger className="w-[80px] h-8 text-xs">
+                <SelectValue placeholder="10 per page" />
               </SelectTrigger>
-              <SelectContent side="top">
-                {[10, 20, 30, 40, 50].map((pageSize) => (
-                  <SelectItem key={pageSize} value={`${pageSize}`}>
-                    {pageSize}
-                  </SelectItem>
-                ))}
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 1}
             >
               Previous
             </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={page === currentPage ? "outline" : "ghost"}
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => onPageChange(page)}
+                  disabled={page === currentPage}
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
             >
               Next
             </Button>

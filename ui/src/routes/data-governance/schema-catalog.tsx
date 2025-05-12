@@ -1,22 +1,24 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Database, FileText, ArrowUpDown, Filter, Search, X, ChevronDown } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Database, FileText, ArrowUpDown, X, ChevronDown } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { useTechnicalFacets } from '@/hooks/use-technical-facets'
 import type { TechnicalFacet, FacetOption } from '@/data/technical-facets'
 import { Tabs, TabsTrigger, TabsList } from '@/components/ui/tabs'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useTelemetry } from '@/hooks/use-telemetry'
+import { useSchemas } from '@/hooks/use-schemas'
 import { TelemetryCard } from '@/components/telemetry/telemetry-card'
 import { DataTable } from '@/components/ui/data-table'
-import type { SortField, ViewMode, TelemetryItem } from '@/types/telemetry'
+import type { ViewMode, TelemetryItem } from '@/types/telemetry'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTypeIcon } from '@/components/telemetry/telemetry-icons'
 import { getTelemetryTypeBgColor, formatDate, getStatusBadge } from '@/utils/telemetry'
 import { Link } from '@tanstack/react-router'
+import { useState } from 'react'
+import type { SortField, SortDirection } from '@/hooks/use-schemas'
+import { useDebounce } from '@/hooks/use-debounce'
+import { SearchBar } from '@/components/schema-catalog/SearchBar'
+import { FilterDropdown } from '@/components/schema-catalog/FilterDropdown'
 
 const columns: ColumnDef<TelemetryItem>[] = [
   {
@@ -125,91 +127,6 @@ const columns: ColumnDef<TelemetryItem>[] = [
 ]
 
 // Components
-const SearchBar = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
-  <div className="relative w-full sm:max-w-md">
-    <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-    <Input
-      type="search"
-      placeholder="Search telemetry signals..."
-      className="w-full pl-9 pr-4"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    />
-  </div>
-)
-
-const FilterDropdown = ({
-  activeFilters,
-  activeFilterCount,
-  onToggleFilter,
-  isLoading,
-  error
-}: {
-  activeFilters: Record<string, string[]>
-  activeFilterCount: number
-  onToggleFilter: (facetId: string, value: string) => void
-  isLoading: boolean
-  error: Error | null
-}) => {
-  const { data: technicalFacets } = useTechnicalFacets()
-
-  if (isLoading) {
-    return (
-      <Button variant="outline" size="sm" className="h-9" disabled>
-        <Filter className="mr-2 h-4 w-4" />
-        Loading...
-      </Button>
-    )
-  }
-
-  if (error) {
-    return (
-      <Button variant="outline" size="sm" className="h-9 text-destructive" disabled>
-        <Filter className="mr-2 h-4 w-4" />
-        Error loading filters
-      </Button>
-    )
-  }
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9">
-          <Filter className="mr-2 h-4 w-4" />
-          Filter
-          {activeFilterCount > 0 && (
-            <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1">
-              {activeFilterCount}
-            </Badge>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[220px]">
-        <ScrollArea className="h-[500px]">
-          {technicalFacets?.map((facet: TechnicalFacet) => (
-            <div key={facet.id} className="px-2 py-1.5">
-              <DropdownMenuLabel className="px-0">{facet.name}</DropdownMenuLabel>
-              <DropdownMenuSeparator className="mb-1" />
-              {facet.options.map((option: FacetOption) => (
-                <DropdownMenuCheckboxItem
-                  key={option.id}
-                  checked={(activeFilters[facet.id] || []).includes(option.id)}
-                  onCheckedChange={() => onToggleFilter(facet.id, option.id)}
-                >
-                  {option.name}
-                </DropdownMenuCheckboxItem>
-              ))}
-              {facet !== technicalFacets[technicalFacets.length - 1] && (
-                <DropdownMenuSeparator className="mt-1" />
-              )}
-            </div>
-          ))}
-        </ScrollArea>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
 const ActiveFilters = ({
   activeFilters,
   removeFilter,
@@ -260,7 +177,7 @@ const SortDropdown = ({
   onSort
 }: {
   sortField: SortField
-  sortDirection: string
+  sortDirection: SortDirection
   onSort: (field: SortField) => void
 }) => (
   <DropdownMenu>
@@ -317,25 +234,117 @@ const ViewToggle = ({
 )
 
 export const SchemaCatalog = () => {
-  const {
-    searchQuery,
-    setSearchQuery,
-    viewMode,
-    setViewMode,
-    activeFilters,
-    activeFilterCount,
-    toggleFilter,
-    removeFilter,
-    clearAllFilters,
+  const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery.length >= 2 ? searchQuery : '', 600)
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})
+  const [activeFilterCount, setActiveFilterCount] = useState(0)
+  const [sortField, setSortField] = useState<SortField>('name')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [activeTab, setActiveTab] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+
+  const { data: schemasData, isLoading: isLoadingSchemas, error: schemasError } = useSchemas({
+    page: currentPage,
+    pageSize,
+    search: debouncedSearchQuery,
+    type: activeTab !== 'all' ? activeTab : undefined,
     sortField,
     sortDirection,
-    handleSort,
-    activeTab,
-    setActiveTab,
-    filteredItems,
-  } = useTelemetry()
+    filters: activeFilters,
+  })
 
-  const { isLoading, error } = useTechnicalFacets()
+  const { isLoading: isLoadingFacets, error: facetsError } = useTechnicalFacets()
+
+  const toggleFilter = (facetId: string, value: string) => {
+    setActiveFilters((prev) => {
+      const currentValues = prev[facetId] || []
+      const newValues = currentValues.includes(value)
+        ? currentValues.filter((v) => v !== value)
+        : [...currentValues, value]
+
+      // Update filter count
+      const newCount = Object.values({
+        ...prev,
+        [facetId]: newValues,
+      }).reduce((acc, curr) => acc + curr.length, 0)
+      setActiveFilterCount(newCount)
+
+      // Reset to first page when filters change
+      setCurrentPage(1)
+
+      return {
+        ...prev,
+        [facetId]: newValues,
+      }
+    })
+  }
+
+  const removeFilter = (facetId: string, value: string) => {
+    setActiveFilters((prev) => {
+      const currentValues = prev[facetId] || []
+      const newValues = currentValues.filter((v) => v !== value)
+
+      // Update filter count
+      const newCount = Object.values({
+        ...prev,
+        [facetId]: newValues,
+      }).reduce((acc, curr) => acc + curr.length, 0)
+      setActiveFilterCount(newCount)
+
+      // Reset to first page when filters change
+      setCurrentPage(1)
+
+      return {
+        ...prev,
+        [facetId]: newValues,
+      }
+    })
+  }
+
+  const clearAllFilters = () => {
+    setActiveFilters({})
+    setActiveFilterCount(0)
+    // Reset to first page when filters change
+    setCurrentPage(1)
+  }
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortField(field)
+      setSortDirection("asc")
+    }
+    // Reset to first page when sorting changes
+    setCurrentPage(1)
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size)
+    setCurrentPage(1) // Reset to first page when changing page size
+  }
+
+  if (isLoadingSchemas) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <p className="text-muted-foreground">Loading schemas...</p>
+      </div>
+    )
+  }
+
+  if (schemasError) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <p className="text-destructive">Error loading schemas. Please try again later.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto">
@@ -354,8 +363,8 @@ export const SchemaCatalog = () => {
                 activeFilters={activeFilters}
                 activeFilterCount={activeFilterCount}
                 onToggleFilter={toggleFilter}
-                isLoading={isLoading}
-                error={error}
+                isLoading={isLoadingFacets}
+                error={facetsError}
               />
               <SortDropdown
                 sortField={sortField}
@@ -386,63 +395,30 @@ export const SchemaCatalog = () => {
             </TabsList>
           </Tabs>
 
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Showing <span className="font-medium text-foreground">{filteredItems.length}</span> telemetry signals
-              {activeFilterCount > 0 && " with applied filters"}
-            </p>
-            <Select defaultValue="10">
-              <SelectTrigger className="w-[80px] h-8 text-xs">
-                <SelectValue placeholder="10 per page" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Results */}
-
-          {viewMode === "grid" ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredItems.map((item) => (
-                <TelemetryCard key={item.id} item={item} />
-              ))}
-            </div>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={filteredItems}
-              searchKey="name"
-              searchPlaceholder="Search telemetry signals..."
-              pageSize={10}
-              showColumnVisibility={false}
-              showPagination={true}
-              showSearch={false}
-            />
-          )}
-
-          <div className="flex items-center justify-between">
-            <Button variant="outline" size="sm" disabled>
-              Previous
-            </Button>
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0 font-medium">
-                1
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
-                2
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
-                3
-              </Button>
-            </div>
-            <Button variant="outline" size="sm" disabled>
-              Next
-            </Button>
+          {/* Table and bottom controls */}
+          <div className="flex flex-col gap-2">
+            {viewMode === "grid" ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {schemasData?.schemas.map((item) => (
+                  <TelemetryCard key={item.id} item={item} />
+                ))}
+              </div>
+            ) : (
+              <DataTable
+                columns={columns}
+                data={schemasData?.schemas || []}
+                searchKey="name"
+                searchPlaceholder="Search telemetry signals..."
+                pageSize={pageSize}
+                showColumnVisibility={false}
+                showPagination={true}
+                showSearch={false}
+                totalCount={schemasData?.total || 0}
+                currentPage={currentPage}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
+            )}
           </div>
         </div>
       </div>
