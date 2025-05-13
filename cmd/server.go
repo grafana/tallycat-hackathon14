@@ -27,6 +27,7 @@ var (
 	connectionTimeout    time.Duration
 	shutdownTimeout      time.Duration
 	httpAddr             string
+	databasePath         string
 )
 
 // serverCmd represents the server command
@@ -60,7 +61,7 @@ and processes log data according to the OpenTelemetry protocol.`,
 		srv := grpcserver.NewServer(grpcAddr, opts...)
 
 		pool, err := duckdb.NewConnectionPool(&duckdb.Config{
-			DatabasePath:    "/Users/nicolastakashi/workspace/github.com/nicolastakashi/tallycat/internal/grpcserver/tallycat.db",
+			DatabasePath:    databasePath,
 			MaxOpenConns:    10,
 			MaxIdleConns:    5,
 			ConnMaxLifetime: time.Hour,
@@ -140,6 +141,7 @@ func init() {
 	serverCmd.Flags().DurationVar(&connectionTimeout, "connection-timeout", 10*time.Second, "Connection timeout duration")
 	serverCmd.Flags().DurationVar(&shutdownTimeout, "shutdown-timeout", 30*time.Second, "Graceful shutdown timeout duration")
 	serverCmd.Flags().StringVarP(&httpAddr, "http-addr", "H", ":8080", "Address to listen on for HTTP server (default: :8080)")
+	serverCmd.Flags().StringVarP(&databasePath, "database-path", "d", "tallycat.db", "Path to the database file")
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:

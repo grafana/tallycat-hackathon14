@@ -29,7 +29,7 @@ type TestDB struct {
 // NewTestDB creates a new test database instance
 func NewTestDB(t *testing.T) *TestDB {
 	pool, err := duckdb.NewConnectionPool(&duckdb.Config{
-		DatabasePath:    "tallycat.db", // Use in-memory database for tests
+		DatabasePath:    "../../tmp/data/tallycat.db", // Use in-memory database for tests
 		MaxOpenConns:    10,
 		MaxIdleConns:    5,
 		ConnMaxLifetime: time.Hour,

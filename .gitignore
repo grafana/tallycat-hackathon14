@@ -270,3 +270,7 @@ dist
 .svelte-kit
 
 # End of https://www.toptal.com/developers/gitignore/api/node
+
+tmp
+tallycat.db
+tallycat.db.wal

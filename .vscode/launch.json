@@ -11,7 +11,8 @@
             "mode": "auto",
             "program": "${workspaceFolder}",
             "args": [
-                "server"
+                "server",
+                "--database-path=${workspaceFolder}/tmp/data/tallycat.db"
             ],
             "buildFlags": "-tags=duckdb"
         },
