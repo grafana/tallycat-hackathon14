@@ -54,6 +54,7 @@ func New(addr string, schemaRepo repository.SchemaProvider) *Server {
 		schemaRepo: schemaRepo,
 	}
 	r.Get("/api/v1/schemas", api.HandleListSchemas(srv.schemaRepo))
+	r.Get("/api/v1/schemas/{key}", api.HandleGetSchema(srv.schemaRepo))
 	return srv
 }
 

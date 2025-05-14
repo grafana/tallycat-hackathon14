@@ -34,4 +34,7 @@ type SchemaProvider interface {
 
 	// ListSchemas returns a paginated, filtered, and searched list of schemas
 	ListSchemas(ctx context.Context, params query.ListQueryParams) ([]*Schema, int, error)
+
+	// GetSchemaByKey returns a specific schema by its signal key
+	GetSchemaByKey(ctx context.Context, signalKey string) (*Schema, error)
 }

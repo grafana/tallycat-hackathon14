@@ -269,3 +269,110 @@ func (r *SchemaRepository) ListSchemas(ctx context.Context, params query.ListQue
 
 	return schemas, total, nil
 }
+
+func (r *SchemaRepository) GetSchemaByKey(ctx context.Context, signalKey string) (*repository.Schema, error) {
+	queryStr := `
+		WITH latest_schema AS (
+			SELECT 
+				c.schema_id,
+				c.signal_type,
+				c.signal_key,
+				c.scope_name,
+				c.scope_version,
+				d.metric_type,
+				d.unit,
+				d.field_names,
+				d.field_types,
+				d.field_sources,
+				d.field_cardinality,
+				c.seen_count,
+				c.created_at,
+				c.updated_at,
+				COUNT(*) OVER (PARTITION BY c.signal_type, c.signal_key) as version_count,
+				ROW_NUMBER() OVER (
+					PARTITION BY c.signal_type, c.signal_key 
+					ORDER BY c.updated_at DESC
+				) as rn
+			FROM schema_core c
+			JOIN schema_details d ON c.schema_id = d.schema_id
+			WHERE c.signal_key = ?
+		)
+		SELECT 
+			schema_id, signal_type, signal_key, scope_name, scope_version,
+			metric_type, unit, field_names, field_types,
+			field_sources, field_cardinality, seen_count,
+			created_at, updated_at, version_count
+		FROM latest_schema
+		WHERE rn = 1`
+
+	db := r.pool.GetConnection()
+
+	// Use context timeout for query
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	var schema repository.Schema
+	var fieldNamesRaw []interface{}
+	var metricType, unit sql.NullString
+	var fieldTypesJSON, fieldSourcesJSON, fieldCardinalityJSON string
+	var versionCount int
+
+	err := db.QueryRowContext(ctx, queryStr, signalKey).Scan(
+		&schema.SchemaID,
+		&schema.SignalType,
+		&schema.SignalKey,
+		&schema.ScopeName,
+		&schema.ScopeVersion,
+		&metricType,
+		&unit,
+		&fieldNamesRaw,
+		&fieldTypesJSON,
+		&fieldSourcesJSON,
+		&fieldCardinalityJSON,
+		&schema.SeenCount,
+		&schema.CreatedAt,
+		&schema.UpdatedAt,
+		&versionCount,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to query schema: %w", err)
+	}
+
+	// Convert field names
+	fieldNames := make([]string, len(fieldNamesRaw))
+	for i, v := range fieldNamesRaw {
+		if s, ok := v.(string); ok {
+			fieldNames[i] = s
+		} else {
+			fieldNames[i] = ""
+		}
+	}
+	schema.FieldNames = fieldNames
+
+	// Handle nullable fields
+	if metricType.Valid {
+		schema.MetricType = &metricType.String
+	}
+	if unit.Valid {
+		schema.Unit = &unit.String
+	}
+
+	// Parse JSON fields
+	if err := json.Unmarshal([]byte(fieldTypesJSON), &schema.FieldTypes); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal field types: %w", err)
+	}
+	if err := json.Unmarshal([]byte(fieldSourcesJSON), &schema.FieldSources); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal field sources: %w", err)
+	}
+	if err := json.Unmarshal([]byte(fieldCardinalityJSON), &schema.FieldCardinality); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal field cardinality: %w", err)
+	}
+
+	// Store version count in a custom field
+	schema.SchemaVersionCount = versionCount
+
+	return &schema, nil
+}
