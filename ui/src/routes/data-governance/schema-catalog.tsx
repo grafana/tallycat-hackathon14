@@ -37,7 +37,8 @@ const columns: ColumnDef<TelemetryItem>[] = [
           </div>
           <div>
             <Link
-              to={`/data-governance/schema-catalog`}
+              to="/data-governance/$telemetryName"
+              params={{ telemetryName: item.name }}
               className="font-medium hover:text-primary hover:underline"
             >
               {item.name}

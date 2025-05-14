@@ -13,6 +13,7 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as IndexImport } from './routes/index'
 import { Route as DataGovernanceSchemaCatalogImport } from './routes/data-governance/schema-catalog'
+import { Route as DataGovernanceTelemetryNameImport } from './routes/data-governance/$telemetryName'
 
 // Create/Update Routes
 
@@ -29,6 +30,13 @@ const DataGovernanceSchemaCatalogRoute =
     getParentRoute: () => rootRoute,
   } as any)
 
+const DataGovernanceTelemetryNameRoute =
+  DataGovernanceTelemetryNameImport.update({
+    id: '/data-governance/$telemetryName',
+    path: '/data-governance/$telemetryName',
+    getParentRoute: () => rootRoute,
+  } as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -38,6 +46,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/data-governance/$telemetryName': {
+      id: '/data-governance/$telemetryName'
+      path: '/data-governance/$telemetryName'
+      fullPath: '/data-governance/$telemetryName'
+      preLoaderRoute: typeof DataGovernanceTelemetryNameImport
       parentRoute: typeof rootRoute
     }
     '/data-governance/schema-catalog': {
@@ -54,36 +69,51 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/data-governance/$telemetryName': typeof DataGovernanceTelemetryNameRoute
   '/data-governance/schema-catalog': typeof DataGovernanceSchemaCatalogRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/data-governance/$telemetryName': typeof DataGovernanceTelemetryNameRoute
   '/data-governance/schema-catalog': typeof DataGovernanceSchemaCatalogRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
+  '/data-governance/$telemetryName': typeof DataGovernanceTelemetryNameRoute
   '/data-governance/schema-catalog': typeof DataGovernanceSchemaCatalogRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/data-governance/schema-catalog'
+  fullPaths:
+    | '/'
+    | '/data-governance/$telemetryName'
+    | '/data-governance/schema-catalog'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/data-governance/schema-catalog'
-  id: '__root__' | '/' | '/data-governance/schema-catalog'
+  to:
+    | '/'
+    | '/data-governance/$telemetryName'
+    | '/data-governance/schema-catalog'
+  id:
+    | '__root__'
+    | '/'
+    | '/data-governance/$telemetryName'
+    | '/data-governance/schema-catalog'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DataGovernanceTelemetryNameRoute: typeof DataGovernanceTelemetryNameRoute
   DataGovernanceSchemaCatalogRoute: typeof DataGovernanceSchemaCatalogRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DataGovernanceTelemetryNameRoute: DataGovernanceTelemetryNameRoute,
   DataGovernanceSchemaCatalogRoute: DataGovernanceSchemaCatalogRoute,
 }
 
@@ -98,11 +128,15 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/data-governance/$telemetryName",
         "/data-governance/schema-catalog"
       ]
     },
     "/": {
       "filePath": "index.tsx"
+    },
+    "/data-governance/$telemetryName": {
+      "filePath": "data-governance/$telemetryName.tsx"
     },
     "/data-governance/schema-catalog": {
       "filePath": "data-governance/schema-catalog.tsx"
