@@ -39,7 +39,7 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
           <Info className="h-5 w-5 text-primary" />
           <h2 className="text-xl font-medium">Description</h2>
         </div>
-        <p className="text-base leading-relaxed">{telemetry.description}</p>
+        <p className="text-base leading-relaxed">{telemetry.description || "No description available"}</p>
       </div>
 
       {/* Main Content Area - 3 columns (removed Source & Format column) */}
