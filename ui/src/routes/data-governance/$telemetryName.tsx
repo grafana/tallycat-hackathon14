@@ -6,10 +6,13 @@ import { ArrowLeft, ChevronRight, Server } from 'lucide-react'
 import { useState } from 'react'
 import { TelemetryOverviewPanel } from '@/components/schema-catalog/TelemetryOverviewPanel'
 import { useTelemetryDetails } from '@/hooks/use-telemetry-details'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent } from '@/components/ui/card'
+import { SchemaDefinitionView } from '@/components/schema-catalog/SchemaDefinitionView'
 
 export const TelemetryDetails = () => {
   const { telemetryName } = useParams({ from: '/data-governance/$telemetryName' })
-  const [_, setActiveTab] = useState("schema")
+  const [activeTab, setActiveTab] = useState("schema")
   const { data: telemetry, isLoading, error } = useTelemetryDetails({ telemetryName })
 
   const handleViewAllSources = () => {
@@ -103,8 +106,49 @@ export const TelemetryDetails = () => {
           </div>
         </div>
       </div>
-      
+
       <TelemetryOverviewPanel telemetry={telemetry} onViewAllSources={handleViewAllSources} />
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="schema">Schema</TabsTrigger>
+          <TabsTrigger value="validation">Validation</TabsTrigger>
+          <TabsTrigger value="usage">Usage</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="schema" className="mt-0 space-y-4">
+          <Card>
+            <CardContent className="p-6">
+              <SchemaDefinitionView schemaData={telemetry} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="validation" className="mt-0 space-y-4">
+          <Card>
+            <CardContent className="p-6">
+              {/* <SchemaValidationView schemaId={telemetryId} schemaData={telemetry} /> */}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="usage" className="mt-0 space-y-6">
+          {/* <ReactFlowWrapper>
+            <BidirectionalLineageView schemaId={telemetryId} schemaData={telemetry} />
+          </ReactFlowWrapper> */}
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-0 space-y-4">
+          <Card>
+            <CardContent className="p-6">
+              {/* <SchemaHistoryView schemaId={telemetryId} schemaData={telemetry} /> */}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+
     </div>
   )
 }

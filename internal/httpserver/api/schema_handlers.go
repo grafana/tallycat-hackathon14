@@ -109,10 +109,30 @@ func HandleGetSchema(schemaRepo repository.SchemaProvider) http.HandlerFunc {
 		// Convert fields
 		for _, name := range schema.FieldNames {
 			field := SchemaField{
-				Name: name,
-				Type: schema.FieldTypes[name],
+				Name:        name,
+				Type:        schema.FieldTypes[name],
+				Description: "",    // Not stored yet
+				Required:    false, // Not stored yet
+				Source:      schema.FieldSources[name],
 			}
-			resp.Schema = append(resp.Schema, field)
+			// Only include fields that are not scope attributes in the main schema
+			if field.Source != "scope" {
+				resp.Schema = append(resp.Schema, field)
+			}
+		}
+
+		// Add scope attributes separately
+		for _, name := range schema.FieldNames {
+			if schema.FieldSources[name] == "scope" {
+				field := SchemaField{
+					Name:        name,
+					Type:        schema.FieldTypes[name],
+					Description: "",    // Not stored yet
+					Required:    false, // Not stored yet
+					Source:      "scope",
+				}
+				resp.Schema = append(resp.Schema, field)
+			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")

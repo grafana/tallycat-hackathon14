@@ -84,6 +84,7 @@ type SchemaField struct {
 	Type        string `json:"type"`
 	Description string `json:"description"`
 	Required    bool   `json:"required"`
+	Source      string `json:"source"`
 }
 
 type MetricDetails struct {

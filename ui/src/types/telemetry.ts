@@ -92,6 +92,7 @@ export interface SchemaField {
   type: string
   description: string
   required: boolean
+  source: string
 }
 
 export interface MetricDetails {
