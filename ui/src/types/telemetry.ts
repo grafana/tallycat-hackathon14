@@ -1,6 +1,6 @@
-export type TelemetryType = 'metric' | 'log' | 'trace'
-export type DataType = 'gauge' | 'counter' | 'histogram' | 'structured' | 'unstructured' | 'span'
-export type Status = 'active' | 'draft' | 'deprecated'
+export type TelemetryType = 'metric' | 'log' | 'trace' | 'event'
+export type DataType = 'counter' | 'gauge' | 'histogram' | 'summary' | 'string' | 'number' | 'boolean' | 'object'
+export type Status = 'active' | 'deprecated' | 'experimental' | 'stable'
 export type SortField = 'name' | 'lastUpdated' | 'type' | 'dataType'
 export type SortDirection = 'asc' | 'desc'
 export type ViewMode = 'grid' | 'list'
@@ -13,17 +13,17 @@ export interface TelemetryItem {
   status: Status
   description: string
   lastUpdated: string
+  schemaVersionCount: number
+  created: string
   fields: number
   source: string
   instrumentationLibrary: string
   format: string
-  unit?: string
-  aggregation?: string
+  unit: string
+  aggregation: string
   cardinality: string
   tags: string[]
-  severity?: string
-  spanKind?: string
-  schemaVersionCount: number
+  sourceTeams: string[]
 }
 
 export interface FilterState {

@@ -408,24 +408,20 @@ export const SchemaCatalog = () => {
           <div className="flex flex-col gap-2">
             {viewMode === "grid" ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {schemasData?.schemas.map((item) => (
-                  <TelemetryCard key={item.id} item={item} />
+                {schemasData?.items.map((item) => (
+                  <TelemetryCard key={`${item.id}-${item.name}`} item={item} />
                 ))}
               </div>
             ) : (
               <DataTable
                 columns={columns}
-                data={schemasData?.schemas || []}
-                searchKey="name"
-                searchPlaceholder="Search telemetry signals..."
-                pageSize={pageSize}
-                showColumnVisibility={false}
-                showPagination={true}
-                showSearch={false}
-                totalCount={schemasData?.total || 0}
+                data={schemasData?.items || []}
                 currentPage={currentPage}
+                pageSize={pageSize}
                 onPageChange={handlePageChange}
                 onPageSizeChange={handlePageSizeChange}
+                totalCount={schemasData?.total || 0}
+                showColumnVisibility={false}
               />
             )}
           </div>

@@ -76,7 +76,7 @@ export const TelemetryCard = ({ item }: TelemetryCardProps) => {
         <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <Tag className="h-3 w-3" />
-            <span>{item.tags.length} tags</span>
+            <span>{item.tags?.length || 0} tags</span>
           </div>
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
