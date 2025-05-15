@@ -39,7 +39,7 @@ func HandleListSchemas(schemaRepo repository.SchemaProvider) http.HandlerFunc {
 		}
 
 		resp := ListSchemasResponse{
-			Schemas:  items,
+			Items:    items,
 			Total:    total,
 			Page:     params.Page,
 			PageSize: params.PageSize,

@@ -5,18 +5,28 @@ import "time"
 // SchemaListItem is the API response item for a schema in the catalog
 // (Fields: name, description, type, data_type, status, format, last_updated)
 type SchemaListItem struct {
-	Name               string    `json:"name"`
-	Description        string    `json:"description"`
-	Type               string    `json:"type"`
-	DataType           string    `json:"dataType"`
-	Status             string    `json:"status"`
-	Format             string    `json:"format"`
-	LastUpdated        time.Time `json:"lastUpdated"`
-	SchemaVersionCount int       `json:"schemaVersionCount"` // Number of versions for this schema
+	ID                     string    `json:"id"`
+	Name                   string    `json:"name"`
+	Type                   string    `json:"type"`
+	DataType               string    `json:"dataType"`
+	Status                 string    `json:"status"`
+	Description            string    `json:"description"`
+	LastUpdated            time.Time `json:"lastUpdated"`
+	SchemaVersionCount     int       `json:"schemaVersionCount"`
+	Created                time.Time `json:"created"`
+	Fields                 int       `json:"fields"`
+	Source                 string    `json:"source"`
+	InstrumentationLibrary string    `json:"instrumentationLibrary"`
+	Format                 string    `json:"format"`
+	Unit                   string    `json:"unit"`
+	Aggregation            string    `json:"aggregation"`
+	Cardinality            string    `json:"cardinality"`
+	Tags                   []string  `json:"tags"`
+	SourceTeams            []string  `json:"sourceTeams"`
 }
 
 type ListSchemasResponse struct {
-	Schemas  []SchemaListItem `json:"schemas"`
+	Items    []SchemaListItem `json:"items"`
 	Total    int              `json:"total"`
 	Page     int              `json:"page"`
 	PageSize int              `json:"pageSize"`
