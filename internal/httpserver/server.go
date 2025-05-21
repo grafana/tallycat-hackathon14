@@ -16,10 +16,10 @@ import (
 
 type Server struct {
 	httpServer *http.Server
-	schemaRepo repository.SchemaProvider
+	schemaRepo repository.TelemetrySchemaRepository
 }
 
-func New(addr string, schemaRepo repository.SchemaProvider) *Server {
+func New(addr string, schemaRepo repository.TelemetrySchemaRepository) *Server {
 	r := chi.NewRouter()
 	// Middlewares must be registered before routes or mounts
 	r.Use(middleware.RealIP)

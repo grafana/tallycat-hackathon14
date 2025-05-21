@@ -23,7 +23,7 @@ import (
 type TestDB struct {
 	conn *sql.DB
 	pool *duckdb.ConnectionPool
-	repo *duckdb.SchemaRepository
+	repo *duckdb.TelemetrySchemaRepository
 }
 
 // NewTestDB creates a new test database instance
@@ -38,7 +38,7 @@ func NewTestDB(t *testing.T) *TestDB {
 	require.NoError(t, err)
 
 	conn := pool.GetConnection()
-	repo := duckdb.NewSchemaRepository(pool.(*duckdb.ConnectionPool), slog.Default())
+	repo := duckdb.NewTelemetrySchemaRepository(pool.(*duckdb.ConnectionPool))
 
 	return &TestDB{
 		conn: conn,
@@ -76,8 +76,8 @@ type TestServer struct {
 // NewTestServer creates a new test gRPC server
 func NewTestServer(t *testing.T, db *TestDB) *TestServer {
 	server := grpc.NewServer()
-	logsServer := grpcserver.NewLogsServiceServer(db.repo, slog.Default())
-	metricsServer := grpcserver.NewMetricsServiceServer(db.repo, slog.Default())
+	logsServer := grpcserver.NewLogsServiceServer(db.repo)
+	metricsServer := grpcserver.NewMetricsServiceServer(db.repo)
 	collectorlogspb.RegisterLogsServiceServer(server, logsServer)
 	metricspb.RegisterMetricsServiceServer(server, metricsServer)
 

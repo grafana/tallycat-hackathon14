@@ -15,14 +15,12 @@ import (
 
 type MetricsServiceServer struct {
 	metricspb.UnimplementedMetricsServiceServer
-	schemaRepo repository.SchemaProvider
-	logger     *slog.Logger
+	schemaRepo repository.TelemetrySchemaRepository
 }
 
-func NewMetricsServiceServer(schemaRepo repository.SchemaProvider, logger *slog.Logger) *MetricsServiceServer {
+func NewMetricsServiceServer(schemaRepo repository.TelemetrySchemaRepository) *MetricsServiceServer {
 	return &MetricsServiceServer{
 		schemaRepo: schemaRepo,
-		logger:     logger,
 	}
 }
 
@@ -172,44 +170,11 @@ func (s *MetricsServiceServer) Export(ctx context.Context, req *metricspb.Export
 	}
 
 	// Extract schemas from the converted metrics
-	schemas := schema.ExtractMetricSchema(metrics)
+	schemas := schema.ExtractFromMetrics(metrics)
 
-	// Register each schema
-	for _, metricSchema := range schemas {
-		// Convert to repository schema
-		repoSchema := &repository.Schema{
-			SchemaID:         metricSchema.SchemaID,
-			SignalType:       metricSchema.SignalType,
-			SignalKey:        metricSchema.SignalKey,
-			ScopeName:        metricSchema.ScopeName,
-			ScopeVersion:     metricSchema.ScopeVersion,
-			SchemaURL:        metricSchema.SchemaURL,
-			MetricType:       &metricSchema.MetricType,
-			Unit:             &metricSchema.Unit,
-			FieldNames:       make([]string, len(metricSchema.Fields)),
-			FieldTypes:       make(map[string]string, len(metricSchema.Fields)),
-			FieldSources:     make(map[string]string, len(metricSchema.Fields)),
-			FieldCardinality: make(map[string]bool, len(metricSchema.Fields)),
-			SeenCount:        metricSchema.SeenCount,
-			CreatedAt:        metricSchema.CreatedAt,
-			UpdatedAt:        metricSchema.UpdatedAt,
-		}
-
-		// Convert fields
-		for i, field := range metricSchema.Fields {
-			repoSchema.FieldNames[i] = field.Name
-			repoSchema.FieldTypes[field.Name] = string(field.Type)
-			repoSchema.FieldSources[field.Name] = field.Source
-			repoSchema.FieldCardinality[field.Name] = field.IsHighCardinality
-		}
-
-		// Register schema
-		if err := s.schemaRepo.RegisterSchema(ctx, repoSchema); err != nil {
-			s.logger.Error("failed to register schema",
-				"error", err,
-				"schema_id", metricSchema.SchemaID)
-			return nil, err
-		}
+	if err := s.schemaRepo.RegisterTelemetrySchemas(ctx, schemas); err != nil {
+		slog.Error("failed to register schemas", "error", err)
+		return nil, err
 	}
 
 	return &metricspb.ExportMetricsServiceResponse{}, nil

@@ -72,9 +72,9 @@ and processes log data according to the OpenTelemetry protocol.`,
 			return fmt.Errorf("failed to create connection pool: %w", err)
 		}
 
-		schemaRepo := duckdb.NewSchemaRepository(pool.(*duckdb.ConnectionPool), logger)
+		schemaRepo := duckdb.NewTelemetrySchemaRepository(pool.(*duckdb.ConnectionPool))
 
-		logsService := grpcserver.NewLogsServiceServer(schemaRepo, logger)
+		logsService := grpcserver.NewLogsServiceServer(schemaRepo)
 		srv.RegisterService(&logspb.LogsService_ServiceDesc, logsService)
 
 		httpSrv := httpserver.New(httpAddr, schemaRepo)
