@@ -4,29 +4,29 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import type { TelemetryItem } from '@/types/telemetry'
+import type { Telemetry } from '@/types/telemetry'
 import { DataTypeIcon } from './telemetry-icons'
 import { getTelemetryTypeBgColor, formatDate, getStatusBadge } from '@/utils/telemetry'
 
 interface TelemetryCardProps {
-  item: TelemetryItem
+  item: Telemetry
 }
 
 export const TelemetryCard = ({ item }: TelemetryCardProps) => {
-  const statusBadge = getStatusBadge(item.status)
+  const statusBadge = getStatusBadge(undefined)
 
   return (
     <Card className="overflow-hidden">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <div className="flex items-center space-x-2">
           <div
-            className={`flex h-8 w-8 items-center justify-center rounded-md ${getTelemetryTypeBgColor(item.type)}`}
+            className={`flex h-8 w-8 items-center justify-center rounded-md ${getTelemetryTypeBgColor(item.telemetryType)}`}
           >
-            <DataTypeIcon dataType={item.dataType} />
+            <DataTypeIcon dataType={item.metricType} />
           </div>
           <CardTitle className="text-base">
             <Link to={`/data-governance/schema-catalog`} className="hover:text-primary hover:underline">
-              {item.name}
+              {item.schemaKey}
             </Link>
           </CardTitle>
         </div>
@@ -50,9 +50,9 @@ export const TelemetryCard = ({ item }: TelemetryCardProps) => {
         <div className="flex items-center justify-between py-1">
           <span className="text-sm text-muted-foreground">Type</span>
           <div className="flex items-center gap-1.5">
-            <DataTypeIcon dataType={item.dataType} />
+            <DataTypeIcon dataType={item.metricType} />
             <Badge variant="outline" className="capitalize">
-              {item.dataType}
+              {item.metricType}
             </Badge>
           </div>
         </div>
@@ -66,21 +66,21 @@ export const TelemetryCard = ({ item }: TelemetryCardProps) => {
         </div>
         <div className="flex items-center justify-between py-1">
           <span className="text-sm text-muted-foreground">Format</span>
-          <span className="text-sm font-mono">{item.format}</span>
+          <span className="text-sm font-mono">{item.protocol}</span>
         </div>
         <div className="mt-2">
-          <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
+          <p className="text-sm text-muted-foreground line-clamp-2">{item.brief}</p>
         </div>
       </CardContent>
       <CardFooter className="border-t bg-muted/30 px-6 py-3">
         <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
+          {/* <div className="flex items-center gap-1">
             <Tag className="h-3 w-3" />
             <span>{item.tags?.length || 0} tags</span>
-          </div>
+          </div> */}
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            <span>{formatDate(item.lastUpdated)}</span>
+            <span>{formatDate(item.updatedAt)}</span>
           </div>
         </div>
       </CardFooter>

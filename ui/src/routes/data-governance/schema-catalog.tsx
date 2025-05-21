@@ -9,10 +9,10 @@ import { Tabs, TabsTrigger, TabsList } from '@/components/ui/tabs'
 import { useSchemas } from '@/hooks/use-schemas'
 import { TelemetryCard } from '@/components/telemetry/telemetry-card'
 import { DataTable } from '@/components/ui/data-table'
-import type { ViewMode, TelemetryItem } from '@/types/telemetry'
+import type { ViewMode, Telemetry } from '@/types/telemetry'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTypeIcon } from '@/components/telemetry/telemetry-icons'
-import { getTelemetryTypeBgColor, formatDate, getStatusBadge } from '@/utils/telemetry'
+import { getTelemetryTypeBgColor, formatDate } from '@/utils/telemetry'
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { SortField, SortDirection } from '@/hooks/use-schemas'
@@ -20,9 +20,9 @@ import { useDebounce } from '@/hooks/use-debounce'
 import { SearchBar } from '@/components/schema-catalog/SearchBar'
 import { FilterDropdown } from '@/components/schema-catalog/FilterDropdown'
 
-const columns: ColumnDef<TelemetryItem>[] = [
+const columns: ColumnDef<Telemetry>[] = [
   {
-    accessorKey: "name",
+    accessorKey: "schemaKey",
     header: "Name",
     cell: ({ row }) => {
       const item = row.original
@@ -30,69 +30,56 @@ const columns: ColumnDef<TelemetryItem>[] = [
         <div className="flex items-center gap-3">
           <div
             className={`flex h-8 w-8 items-center justify-center rounded-md ${getTelemetryTypeBgColor(
-              item.type,
+              item.telemetryType,
             )}`}
           >
-            <DataTypeIcon dataType={item.dataType} />
+            <DataTypeIcon dataType={item.metricType} />
           </div>
           <div>
             <Link
               to="/data-governance/$telemetryName"
-              params={{ telemetryName: item.name }}
+              params={{ telemetryName: item.schemaKey }}
               className="font-medium hover:text-primary hover:underline"
             >
-              {item.name}
+              {item.schemaKey}
             </Link>
-            {/* <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p> */}
+            {/* <p className="text-xs text-muted-foreground line-clamp-1">{item.note}</p> */}
           </div>
         </div>
       )
     },
   },
   {
-    accessorKey: "type",
+    accessorKey: "telemetryType",
     header: "Type",
     cell: ({ row }) => {
       const item = row.original
       return (
         <Badge variant="outline" className="capitalize">
-          {item.type}
+          {item.telemetryType}
         </Badge>
       )
     },
   },
   {
-    accessorKey: "dataType",
+    accessorKey: "metricType",
     header: "Data Type",
     cell: ({ row }) => {
       const item = row.original
       return (
         <div className="flex items-center gap-1.5">
-          <DataTypeIcon dataType={item.dataType} />
-          <span className="text-sm">{item.dataType}</span>
+          <DataTypeIcon dataType={item.metricType} />
+          <span className="text-sm">{item.metricType}</span>
         </div>
       )
     },
   },
   {
-    accessorKey: "schemaVersionCount",
+    accessorKey: "seenCount",
     header: "Schema Versions",
     cell: ({ row }) => {
       const item = row.original
-      return <span className="text-sm">{item.schemaVersionCount}</span>
-    },
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const item = row.original
-      const statusBadge = getStatusBadge(item.status)
-      return statusBadge ? (
-        <Badge variant="outline" className={statusBadge.className}>
-          {statusBadge.label}
-        </Badge>
-      ) : null
+      return <span className="text-sm">{item.seenCount}</span>
     },
   },
   {
@@ -100,7 +87,7 @@ const columns: ColumnDef<TelemetryItem>[] = [
     header: "Format",
     cell: ({ row }) => {
       const item = row.original
-      return <span className="font-mono text-xs">{item.format}</span>
+      return <span className="font-mono text-xs">{item.protocol}</span>
     },
   },
   {
@@ -108,7 +95,7 @@ const columns: ColumnDef<TelemetryItem>[] = [
     header: "Last Updated",
     cell: ({ row }) => {
       const item = row.original
-      return formatDate(item.lastUpdated)
+      return formatDate(item.updatedAt)
     },
   },
   {
@@ -409,7 +396,7 @@ export const SchemaCatalog = () => {
             {viewMode === "grid" ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {schemasData?.items.map((item) => (
-                  <TelemetryCard key={`${item.id}-${item.name}`} item={item} />
+                  <TelemetryCard key={`${item.schemaId}-${item.schemaKey}`} item={item} />
                 ))}
               </div>
             ) : (

@@ -8,10 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { SchemaField, GetSchemaResponse } from "@/types/telemetry"
+import type { Attribute, Telemetry } from "@/types/telemetry"
 
 interface SchemaDefinitionViewProps {
-  schemaData: GetSchemaResponse
+  schemaData: Telemetry
 }
 
 export function SchemaDefinitionView({ schemaData }: SchemaDefinitionViewProps) {
@@ -26,13 +26,13 @@ export function SchemaDefinitionView({ schemaData }: SchemaDefinitionViewProps) 
 
   // Get resource attributes based on telemetry type
   const getResourceAttributes = () => {
-    if (!schemaData.schema) {
+    if (!schemaData.attributes) {
       return {}
     }
 
-    return schemaData.schema.reduce((acc: Record<string, string>, field: SchemaField) => {
-      if (field.source === "resource") {
-        acc[field.name] = field.description || ""
+    return schemaData.attributes.reduce((acc: Record<string, string>, field: Attribute) => {
+      if (field.source === "Resource") {
+        acc[field.name] = field.name || ""
       }
       return acc
     }, {} as Record<string, string>)
@@ -40,13 +40,13 @@ export function SchemaDefinitionView({ schemaData }: SchemaDefinitionViewProps) 
 
   // Get scope attributes
   const getScopeAttributes = () => {
-    if (!schemaData.schema) {
+    if (!schemaData.attributes) {
       return {}
     }
 
-    return schemaData.schema.reduce((acc: Record<string, string>, field: SchemaField) => {
-      if (field.source === "scope") {
-        acc[field.name] = field.description || ""
+    return schemaData.attributes.reduce((acc: Record<string, string>, field: Attribute) => {
+      if (field.source === "Scope") {
+        acc[field.name] = field.name || ""
       }
       return acc
     }, {} as Record<string, string>)
@@ -54,18 +54,18 @@ export function SchemaDefinitionView({ schemaData }: SchemaDefinitionViewProps) 
 
   // Get data attributes based on telemetry type
   const getDataAttributes = () => {
-    if (!schemaData.schema) {
+    if (!schemaData.attributes) {
       return []
     }
 
-    return schemaData.schema
-      .filter((field) => field.source === "datapoint" || field.source === "log" || field.source === "span")
+    return schemaData.attributes
+      .filter((field) => field.source === "Datapoint" || field.source === "Log" || field.source === "Span")
       .map((field) => ({
         name: field.name,
         type: field.type,
-        description: field.description || "",
-        required: field.required,
-        value: field.description || "",
+        description: field.name || "",
+        required: false, // TODO: add required field,
+        value: field.name || "",
       }))
   }
 
@@ -94,12 +94,12 @@ export function SchemaDefinitionView({ schemaData }: SchemaDefinitionViewProps) 
 
   // Get data section name based on telemetry type
   const getDataSectionName = () => {
-    switch (schemaData.type) {
-      case "metric":
+    switch (schemaData.telemetryType) {
+      case "Metric":
         return "Metric Data"
-      case "log":
+      case "Log":
         return "Log Record"
-      case "trace":
+      case "Trace":
         return "Span"
       default:
         return "Data"
@@ -108,12 +108,12 @@ export function SchemaDefinitionView({ schemaData }: SchemaDefinitionViewProps) 
 
   // Get data section icon based on telemetry type
   const getDataSectionIcon = () => {
-    switch (schemaData.type) {
-      case "metric":
+    switch (schemaData.telemetryType) {
+      case "Metric":
         return <BarChart3 className="h-5 w-5 text-purple-500" />
-      case "log":
+      case "Log":
         return <BarChart3 className="h-5 w-5 text-purple-500" />
-      case "trace":
+      case "Trace":
         return <BarChart3 className="h-5 w-5 text-purple-500" />
       default:
         return null
@@ -126,7 +126,7 @@ export function SchemaDefinitionView({ schemaData }: SchemaDefinitionViewProps) 
       <div>
         <h3 className="text-lg font-medium">Schema Definition</h3>
         <p className="text-sm text-muted-foreground">
-          OpenTelemetry {schemaData.type} schema for {schemaData.name}
+          OpenTelemetry {schemaData.telemetryType} schema for {schemaData.schemaKey}
         </p>
       </div>
 
@@ -134,7 +134,7 @@ export function SchemaDefinitionView({ schemaData }: SchemaDefinitionViewProps) 
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-medium">
-            OpenTelemetry {schemaData.type.charAt(0).toUpperCase() + schemaData.type.slice(1)} Schema
+            OpenTelemetry {schemaData.telemetryType.charAt(0).toUpperCase() + schemaData.telemetryType.slice(1)} Schema
           </h3>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -344,7 +344,7 @@ export function SchemaDefinitionView({ schemaData }: SchemaDefinitionViewProps) 
               </div>
               <div>
                 <h4 className="font-medium">{getDataSectionName()}</h4>
-                <p className="text-sm text-muted-foreground">Contains the actual {schemaData.type} data</p>
+                <p className="text-sm text-muted-foreground">Contains the actual {schemaData.telemetryType} data</p>
               </div>
             </div>
             <ChevronDown

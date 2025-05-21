@@ -67,21 +67,21 @@ export const TelemetryDetails = () => {
               Telemetry Catalog
             </Link>
             <ChevronRight className="h-4 w-4" />
-            <span className="font-medium text-foreground">{telemetry.name}</span>
+            <span className="font-medium text-foreground">{telemetry.schemaKey}</span>
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
-              {TelemetryTypeIcon({ type: telemetry.type })}
+              {TelemetryTypeIcon({ type: telemetry.telemetryType })}
             </div>
             <div>
-              <h1 className="text-2xl font-medium font-mono">{telemetry.name}</h1>
+              <h1 className="text-2xl font-medium font-mono">{telemetry.schemaKey}</h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <span className="capitalize">
-                    {telemetry.type} ({telemetry.dataType})
+                    {telemetry.telemetryType} ({telemetry.telemetryType})
                   </span>
                 </div>
               </div>
@@ -96,7 +96,7 @@ export const TelemetryDetails = () => {
               onClick={handleViewAllSources}
             >
               <Server className="h-3.5 w-3.5" />
-              {telemetry.sources.length} Sources
+              {0} Sources
             </Button>
 
             {/* View Validation Button */}

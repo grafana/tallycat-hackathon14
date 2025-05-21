@@ -9,9 +9,10 @@ import {
   Clock,
   Database,
 } from "lucide-react"
+import { type Telemetry } from "@/types/telemetry"
 
 interface TelemetryOverviewPanelProps {
-  telemetry: any
+  telemetry: Telemetry
   onViewAllSources: () => void
 }
 
@@ -39,7 +40,7 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
           <Info className="h-5 w-5 text-primary" />
           <h2 className="text-xl font-medium">Description</h2>
         </div>
-        <p className="text-base leading-relaxed">{telemetry.description || "No description available"}</p>
+        <p className="text-base leading-relaxed">{telemetry.brief || "No description available"}</p>
       </div>
 
       {/* Main Content Area - 3 columns (removed Source & Format column) */}
@@ -54,27 +55,27 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <Database className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-sm">Fields</span>
+                <span className="text-sm">Attributes</span>
               </div>
-              <span className="text-sm">{telemetry.fields}</span>
+              <span className="text-sm">{telemetry.attributes.length}</span>
             </div>
 
-            <div className="flex items-center justify-between">
+            {/* <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <BarChart2 className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-sm">Cardinality</span>
               </div>
               <span className="text-sm capitalize">{telemetry.cardinality}</span>
-            </div>
+            </div> */}
 
-            {telemetry.type === "metric" && telemetry.metricDetails && (
+            {telemetry.metricType && (
               <>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <PieChart className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-sm">Type</span>
                   </div>
-                  <span className="text-sm">{telemetry.metricDetails.type}</span>
+                  <span className="text-sm">{telemetry.metricType}</span>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -82,7 +83,7 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
                     <Timer className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-sm">Unit</span>
                   </div>
-                  <span className="text-sm">{telemetry.metricDetails.unit}</span>
+                  <span className="text-sm">{telemetry.metricUnit}</span>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -90,12 +91,12 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
                     <Activity className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-sm">Aggregation</span>
                   </div>
-                  <span className="text-sm">{telemetry.metricDetails.aggregation}</span>
+                  <span className="text-sm">{telemetry.metricTemporality}</span>
                 </div>
               </>
             )}
 
-            {telemetry.type === "trace" && telemetry.spanKind && (
+            {/* {telemetry.telemetryType === "trace" && telemetry.spanKind && (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Activity className="h-3.5 w-3.5 text-muted-foreground" />
@@ -103,7 +104,7 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
                 </div>
                 <span className="text-sm">{telemetry.spanKind}</span>
               </div>
-            )}
+            )} */}
           </div>
         </div>
 
@@ -119,7 +120,7 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-sm">Created</span>
               </div>
-              <span className="text-sm">{formatDate(telemetry.created)}</span>
+              <span className="text-sm">{formatDate(telemetry.createdAt)}</span>
             </div>
 
             <div className="flex items-center justify-between">
@@ -127,7 +128,7 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-sm">Updated</span>
               </div>
-              <span className="text-sm">{formatDate(telemetry.lastUpdated)}</span>
+              <span className="text-sm">{formatDate(telemetry.updatedAt)}</span>
             </div>
 
             <div className="flex items-center justify-between">
@@ -135,7 +136,7 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
                 <Activity className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-sm">Version</span>
               </div>
-              <span className="text-sm font-medium">v{telemetry.history?.[0]?.version || "1.0.0"}</span>
+              <span className="text-sm font-medium">v{telemetry.schemaVersion || "1.0.0"}</span>
             </div>
           </div>
         </div>
@@ -152,7 +153,7 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
                 <Database className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-sm">Services</span>
               </div>
-              <span className="text-sm font-medium">{telemetry.sources?.length || 0} services</span>
+              <span className="text-sm font-medium">{1} services</span>
             </div>
 
             {/* <div>

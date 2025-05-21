@@ -3,12 +3,12 @@ import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import type { TelemetryItem } from '@/types/telemetry'
+import type { Telemetry } from '@/types/telemetry'
 import { DataTypeIcon } from './telemetry-icons'
 import { getTelemetryTypeBgColor, formatDate, getStatusBadge } from '@/utils/telemetry'
 
 interface TelemetryTableRowProps {
-  item: TelemetryItem
+  item: Telemetry
 }
 
 export const TelemetryTableRow = ({ item }: TelemetryTableRowProps) => {

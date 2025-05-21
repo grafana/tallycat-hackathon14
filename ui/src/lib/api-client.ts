@@ -1,4 +1,4 @@
-import type { GetSchemaResponse } from '@/types/telemetry'
+import type { Telemetry } from '@/types/telemetry'
 import { API_BASE_URL } from '@/config/api'
 
 interface ApiError extends Error {
@@ -74,7 +74,7 @@ interface ListParams {
 }
 
 // Schema types
-interface ListSchemasResponse extends ListResponse<GetSchemaResponse> {}
+interface ListSchemasResponse extends ListResponse<Telemetry> {}
 interface ListSchemasParams extends ListParams {
   type?: string
 }
@@ -82,8 +82,8 @@ interface ListSchemasParams extends ListParams {
 // API endpoints organized by domain
 export const api = {
   schemas: {
-    getByKey: (key: string) => apiClient.get<GetSchemaResponse>(`/api/v1/schemas/${key}`),
-    list: () => apiClient.get<GetSchemaResponse[]>('/api/v1/schemas'),
+    getByKey: (key: string) => apiClient.get<Telemetry>(`/api/v1/schemas/${key}`),
+    list: () => apiClient.get<Telemetry[]>('/api/v1/schemas'),
     listWithParams: (params: ListSchemasParams) => {
       const searchParams = new URLSearchParams({
         page: params.page.toString(),

@@ -1,13 +1,21 @@
 import { BarChart, Hash, BarChart3, Layers, FileText, Activity, Code } from 'lucide-react'
-import type { TelemetryType, DataType } from '@/types/telemetry'
+import { TelemetryType } from '@/types/telemetry'
 
-export const DataTypeIcon = ({ dataType }: { dataType: DataType }) => {
-  switch (dataType) {
+export const DataTypeIcon = ({ dataType }: { dataType: string }) => {
+  if (!dataType) {
+    return <Code className="h-4 w-4 text-gray-400" />
+  }
+
+  switch (dataType.toLowerCase()) {
     case "gauge":
       return <BarChart className="h-4 w-4 text-blue-400" />
     case "counter":
       return <Hash className="h-4 w-4 text-blue-400" />
     case "histogram":
+      return <BarChart3 className="h-4 w-4 text-blue-400" />
+    case "summary":
+      return <BarChart3 className="h-4 w-4 text-blue-400" />
+    case "exponentialhistogram":
       return <BarChart3 className="h-4 w-4 text-blue-400" />
     case "structured":
       return <Layers className="h-4 w-4 text-green-400" />
@@ -22,11 +30,11 @@ export const DataTypeIcon = ({ dataType }: { dataType: DataType }) => {
 
 export const TelemetryTypeIcon = ({ type }: { type: TelemetryType }) => {
   switch (type) {
-    case "metric":
+    case TelemetryType.Metric:
       return <BarChart3 className="h-5 w-5 text-blue-500" />
-    case "log":
+    case TelemetryType.Log:
       return <FileText className="h-5 w-5 text-green-500" />
-    case "trace":
+    case TelemetryType.Trace:
       return <Activity className="h-5 w-5 text-purple-500" />
     default:
       return <Code className="h-5 w-5 text-gray-500" />
