@@ -14,7 +14,7 @@ TallyCat builds a structured view of your telemetry by extracting and tracking m
 
 ## ❓ Why observability needs data governance
 
-Modern observability pipelines produce huge amounts of telemetry. But most teams can’t answer basic questions like:
+Modern observability pipelines produce huge amounts of telemetry. But most teams can't answer basic questions like:
 
 - What telemetry are we emitting?
 - Which fields are actually used?
@@ -22,7 +22,7 @@ Modern observability pipelines produce huge amounts of telemetry. But most teams
 - Where is all this cardinality coming from?
 
 🛠️ Tools like OpenMetadata and DataHub solve this for analytics.  
-🔎 TallyCat brings the same governance principles to observability — where they’re still missing.
+🔎 TallyCat brings the same governance principles to observability — where they're still missing.
 
 With TallyCat, you get visibility and control over the structure and cost of the data you send to your observability backend.
 
@@ -51,7 +51,7 @@ With TallyCat, you get visibility and control over the structure and cost of the
 
 TallyCat does not replace your observability backend.
 
-It works alongside tools like Prometheus, Jaeger, OpenSearch, focusing on telemetry metadata, not telemetry storage.
+It works alongside tools like Prometheus, Jaeger, OpenSearch, focusing on telemetry metadata, not telemetry storage.  
 Think of it like **dbt** or **OpenMetadata**, but for **OpenTelemetry signals**.
 
 ---
@@ -66,3 +66,10 @@ TallyCat is under active development. The MVP includes:
 Coming next:
 
 TBD
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions!  
+Check out [CONTRIBUTING.md](CONTRIBUTING.md) to get started.

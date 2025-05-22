@@ -300,7 +300,7 @@ func (r *TelemetrySchemaRepository) GetSchemaByKey(ctx context.Context, schemaKe
 
 	// Get attributes for this schema
 	attrQuery := `
-		SELECT name, type, source
+		SELECT DISTINCT name, type, source
 		FROM schema_attributes
 		WHERE schema_id = ?
 		ORDER BY name`

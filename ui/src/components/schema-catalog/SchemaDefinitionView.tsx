@@ -59,7 +59,7 @@ export function SchemaDefinitionView({ schemaData }: SchemaDefinitionViewProps) 
     }
 
     return schemaData.attributes
-      .filter((field) => field.source === "Datapoint" || field.source === "Log" || field.source === "Span")
+      .filter((field) => field.source === "DataPoint" || field.source === "Log" || field.source === "Span")
       .map((field) => ({
         name: field.name,
         type: field.type,

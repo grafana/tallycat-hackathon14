@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"os"
@@ -16,7 +17,9 @@ import (
 	"github.com/tallycat/tallycat/internal/grpcserver"
 	"github.com/tallycat/tallycat/internal/httpserver"
 	"github.com/tallycat/tallycat/internal/repository/duckdb"
+	"github.com/tallycat/tallycat/internal/repository/duckdb/migrator"
 	logspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
+	metricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -74,8 +77,23 @@ and processes log data according to the OpenTelemetry protocol.`,
 
 		schemaRepo := duckdb.NewTelemetrySchemaRepository(pool.(*duckdb.ConnectionPool))
 
+		// Initialize database connection
+		db, err := sql.Open("duckdb", databasePath)
+		if err != nil {
+			slog.Error("failed to open database", "error", err)
+		}
+		defer db.Close()
+
+		// Run migrations
+		if err := migrator.ApplyMigrations(db); err != nil {
+			slog.Error("failed to run migrations", "error", err)
+		}
+
 		logsService := grpcserver.NewLogsServiceServer(schemaRepo)
 		srv.RegisterService(&logspb.LogsService_ServiceDesc, logsService)
+
+		metricsService := grpcserver.NewMetricsServiceServer(schemaRepo)
+		srv.RegisterService(&metricspb.MetricsService_ServiceDesc, metricsService)
 
 		httpSrv := httpserver.New(httpAddr, schemaRepo)
 
