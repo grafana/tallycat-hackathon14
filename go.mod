@@ -6,7 +6,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/cors v1.2.1
-	github.com/marcboeker/go-duckdb/v2 v2.2.1
+	github.com/marcboeker/go-duckdb/v2 v2.3.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.126.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
@@ -20,12 +20,12 @@ require (
 require (
 	github.com/apache/arrow-go/v18 v18.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/duckdb/duckdb-go-bindings v0.1.14 // indirect
-	github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.9 // indirect
-	github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.9 // indirect
-	github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.9 // indirect
-	github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.9 // indirect
-	github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.9 // indirect
+	github.com/duckdb/duckdb-go-bindings v0.1.15 // indirect
+	github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.10 // indirect
+	github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.10 // indirect
+	github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.10 // indirect
+	github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.10 // indirect
+	github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.10 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -36,8 +36,8 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
-	github.com/marcboeker/go-duckdb/arrowmapping v0.0.7 // indirect
-	github.com/marcboeker/go-duckdb/mapping v0.0.7 // indirect
+	github.com/marcboeker/go-duckdb/arrowmapping v0.0.8 // indirect
+	github.com/marcboeker/go-duckdb/mapping v0.0.9 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.126.0 // indirect
