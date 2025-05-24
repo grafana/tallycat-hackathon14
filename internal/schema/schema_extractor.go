@@ -93,9 +93,26 @@ func ExtractFromMetrics(metrics pmetric.Metrics) []Telemetry {
 					SeenCount:         1,
 					CreatedAt:         time.Now(),
 					UpdatedAt:         time.Now(),
+					Producers:         make(map[string]*Producer),
+				}
+
+				producer := &Producer{
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
 				}
 
 				resourceAttributes.Range(func(key string, value pcommon.Value) bool {
+					switch key {
+					case "service.name":
+						producer.Name = value.Str()
+					case "service.namespace":
+						producer.Namespace = value.Str()
+					case "service.version":
+						producer.Version = value.Str()
+					case "service.instance.id":
+						producer.InstanceID = value.Str()
+					}
+
 					telemetry.Attributes = append(telemetry.Attributes, Attribute{
 						Name:   key,
 						Type:   AttributeType(value.Type().String()),
@@ -103,6 +120,11 @@ func ExtractFromMetrics(metrics pmetric.Metrics) []Telemetry {
 					})
 					return true
 				})
+
+				// Add producer if it has a name
+				if producer.Name != "" {
+					telemetry.Producers[producer.ProducerID()] = producer
+				}
 
 				scopeAttributes.Range(func(key string, value pcommon.Value) bool {
 					telemetry.Attributes = append(telemetry.Attributes, Attribute{
