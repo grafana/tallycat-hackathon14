@@ -153,7 +153,7 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
                 <Database className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-sm">Services</span>
               </div>
-              <span className="text-sm font-medium">{1} services</span>
+              <span className="text-sm font-medium">{Object.keys(telemetry.producers).length} services</span>
             </div>
 
             {/* <div>

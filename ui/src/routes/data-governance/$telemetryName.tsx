@@ -9,14 +9,16 @@ import { useTelemetryDetails } from '@/hooks/use-telemetry-details'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
 import { SchemaDefinitionView } from '@/components/schema-catalog/SchemaDefinitionView'
+import { TelemetryProducersPanel } from '@/components/telemetry/telemetry-sources-panel'
 
 export const TelemetryDetails = () => {
   const { telemetryName } = useParams({ from: '/data-governance/$telemetryName' })
   const [activeTab, setActiveTab] = useState("schema")
   const { data: telemetry, isLoading, error } = useTelemetryDetails({ telemetryName })
+  const [isProducersPanelOpen, setIsProducersPanelOpen] = useState(false)
 
   const handleViewAllSources = () => {
-    // setIsSourcesPanelOpen(true)
+    setIsProducersPanelOpen(true)
   }
 
   if (isLoading) {
@@ -96,7 +98,7 @@ export const TelemetryDetails = () => {
               onClick={handleViewAllSources}
             >
               <Server className="h-3.5 w-3.5" />
-              {0} Sources
+              {Object.keys(telemetry.producers).length} Sources
             </Button>
 
             {/* View Validation Button */}
@@ -148,7 +150,11 @@ export const TelemetryDetails = () => {
         </TabsContent>
       </Tabs>
 
-
+      <TelemetryProducersPanel
+        schemaData={telemetry}
+        isOpen={isProducersPanelOpen}
+        onClose={() => setIsProducersPanelOpen(false)}
+      />
     </div>
   )
 }

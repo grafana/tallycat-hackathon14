@@ -360,11 +360,12 @@ func (r *TelemetrySchemaRepository) GetSchemaByKey(ctx context.Context, schemaKe
 	// Get producers for this schema
 	producerQuery := `
 		SELECT producer_id, name, namespace, version, instance_id,
-			   first_seen, last_seen, source
+			   first_seen, last_seen
 		FROM schema_producers
-		WHERE schema_id = ?`
+		INNER JOIN telemetry_schemas ON schema_producers.schema_id = telemetry_schemas.schema_id
+		WHERE schema_key = ?`
 
-	rows, err = db.QueryContext(ctx, producerQuery, s.SchemaID)
+	rows, err = db.QueryContext(ctx, producerQuery, s.SchemaKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query schema producers: %w", err)
 	}
@@ -386,7 +387,12 @@ func (r *TelemetrySchemaRepository) GetSchemaByKey(ctx context.Context, schemaKe
 			return nil, fmt.Errorf("failed to scan producer row: %w", err)
 		}
 
-		s.Producers[producerID] = &producer
+		if _, ok := s.Producers[producerID]; !ok {
+			s.Producers[producerID] = &producer
+		} else {
+			slog.Warn("producer already exists", "producer_id", producerID)
+		}
+
 	}
 
 	if err := rows.Err(); err != nil {
