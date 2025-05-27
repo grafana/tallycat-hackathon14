@@ -56,6 +56,20 @@ func (r *TelemetrySchemaRepository) RegisterTelemetrySchemas(ctx context.Context
 	}
 	defer attrStmt.Close()
 
+	producerStmt, err := tx.PrepareContext(ctx, `
+		INSERT INTO schema_producers (
+			schema_id, producer_id, name, namespace, version, instance_id,
+			first_seen, last_seen
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT (schema_id, producer_id) DO UPDATE SET
+			last_seen = excluded.last_seen
+		WHERE excluded.last_seen > schema_producers.last_seen;
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to prepare producer insert statement: %w", err)
+	}
+	defer producerStmt.Close()
+
 	for _, schema := range schemas {
 		_, err = schemaStmt.ExecContext(ctx,
 			schema.SchemaID,
@@ -86,6 +100,23 @@ func (r *TelemetrySchemaRepository) RegisterTelemetrySchemas(ctx context.Context
 			)
 			if err != nil {
 				return fmt.Errorf("failed to insert attribute for schema %v: %w", schema.SchemaID, err)
+			}
+		}
+
+		// Insert producers
+		for _, producer := range schema.Producers {
+			_, err = producerStmt.ExecContext(ctx,
+				schema.SchemaID,
+				producer.ProducerID(),
+				producer.Name,
+				producer.Namespace,
+				producer.Version,
+				producer.InstanceID,
+				producer.FirstSeen,
+				producer.LastSeen,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to insert producer for schema %v: %w", schema.SchemaID, err)
 			}
 		}
 	}
@@ -325,5 +356,48 @@ func (r *TelemetrySchemaRepository) GetSchemaByKey(ctx context.Context, schemaKe
 	}
 
 	s.Attributes = attributes
+
+	// Get producers for this schema
+	producerQuery := `
+		SELECT producer_id, name, namespace, version, instance_id,
+			   first_seen, last_seen
+		FROM schema_producers
+		INNER JOIN telemetry_schemas ON schema_producers.schema_id = telemetry_schemas.schema_id
+		WHERE schema_key = ?`
+
+	rows, err = db.QueryContext(ctx, producerQuery, s.SchemaKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query schema producers: %w", err)
+	}
+	defer rows.Close()
+
+	s.Producers = make(map[string]*schema.Producer)
+	for rows.Next() {
+		var producer schema.Producer
+		var producerID string
+		if err := rows.Scan(
+			&producerID,
+			&producer.Name,
+			&producer.Namespace,
+			&producer.Version,
+			&producer.InstanceID,
+			&producer.FirstSeen,
+			&producer.LastSeen,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan producer row: %w", err)
+		}
+
+		if _, ok := s.Producers[producerID]; !ok {
+			s.Producers[producerID] = &producer
+		} else {
+			slog.Warn("producer already exists", "producer_id", producerID)
+		}
+
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating producer rows: %w", err)
+	}
+
 	return &s, nil
 }

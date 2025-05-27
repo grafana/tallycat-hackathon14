@@ -24,3 +24,16 @@ CREATE TABLE IF NOT EXISTS schema_attributes (
     source TEXT,
     FOREIGN KEY (schema_id) REFERENCES telemetry_schemas(schema_id)
 );
+
+CREATE TABLE IF NOT EXISTS schema_producers (
+    schema_id TEXT,
+    producer_id TEXT,
+    name TEXT,
+    namespace TEXT,
+    version TEXT,
+    instance_id TEXT,
+    first_seen TIMESTAMP,
+    last_seen TIMESTAMP,
+    FOREIGN KEY (schema_id) REFERENCES telemetry_schemas(schema_id),
+    PRIMARY KEY (schema_id, producer_id)
+);
