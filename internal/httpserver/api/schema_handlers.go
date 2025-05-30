@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/tallycat/tallycat/internal/repository"
+	"github.com/tallycat/tallycat/internal/schema"
 )
 
 // HandleListSchemas returns a paginated, filtered, and searched list of schemas as JSON.
@@ -51,5 +52,58 @@ func HandleGetSchema(schemaRepo repository.TelemetrySchemaRepository) http.Handl
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(schema)
+	}
+}
+
+func HandleAssignSchemaVersion(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		assignment := schema.SchemaAssignment{}
+		json.NewDecoder(r.Body).Decode(&assignment)
+		err := schemaRepo.AssignSchemaVersion(ctx, assignment)
+		if err != nil {
+			http.Error(w, "failed to assign schema version", http.StatusInternalServerError)
+			return
+		}
+
+		err = schemaRepo.AssignSchemaVersion(ctx, assignment)
+		if err != nil {
+			http.Error(w, "failed to assign schema version", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(assignment)
+	}
+}
+
+// HandleListSchemaAssignmentsForKey returns a paged, filtered list of schema assignments for a given schemaKey.
+func HandleListSchemaAssignmentsForKey(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		schemaKey := chi.URLParam(r, "key")
+		params := ParseListQueryParams(r)
+
+		assignments, total, err := schemaRepo.ListSchemaAssignmentsForKey(ctx, schemaKey, params)
+		if err != nil {
+			slog.Error("failed to list schema assignments", "error", err)
+			http.Error(w, "failed to list schema assignments", http.StatusInternalServerError)
+			return
+		}
+
+		resp := struct {
+			Items    any `json:"items"`
+			Total    int `json:"total"`
+			Page     int `json:"page"`
+			PageSize int `json:"pageSize"`
+		}{
+			Items:    assignments,
+			Total:    total,
+			Page:     params.Page,
+			PageSize: params.PageSize,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
 	}
 }

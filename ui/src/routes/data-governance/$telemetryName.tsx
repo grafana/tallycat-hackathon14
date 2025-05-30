@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
 import { SchemaDefinitionView } from '@/components/schema-catalog/SchemaDefinitionView'
 import { TelemetryProducersPanel } from '@/components/telemetry/telemetry-sources-panel'
+import { VersionAssignmentView } from '@/components/schema-catalog/versionAssignment'
 
 export const TelemetryDetails = () => {
   const { telemetryName } = useParams({ from: '/data-governance/$telemetryName' })
@@ -98,7 +99,7 @@ export const TelemetryDetails = () => {
               onClick={handleViewAllSources}
             >
               <Server className="h-3.5 w-3.5" />
-              {Object.keys(telemetry.producers).length} Sources
+              {Object.keys(telemetry.producers).length} Producers
             </Button>
 
             {/* View Validation Button */}
@@ -114,9 +115,7 @@ export const TelemetryDetails = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="schema">Schema</TabsTrigger>
-          <TabsTrigger value="validation">Validation</TabsTrigger>
-          <TabsTrigger value="usage">Usage</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="versions">Versions</TabsTrigger>
         </TabsList>
 
         <TabsContent value="schema" className="mt-0 space-y-4">
@@ -127,24 +126,11 @@ export const TelemetryDetails = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="validation" className="mt-0 space-y-4">
+        <TabsContent value="versions" className="mt-0 space-y-4">
           <Card>
             <CardContent className="p-6">
+              <VersionAssignmentView schemaId={telemetry.schemaKey} schemaData={telemetry} currentVersion={'1.0.0'} onVersionChange={() => {}} />
               {/* <SchemaValidationView schemaId={telemetryId} schemaData={telemetry} /> */}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="usage" className="mt-0 space-y-6">
-          {/* <ReactFlowWrapper>
-            <BidirectionalLineageView schemaId={telemetryId} schemaData={telemetry} />
-          </ReactFlowWrapper> */}
-        </TabsContent>
-
-        <TabsContent value="history" className="mt-0 space-y-4">
-          <Card>
-            <CardContent className="p-6">
-              {/* <SchemaHistoryView schemaId={telemetryId} schemaData={telemetry} /> */}
             </CardContent>
           </Card>
         </TabsContent>

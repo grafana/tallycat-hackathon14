@@ -151,9 +151,12 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <Database className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-sm">Services</span>
+                <span className="text-sm">Producers</span>
               </div>
-              <span className="text-sm font-medium">{Object.keys(telemetry.producers).length} services</span>
+              <span className="text-sm font-medium">
+                {Object.keys(telemetry.producers).length}
+                {Object.keys(telemetry.producers).length > 1 ? " Producers" : " Producer"}
+              </span>
             </div>
 
             {/* <div>

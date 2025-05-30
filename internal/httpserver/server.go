@@ -53,8 +53,12 @@ func New(addr string, schemaRepo repository.TelemetrySchemaRepository) *Server {
 		},
 		schemaRepo: schemaRepo,
 	}
-	r.Get("/api/v1/schemas", api.HandleListSchemas(srv.schemaRepo))
-	r.Get("/api/v1/schemas/{key}", api.HandleGetSchema(srv.schemaRepo))
+	r.Route("/api/v1/schemas", func(r chi.Router) {
+		r.Get("/", api.HandleListSchemas(srv.schemaRepo))
+		r.Get("/{key}", api.HandleGetSchema(srv.schemaRepo))
+		r.Post("/{key}/versions", api.HandleAssignSchemaVersion(srv.schemaRepo))
+		r.Get("/{key}/versions", api.HandleListSchemaAssignmentsForKey(srv.schemaRepo))
+	})
 	return srv
 }
 
