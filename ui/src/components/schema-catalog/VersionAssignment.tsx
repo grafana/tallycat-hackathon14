@@ -46,34 +46,20 @@ const formatDate = (dateString: string) => {
   })
 }
 
-const getStatusBadge = (status: Status) => {
+const getStatusBadge = (status: string) => {
   switch (status) {
-    case Status.Active:
+    case 'Assigned':
       return (
         <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30 font-medium">
           <CheckCircle2 className="h-3 w-3 mr-1" />
-          Active
+          Assigned
         </Badge>
       )
-    case Status.Experimental:
+    case 'Unassigned':
       return (
         <Badge variant="outline" className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 font-medium">
           <AlertTriangle className="h-3 w-3 mr-1" />
-          Experimental
-        </Badge>
-      )
-    case Status.Deprecated:
-      return (
-        <Badge variant="outline" className="bg-red-500/20 text-red-400 border-red-500/30 font-medium">
-          <XCircle className="h-3 w-3 mr-1" />
-          Deprecated
-        </Badge>
-      )
-    case Status.Stable:
-      return (
-        <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30 font-medium">
-          <CheckCircle2 className="h-3 w-3 mr-1" />
-          Stable
+          Unassigned
         </Badge>
       )
     default:
@@ -216,15 +202,7 @@ export function VersionAssignmentView({
   const tableData = (data?.items ?? []).map(item => ({
     id: item.schemaId,
     name: item.schemaId,
-    status: (() => {
-      switch (item.status) {
-        case 'Active': return Status.Active
-        case 'Deprecated': return Status.Deprecated
-        case 'Experimental': return Status.Experimental
-        case 'Stable': return Status.Stable
-        default: return Status.Experimental
-      }
-    })(),
+    status: item.version && item.version !== 'Unassigned' ? 'Assigned' : 'Unassigned',
     version: item.version === 'Unassigned' ? null : item.version,
     producers: Array(item.producerCount).fill({}),
     lastSeen: item.lastSeen,
