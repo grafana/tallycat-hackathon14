@@ -1,6 +1,6 @@
 # 🐾 TallyCat
 
-**Telemetry Governance for OpenTelemetry and Kubernetes**
+**Telemetry Governance for OpenTelemetry**
 
 TallyCat is an open-source telemetry governance platform for teams using OpenTelemetry. It helps you understand what telemetry is being emitted, where it comes from, and how it changes over time.
 
@@ -21,6 +21,8 @@ Modern observability pipelines produce huge amounts of telemetry. But most teams
 - How has our schema changed?
 - Where is all this cardinality coming from?
 
+Most teams today operate in a "telemetry last" world — emitting data without structure or oversight. This leads to hidden costs, inconsistent fields, and poor documentation. TallyCat brings visibility and structure, enabling teams to reason about their telemetry just like they would with APIs or database schemas.
+
 🛠️ Tools like OpenMetadata and DataHub solve this for analytics.  
 🔎 TallyCat brings the same governance principles to observability — where they're still missing.
 
@@ -36,6 +38,7 @@ With TallyCat, you get visibility and control over the structure and cost of the
 - 🧹 Reduce duplicate or high-cardinality signals
 - 👥 Map signals to owners, teams, or workloads
 - 🛡️ Prepare for policy enforcement and budget limits
+- 🚀 Move toward schema-first observability, even with legacy or live telemetry
 
 ---
 
@@ -60,7 +63,6 @@ Think of it like **dbt** or **OpenMetadata**, but for **OpenTelemetry signals**.
 
 TallyCat is under active development. The MVP includes:
 
-- ✅ OpenTelemetry Collector Connector
 - ✅ Schema inference for OTLP data
 
 Coming next:
