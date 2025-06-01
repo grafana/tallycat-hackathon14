@@ -20,18 +20,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import type { ColumnDef } from "@tanstack/react-table"
-
+import { SchemaDetailsModal } from "@/components/schema-catalog/modals/SchemaDetailsModal"
 import type { Schema, VersionAssignmentViewProps } from "@/types/schema-catalog"
 import { Status } from "@/types/telemetry"
 import { formatDate, DateFormat } from "@/lib/utils"
-
-import { SearchAndFilterBar } from "./SearchAndFilterBar"
+import { VersionAssignmentDialog } from "./components/VersionAssignmentDialog"
+import { StatusBadge } from "@/components/schema-catalog/components/badges/StatusBadge"
+import { SearchAndFilterBar } from "./components/SearchAndFilterBar"
+import { LoadingState } from "@/components/schema-catalog/components/states/LoadingState"
+import { ErrorState } from "@/components/schema-catalog/components/states/ErrorState"
 import { useSchemaAssignmentData } from "@/hooks/use-schema-assignment-data"
-import { SchemaDetailsModal } from "./modals/SchemaDetailsModal"
-import { StatusBadge } from "./components/badges/StatusBadge"
-import { LoadingState } from "./components/states/LoadingState"
-import { ErrorState } from "./components/states/ErrorState"
-import { VersionAssignmentDialog } from "./features/version-assignment/components/VersionAssignmentDialog"
 
 const createTableColumns = (
   onViewSchema: (schema: Schema) => void,
@@ -192,7 +190,7 @@ export function VersionAssignmentView({
         <div>
           <h2 className="text-xl font-semibold text-foreground">Schema Version Assignment</h2>
           <p className="text-sm text-muted-foreground">
-            Manage schema versions discovered at runtime for {schemaData.schemaKey}
+            Manage schema versions discovered at runtime for {schemaData.name}
           </p>
         </div>
       </div>

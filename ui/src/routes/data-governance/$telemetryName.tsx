@@ -4,13 +4,13 @@ import { TelemetryTypeIcon } from '@/components/telemetry/telemetry-icons'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ChevronRight, Server } from 'lucide-react'
 import { useState } from 'react'
-import { TelemetryOverviewPanel } from '@/components/schema-catalog/TelemetryOverviewPanel'
 import { useTelemetryDetails } from '@/hooks/use-telemetry-details'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
-import { SchemaDefinitionView } from '@/components/schema-catalog/SchemaDefinitionView'
 import { TelemetryProducersPanel } from '@/components/telemetry/telemetry-sources-panel'
-import { VersionAssignmentView } from '@/components/schema-catalog/versionAssignment'
+import { VersionAssignmentView } from '@/components/schema-catalog/VersionAssignment'
+import { TelemetryOverviewPanel } from '@/components/schema-catalog/features/telemetry/TelemetryOverviewPanel'
+import { SchemaDefinitionView } from '@/components/schema-catalog/features/schema-definition/SchemaDefinitionView'
 
 export const TelemetryDetails = () => {
   const { telemetryName } = useParams({ from: '/data-governance/$telemetryName' })
@@ -129,8 +129,7 @@ export const TelemetryDetails = () => {
         <TabsContent value="versions" className="mt-0 space-y-4">
           <Card>
             <CardContent className="p-6">
-              <VersionAssignmentView schemaId={telemetry.schemaKey} schemaData={telemetry} currentVersion={'1.0.0'} onVersionChange={() => {}} />
-              {/* <SchemaValidationView schemaId={telemetryId} schemaData={telemetry} /> */}
+              <VersionAssignmentView schemaId={telemetry.schemaKey} schemaData={telemetry} onVersionChange={() => {}} />
             </CardContent>
           </Card>
         </TabsContent>

@@ -18,8 +18,8 @@ import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { SortField, SortDirection } from '@/hooks/use-schemas'
 import { useDebounce } from '@/hooks/use-debounce'
-import { SearchBar } from '@/components/schema-catalog/SearchBar'
-import { FilterDropdown } from '@/components/schema-catalog/FilterDropdown'
+import { SearchBar } from '@/components/schema-catalog/components/search/SearchBar'
+import { FilterDropdown } from '@/components/schema-catalog/components/filters/FilterDropdown'
 
 const columns: ColumnDef<Telemetry>[] = [
   {

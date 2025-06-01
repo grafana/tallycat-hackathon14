@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DataTable } from "@/components/ui/data-table"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { SchemaDefinitionView } from "@/components/schema-catalog/SchemaDefinition"
+import { SchemaDefinitionView } from "@/components/schema-catalog/features/schema-definition/SchemaDefinitionView"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   DropdownMenu,
@@ -154,7 +154,7 @@ export function SchemaDetailsModal({ viewingSchema, onClose, schemaData }: Schem
               </TabsList>
 
               <TabsContent value="schema" className="mt-4">
-                <SchemaDefinitionView schemaId={viewingSchema.id} schemaData={schemaData} />
+                <SchemaDefinitionView schemaData={schemaData} />
               </TabsContent>
 
               <TabsContent value="producers" className="mt-4 space-y-4">

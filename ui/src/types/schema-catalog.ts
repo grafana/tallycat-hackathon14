@@ -1,4 +1,4 @@
-import type { Attribute, Status, TelemetryProducer } from './telemetry'
+import type { Attribute, Status, Telemetry, TelemetryProducer } from './telemetry'
 
 // Extend TelemetryProducer to include additional fields needed for schema catalog
 export interface Producer extends TelemetryProducer {
@@ -23,8 +23,7 @@ export interface Schema {
 
 export interface VersionAssignmentViewProps {
   schemaId: string
-  schemaData: any
-  currentVersion: string
+  schemaData: Telemetry
   onVersionChange: (version: string) => void
 }
 
