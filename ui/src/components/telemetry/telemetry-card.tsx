@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import type { Telemetry } from '@/types/telemetry'
 import { DataTypeIcon } from './telemetry-icons'
-import { getTelemetryTypeBgColor, formatDate, getStatusBadge } from '@/utils/telemetry'
+import { getTelemetryTypeBgColor, getStatusBadge } from '@/utils/telemetry'
+import { formatDate, DateFormat } from '@/lib/utils'
 
 interface TelemetryCardProps {
   item: Telemetry
@@ -80,7 +81,7 @@ export const TelemetryCard = ({ item }: TelemetryCardProps) => {
           </div> */}
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            <span>{formatDate(item.updatedAt)}</span>
+            <span>{formatDate(item.updatedAt, DateFormat.short)}</span>
           </div>
         </div>
       </CardFooter>

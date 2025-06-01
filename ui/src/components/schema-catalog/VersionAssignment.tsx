@@ -36,16 +36,9 @@ import { SchemaDetailsModal } from "@/components/schema-catalog/SchemaDetailsMod
 import type { Schema, VersionAssignmentViewProps, AssignmentForm, VersionValidation } from "@/types/schema-catalog"
 import { Status } from "@/types/telemetry"
 import { useSchemaAssignments } from '@/hooks/use-schema-assignments'
+import { formatDate, DateFormat } from "@/lib/utils"
 
 // Utility functions
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
-}
-
 const getStatusBadge = (status: string) => {
   switch (status) {
     case 'Assigned':
@@ -286,7 +279,7 @@ export function VersionAssignmentView({
       header: "Last Seen",
       cell: ({ row }) => {
         const schema = row.original
-        return <span className="text-sm text-muted-foreground">{formatDate(schema.lastSeen)}</span>
+        return <span className="text-sm text-muted-foreground">{formatDate(schema.lastSeen, DateFormat.short)}</span>
       },
     },
     {

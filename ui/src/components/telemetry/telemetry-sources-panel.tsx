@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import type { Telemetry, TelemetryProducer } from "@/types/telemetry"
+import type { Telemetry, TelemetryProducer, Status } from "@/types/telemetry"
+import { formatDate, DateFormat } from "@/lib/utils"
 
 interface TelemetryProducersPanelProps {
   schemaData: Telemetry | null
@@ -19,18 +20,6 @@ export function TelemetryProducersPanel({ schemaData, isOpen, onClose }: Telemet
   // State for the sources panel
   const [searchQuery, setSearchQuery] = useState("")
   const [filteredSources, setFilteredSources] = useState<any[]>([])
-
-  // Compact date format function
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(date)
-  }
 
   useEffect(() => {
     if (schemaData?.producers) {
@@ -160,13 +149,13 @@ export function TelemetryProducersPanel({ schemaData, isOpen, onClose }: Telemet
                           <TableCell className="py-4">
                             <div className="flex items-center gap-2 text-sm">
                               <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                              <span className="whitespace-nowrap font-mono">{formatDate(source.firstSeen)}</span>
+                              <span className="whitespace-nowrap font-mono">{formatDate(source.firstSeen, DateFormat.datetime)}</span>
                             </div>
                           </TableCell>
                           <TableCell className="py-4">
                             <div className="flex items-center gap-2 text-sm">
                               <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                              <span className="whitespace-nowrap font-mono">{formatDate(source.lastSeen)}</span>
+                              <span className="whitespace-nowrap font-mono">{formatDate(source.lastSeen, DateFormat.datetime)}</span>
                             </div>
                           </TableCell>
                         </TableRow>

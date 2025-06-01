@@ -9,7 +9,8 @@ import {
   Clock,
   Database,
 } from "lucide-react"
-import { type Telemetry } from "@/types/telemetry"
+import { type Telemetry, Status } from "@/types/telemetry"
+import { formatDate, DateFormat } from "@/lib/utils"
 
 interface TelemetryOverviewPanelProps {
   telemetry: Telemetry
@@ -17,17 +18,6 @@ interface TelemetryOverviewPanelProps {
 }
 
 export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProps) {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return new Intl.DateTimeFormat("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date)
-  }
-
   // Calculate source health counts
 
   // Calculate total volume
@@ -120,7 +110,7 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-sm">Created</span>
               </div>
-              <span className="text-sm">{formatDate(telemetry.createdAt)}</span>
+              <span className="text-sm">{formatDate(telemetry.createdAt, DateFormat.datetime)}</span>
             </div>
 
             <div className="flex items-center justify-between">
@@ -128,7 +118,7 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-sm">Updated</span>
               </div>
-              <span className="text-sm">{formatDate(telemetry.updatedAt)}</span>
+              <span className="text-sm">{formatDate(telemetry.updatedAt, DateFormat.datetime)}</span>
             </div>
 
             <div className="flex items-center justify-between">

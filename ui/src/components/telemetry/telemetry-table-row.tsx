@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import type { Telemetry } from '@/types/telemetry'
 import { DataTypeIcon } from './telemetry-icons'
-import { getTelemetryTypeBgColor, formatDate, getStatusBadge } from '@/utils/telemetry'
+import { getTelemetryTypeBgColor, getStatusBadge } from '@/utils/telemetry'
+import { formatDate, DateFormat } from '@/lib/utils'
 
 interface TelemetryTableRowProps {
   item: Telemetry
@@ -57,7 +58,7 @@ export const TelemetryTableRow = ({ item }: TelemetryTableRowProps) => {
       <td className="hidden px-4 py-3 md:table-cell">
         <span className="font-mono text-xs">{item.format}</span>
       </td>
-      <td className="hidden px-4 py-3 lg:table-cell">{formatDate(item.lastUpdated)}</td>
+      <td className="hidden px-4 py-3 lg:table-cell">{formatDate(item.lastUpdated, DateFormat.short)}</td>
       <td className="px-4 py-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
