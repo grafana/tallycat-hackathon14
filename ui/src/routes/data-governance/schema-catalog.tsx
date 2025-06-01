@@ -12,13 +12,14 @@ import { DataTable } from '@/components/ui/data-table'
 import type { ViewMode, Telemetry } from '@/types/telemetry'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTypeIcon } from '@/components/telemetry/telemetry-icons'
-import { getTelemetryTypeBgColor, formatDate } from '@/utils/telemetry'
+import { getTelemetryTypeBgColor } from '@/utils/telemetry'
+import { formatDate, DateFormat } from '@/lib/utils'
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { SortField, SortDirection } from '@/hooks/use-schemas'
 import { useDebounce } from '@/hooks/use-debounce'
-import { SearchBar } from '@/components/schema-catalog/SearchBar'
-import { FilterDropdown } from '@/components/schema-catalog/FilterDropdown'
+import { SearchBar } from '@/components/schema-catalog/components/search/SearchBar'
+import { FilterDropdown } from '@/components/schema-catalog/components/filters/FilterDropdown'
 
 const columns: ColumnDef<Telemetry>[] = [
   {
@@ -95,7 +96,7 @@ const columns: ColumnDef<Telemetry>[] = [
     header: "Last Updated",
     cell: ({ row }) => {
       const item = row.original
-      return formatDate(item.updatedAt)
+      return formatDate(item.updatedAt, DateFormat.short)
     },
   },
   {

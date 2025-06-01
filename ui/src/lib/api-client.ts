@@ -1,5 +1,7 @@
 import type { Telemetry } from '@/types/telemetry'
+import type { Schema } from '@/types/schema-catalog'
 import { API_BASE_URL } from '@/config/api'
+import type { ListSchemaAssignmentsResponse } from '@/types/schema-catalog'
 
 interface ApiError extends Error {
   status?: number
@@ -114,6 +116,14 @@ export const api = {
       }
 
       return apiClient.get<ListSchemasResponse>(`/api/v1/schemas?${searchParams.toString()}`)
+    },
+    listAssignments: (key: string, params: { search?: string; status?: string[]; page?: number; pageSize?: number }) => {
+      const searchParams = new URLSearchParams()
+      if (params.search) searchParams.append('search', params.search)
+      if (params.status) params.status.forEach(s => searchParams.append('status', s))
+      if (params.page) searchParams.append('page', params.page.toString())
+      if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString())
+      return apiClient.get<ListSchemaAssignmentsResponse>(`/api/v1/schemas/${key}/versions?${searchParams.toString()}`)
     },
   },
   // Example of how to add new domains:

@@ -401,3 +401,114 @@ func (r *TelemetrySchemaRepository) GetSchemaByKey(ctx context.Context, schemaKe
 
 	return &s, nil
 }
+
+func (r *TelemetrySchemaRepository) AssignSchemaVersion(ctx context.Context, assgiment schema.SchemaAssignment) error {
+	tx, err := r.pool.GetConnection().BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, `
+		INSERT INTO schema_versions (schema_id, version, reason, status)
+		VALUES (?, ?, ?, ?)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement: %w", err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, assgiment.SchemaId, assgiment.Version, assgiment.Reason, assgiment.Status)
+	if err != nil {
+		return fmt.Errorf("failed to execute statement: %w", err)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+func (r *TelemetrySchemaRepository) ListSchemaAssignmentsForKey(ctx context.Context, schemaKey string, params query.ListQueryParams) ([]schema.SchemaAssignmentRow, int, error) {
+	var args []any
+	where := " AND t.schema_key = ?"
+	args = append(args, schemaKey)
+
+	if params.FilterType != "" && params.FilterType != "all" {
+		where += " AND t.signal_type = ?"
+		args = append(args, cases.Title(language.English).String(params.FilterType))
+	}
+
+	if params.Search != "" {
+		where += " AND (t.schema_id LIKE ? OR t.schema_key LIKE ? OR t.metric_type LIKE ? OR t.unit LIKE ?)"
+		searchTerm := "%" + params.Search + "%"
+		args = append(args, searchTerm, searchTerm, searchTerm, searchTerm)
+	}
+
+	db := r.pool.GetConnection()
+
+	countQuery := `
+		SELECT COUNT(*)
+		FROM telemetry_schemas t
+		WHERE 1=1` + where
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	total := 0
+	if err := db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count schema assignments: %w", err)
+	}
+
+	if total == 0 {
+		return []schema.SchemaAssignmentRow{}, 0, nil
+	}
+
+	query := `
+		SELECT
+			t.schema_id,
+			COALESCE(sv.status, 'Unassigned') AS status,
+			COALESCE(sv.version, 'Unassigned') AS version,
+			COUNT(DISTINCT sp.producer_id) AS producer_count,
+			MAX(sp.last_seen) AS last_seen
+		FROM telemetry_schemas t
+		LEFT JOIN schema_versions sv ON t.schema_id = sv.schema_id
+		LEFT JOIN schema_producers sp ON t.schema_id = sp.schema_id
+		WHERE 1=1` + where + `
+		GROUP BY t.schema_id, sv.status, sv.version
+		ORDER BY MAX(sp.last_seen) DESC NULLS LAST
+		LIMIT ? OFFSET ?`
+
+	args = append(args, params.PageSize, (params.Page-1)*params.PageSize)
+
+	ctx, cancel = context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	rows, err := db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query schema assignments: %w", err)
+	}
+	defer rows.Close()
+
+	var assignments []schema.SchemaAssignmentRow
+	for rows.Next() {
+		var row schema.SchemaAssignmentRow
+		var lastSeen sql.NullTime
+		if err := rows.Scan(&row.SchemaId, &row.Status, &row.Version, &row.ProducerCount, &lastSeen); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan schema assignment row: %w", err)
+		}
+		if lastSeen.Valid {
+			row.LastSeen = &lastSeen.Time
+		} else {
+			row.LastSeen = nil
+		}
+		assignments = append(assignments, row)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating schema assignment rows: %w", err)
+	}
+
+	return assignments, total, nil
+}
