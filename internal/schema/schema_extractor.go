@@ -2,7 +2,6 @@ package schema
 
 import (
 	"fmt"
-	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -73,10 +72,6 @@ func ExtractFromMetrics(metrics pmetric.Metrics) []Telemetry {
 					metricTemporality = MetricTemporality(metric.ExponentialHistogram().AggregationTemporality().String())
 				case pmetric.MetricTypeSummary:
 					metricAttributes = metric.Summary().DataPoints().At(0).Attributes()
-				}
-
-				if metric.Name() == "otelcol_exporter_queue_size" || metric.Name() == "otelcol.exporter.queue.capacity" {
-					slog.Info("metric", "metric", metric)
 				}
 
 				telemetry := Telemetry{
