@@ -141,8 +141,7 @@ const getSummaryText = (
 }
 
 export function VersionAssignmentView({
-  schemaData,
-  onVersionChange,
+  telemetry,
 }: VersionAssignmentViewProps) {
   const [selectedSchema, setSelectedSchema] = useState<string | null>(null)
   const [isAssigning, setIsAssigning] = useState(false)
@@ -161,7 +160,7 @@ export function VersionAssignmentView({
     isLoading,
     error,
     totalCount,
-  } = useSchemaAssignmentData(schemaData.schemaKey)
+  } = useSchemaAssignmentData(telemetry.schemaKey)
 
   const handleAssignVersion = useCallback((schema: Schema) => {
     setSelectedSchema(schema.id)
@@ -192,7 +191,7 @@ export function VersionAssignmentView({
         <div>
           <h2 className="text-xl font-semibold text-foreground">Schema Version Assignment</h2>
           <p className="text-sm text-muted-foreground">
-            Manage schema versions discovered at runtime for {schemaData.schemaKey}
+            Manage schema versions discovered at runtime for {telemetry.schemaKey}
           </p>
         </div>
       </div>
@@ -219,15 +218,14 @@ export function VersionAssignmentView({
       <SchemaDetailsModal
         viewingSchema={viewingSchema}
         onClose={() => setViewingSchema(null)}
-        schemaData={schemaData}
+        telemetry={telemetry}
       />
 
       <VersionAssignmentDialog
         isOpen={isAssigning}
         onClose={() => setIsAssigning(false)}
-        selectedSchema={selectedSchema}
-        currentSchema={tableData.find((s) => s.id === selectedSchema) ?? null}
-        onVersionChange={onVersionChange}
+        telemetry={telemetry}
+        schema={tableData.find((s) => s.id === selectedSchema) ?? null}
       />
     </div>
   )

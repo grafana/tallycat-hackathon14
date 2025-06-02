@@ -21,11 +21,12 @@ import {
 } from "@/components/ui/dropdown-menu"
 import type { ColumnDef } from "@tanstack/react-table"
 import type { Schema, Producer } from "@/types/schema-catalog"
+import type { Telemetry } from "@/types/telemetry"
 
 interface SchemaDetailsModalProps {
   viewingSchema: Schema | null
   onClose: () => void
-  schemaData: any
+  telemetry: Telemetry
 }
 
 // Producer columns definition
@@ -127,7 +128,7 @@ const producerColumns: ColumnDef<Producer>[] = [
   },
 ]
 
-export function SchemaDetailsModal({ viewingSchema, onClose, schemaData }: SchemaDetailsModalProps) {
+export function SchemaDetailsModal({ viewingSchema, onClose, telemetry }: SchemaDetailsModalProps) {
   return (
     <Dialog open={!!viewingSchema} onOpenChange={onClose}>
       <DialogContent className="w-[90vw] max-w-3xl md:w-[60vw] md:max-w-4xl px-8 py-6 max-h-[80vh] overflow-hidden">
@@ -154,7 +155,7 @@ export function SchemaDetailsModal({ viewingSchema, onClose, schemaData }: Schem
               </TabsList>
 
               <TabsContent value="schema" className="mt-4">
-                <SchemaDefinitionView schemaData={schemaData} />
+                <SchemaDefinitionView schemaData={telemetry} />
               </TabsContent>
 
               <TabsContent value="producers" className="mt-4 space-y-4">

@@ -129,7 +129,7 @@ export const TelemetryDetails = () => {
         <TabsContent value="versions" className="mt-0 space-y-4">
           <Card>
             <CardContent className="p-6">
-              <VersionAssignmentView schemaId={telemetry.schemaKey} schemaData={telemetry} onVersionChange={() => {}} />
+              <VersionAssignmentView telemetry={telemetry} />
             </CardContent>
           </Card>
         </TabsContent>

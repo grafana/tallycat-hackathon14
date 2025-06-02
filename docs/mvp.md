@@ -87,7 +87,7 @@ flowchart TD
 ### 1. Metric Schema Inference
 - Input: OTLP metrics (real-time ingestion)
 - Captures:
-  - Metric name (schema key)
+  - Metric name
   - Unit, metric type, temporality
   - Description
   - Attributes from resource, scope, and data point levels

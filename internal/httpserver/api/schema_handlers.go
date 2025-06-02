@@ -58,11 +58,11 @@ func HandleGetSchema(schemaRepo repository.TelemetrySchemaRepository) http.Handl
 func HandleAssignSchemaVersion(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+
 		assignment := schema.SchemaAssignment{}
-		json.NewDecoder(r.Body).Decode(&assignment)
-		err := schemaRepo.AssignSchemaVersion(ctx, assignment)
+		err := json.NewDecoder(r.Body).Decode(&assignment)
 		if err != nil {
-			http.Error(w, "failed to assign schema version", http.StatusInternalServerError)
+			http.Error(w, "failed to decode request body", http.StatusBadRequest)
 			return
 		}
 

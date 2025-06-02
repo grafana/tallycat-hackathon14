@@ -22,9 +22,7 @@ export interface Schema {
 }
 
 export interface VersionAssignmentViewProps {
-  schemaId: string
-  schemaData: Telemetry
-  onVersionChange: (version: string) => void
+  telemetry: Telemetry
 }
 
 export interface AssignmentForm {

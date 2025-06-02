@@ -410,15 +410,26 @@ func (r *TelemetrySchemaRepository) AssignSchemaVersion(ctx context.Context, ass
 	defer tx.Rollback()
 
 	stmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO schema_versions (schema_id, version, reason, status)
-		VALUES (?, ?, ?, ?)
+		INSERT INTO schema_versions (schema_id, version, reason, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT (schema_id) DO UPDATE SET
+			version = excluded.version,
+			reason = excluded.reason,
+			updated_at = excluded.updated_at
+		WHERE excluded.updated_at > schema_versions.updated_at;
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, assgiment.SchemaId, assgiment.Version, assgiment.Reason, assgiment.Status)
+	_, err = stmt.ExecContext(ctx,
+		assgiment.SchemaId,
+		assgiment.Version,
+		assgiment.Reason,
+		time.Now(),
+		time.Now(),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to execute statement: %w", err)
 	}
@@ -468,7 +479,6 @@ func (r *TelemetrySchemaRepository) ListSchemaAssignmentsForKey(ctx context.Cont
 	query := `
 		SELECT
 			t.schema_id,
-			COALESCE(sv.status, 'Unassigned') AS status,
 			COALESCE(sv.version, 'Unassigned') AS version,
 			COUNT(DISTINCT sp.producer_id) AS producer_count,
 			MAX(sp.last_seen) AS last_seen
@@ -476,7 +486,7 @@ func (r *TelemetrySchemaRepository) ListSchemaAssignmentsForKey(ctx context.Cont
 		LEFT JOIN schema_versions sv ON t.schema_id = sv.schema_id
 		LEFT JOIN schema_producers sp ON t.schema_id = sp.schema_id
 		WHERE 1=1` + where + `
-		GROUP BY t.schema_id, sv.status, sv.version
+		GROUP BY t.schema_id, sv.version
 		ORDER BY MAX(sp.last_seen) DESC NULLS LAST
 		LIMIT ? OFFSET ?`
 
@@ -495,7 +505,7 @@ func (r *TelemetrySchemaRepository) ListSchemaAssignmentsForKey(ctx context.Cont
 	for rows.Next() {
 		var row schema.SchemaAssignmentRow
 		var lastSeen sql.NullTime
-		if err := rows.Scan(&row.SchemaId, &row.Status, &row.Version, &row.ProducerCount, &lastSeen); err != nil {
+		if err := rows.Scan(&row.SchemaId, &row.Version, &row.ProducerCount, &lastSeen); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan schema assignment row: %w", err)
 		}
 		if lastSeen.Valid {

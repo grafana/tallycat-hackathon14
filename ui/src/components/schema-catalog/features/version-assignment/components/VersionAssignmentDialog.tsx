@@ -2,14 +2,12 @@
 
 import { useState, useCallback } from "react"
 import {
-  CheckCircle2,
-  AlertTriangle,
   XCircle,
-  Edit,
   Save,
   X,
   Tag,
   Info,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -18,14 +16,14 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import type { Schema } from "@/types/schema-catalog"
-import { Status } from "@/types/telemetry"
+import { Status, type Telemetry } from "@/types/telemetry"
+import { useAssignSchemaVersion } from "@/hooks/use-assign-schema-version"
 
 interface VersionAssignmentDialogProps {
   isOpen: boolean
   onClose: () => void
-  selectedSchema: string | null
-  currentSchema: Schema | null
-  onVersionChange: (schemaId: string, version: string) => void
+  schema: Schema | null
+  telemetry: Telemetry
 }
 
 // Semantic versioning validation
@@ -39,20 +37,26 @@ const validateSemanticVersion = (version: string): string | null => {
 export const VersionAssignmentDialog = ({
   isOpen,
   onClose,
-  selectedSchema,
-  currentSchema,
-  onVersionChange,
+  schema,
+  telemetry,
 }: VersionAssignmentDialogProps) => {
   const [version, setVersion] = useState("")
+  const [description, setDescription] = useState("")
   const [error, setError] = useState<string | null>(null)
+  
+  const assignVersion = useAssignSchemaVersion()
 
   const handleVersionChange = useCallback((value: string) => {
     setVersion(value)
     setError(null)
   }, [])
 
-  const handleSubmit = useCallback(() => {
-    if (!selectedSchema) return
+  const handleDescriptionChange = useCallback((value: string) => {
+    setDescription(value)
+  }, [])
+
+  const handleSubmit = useCallback(async () => {
+    if (!schema) return
 
     const validationError = validateSemanticVersion(version)
     if (validationError) {
@@ -60,12 +64,23 @@ export const VersionAssignmentDialog = ({
       return
     }
 
-    onVersionChange(selectedSchema, version)
-    onClose()
-  }, [selectedSchema, version, onVersionChange, onClose])
+    try {
+      await assignVersion.mutateAsync({
+        schemaKey: telemetry.schemaKey,
+        schemaId: schema.id,
+        version,
+        description,
+      })
+      
+      handleClose()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to assign version")
+    }
+  }, [schema, version, description, assignVersion])
 
   const handleClose = useCallback(() => {
     setVersion("")
+    setDescription("")
     setError(null)
     onClose()
   }, [onClose])
@@ -76,24 +91,24 @@ export const VersionAssignmentDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Tag className="h-5 w-5" />
-            {currentSchema?.status === Status.Experimental ? "Assign Schema Version" : "Update Schema Version"}
+            {schema?.status === Status.Experimental ? "Assign Schema Version" : "Update Schema Version"}
           </DialogTitle>
           <DialogDescription>
-            {currentSchema?.status === Status.Experimental
-              ? `Assign a semantic version to schema ${selectedSchema}`
-              : `Update the version for schema ${selectedSchema}`}
+            {schema?.status === Status.Experimental
+              ? `Assign a semantic version to schema ${schema?.id}`
+              : `Update the version for schema ${schema?.id}`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Current Version Info */}
-          {currentSchema?.version && (
+          {schema?.version && (
             <div className="p-3 bg-muted/50 rounded-lg border">
               <div className="flex items-center gap-2 text-sm">
                 <Info className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Current version:</span>
                 <Badge variant="outline" className="font-mono text-xs">
-                  v{currentSchema.version}
+                  v{schema.version}
                 </Badge>
               </div>
             </div>
@@ -110,6 +125,7 @@ export const VersionAssignmentDialog = ({
               value={version}
               onChange={(e) => handleVersionChange(e.target.value)}
               className={error ? "border-red-500 focus:border-red-500" : ""}
+              disabled={assignVersion.isPending}
             />
             {error && (
               <div className="text-xs text-red-500 flex items-center gap-1">
@@ -128,6 +144,9 @@ export const VersionAssignmentDialog = ({
               id="description"
               placeholder="Describe the changes or reason for this version assignment..."
               rows={3}
+              value={description}
+              onChange={(e) => handleDescriptionChange(e.target.value)}
+              disabled={assignVersion.isPending}
             />
           </div>
 
@@ -135,13 +154,22 @@ export const VersionAssignmentDialog = ({
           <div className="flex items-center gap-2 pt-2">
             <Button
               onClick={handleSubmit}
-              disabled={!version || !!error}
+              disabled={!version || !description || !!error || assignVersion.isPending}
               className="flex items-center gap-2"
             >
-              <Save className="h-4 w-4" />
-              {currentSchema?.status === Status.Experimental ? "Assign Version" : "Update Version"}
+              {assignVersion.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {schema?.status === Status.Experimental ? "Assign Version" : "Update Version"}
             </Button>
-            <Button variant="outline" onClick={handleClose} className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleClose} 
+              className="flex items-center gap-2"
+              disabled={assignVersion.isPending}
+            >
               <X className="h-4 w-4" />
               Cancel
             </Button>

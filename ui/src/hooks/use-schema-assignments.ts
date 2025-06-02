@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
-import type { ListSchemaAssignmentsResponse, Schema } from '@/types/schema-catalog'
+import type { ListSchemaAssignmentsResponse } from '@/types/schema-catalog'
 
 interface UseSchemaAssignmentsOptions {
   schemaKey: string

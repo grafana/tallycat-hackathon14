@@ -125,6 +125,9 @@ export const api = {
       if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString())
       return apiClient.get<ListSchemaAssignmentsResponse>(`/api/v1/schemas/${key}/versions?${searchParams.toString()}`)
     },
+    assignVersion: async (schemaKey: string, data: { schemaId: string; version: string; description: string }) => {
+      return apiClient.post(`/api/v1/schemas/${schemaKey}/versions`, data)
+    },
   },
   // Example of how to add new domains:
   // users: {
