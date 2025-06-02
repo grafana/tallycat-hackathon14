@@ -26,7 +26,11 @@ import (
 func generateTelemetrySchemaID(telemetry Telemetry) string {
 	attributeNames := make([]string, 0, len(telemetry.Attributes))
 	for _, attr := range telemetry.Attributes {
-		attributeNames = append(attributeNames, attr.Name)
+		// Accorting to the spec, only data point attributes are part of the schema
+		// which means we will only detect drift if the telemetry attributes change
+		if attr.Source == AttributeSourceDataPoint {
+			attributeNames = append(attributeNames, attr.Name)
+		}
 	}
 	sort.Strings(attributeNames)
 
