@@ -11,15 +11,15 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
-import { Route as DataGovernanceSchemaCatalogImport } from './routes/data-governance/schema-catalog'
+import { Route as DataGovernanceTelemetryCatalogImport } from './routes/data-governance/telemetry-catalog'
 import { Route as DataGovernanceTelemetryNameImport } from './routes/data-governance/$telemetryName'
 
 // Create/Update Routes
 
-const DataGovernanceSchemaCatalogRoute =
-  DataGovernanceSchemaCatalogImport.update({
-    id: '/data-governance/schema-catalog',
-    path: '/data-governance/schema-catalog',
+const DataGovernanceTelemetryCatalogRoute =
+  DataGovernanceTelemetryCatalogImport.update({
+    id: '/data-governance/telemetry-catalog',
+    path: '/data-governance/telemetry-catalog',
     getParentRoute: () => rootRoute,
   } as any)
 
@@ -41,11 +41,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DataGovernanceTelemetryNameImport
       parentRoute: typeof rootRoute
     }
-    '/data-governance/schema-catalog': {
-      id: '/data-governance/schema-catalog'
-      path: '/data-governance/schema-catalog'
-      fullPath: '/data-governance/schema-catalog'
-      preLoaderRoute: typeof DataGovernanceSchemaCatalogImport
+    '/data-governance/telemetry-catalog': {
+      id: '/data-governance/telemetry-catalog'
+      path: '/data-governance/telemetry-catalog'
+      fullPath: '/data-governance/telemetry-catalog'
+      preLoaderRoute: typeof DataGovernanceTelemetryCatalogImport
       parentRoute: typeof rootRoute
     }
   }
@@ -55,42 +55,42 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/data-governance/$telemetryName': typeof DataGovernanceTelemetryNameRoute
-  '/data-governance/schema-catalog': typeof DataGovernanceSchemaCatalogRoute
+  '/data-governance/telemetry-catalog': typeof DataGovernanceTelemetryCatalogRoute
 }
 
 export interface FileRoutesByTo {
   '/data-governance/$telemetryName': typeof DataGovernanceTelemetryNameRoute
-  '/data-governance/schema-catalog': typeof DataGovernanceSchemaCatalogRoute
+  '/data-governance/telemetry-catalog': typeof DataGovernanceTelemetryCatalogRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/data-governance/$telemetryName': typeof DataGovernanceTelemetryNameRoute
-  '/data-governance/schema-catalog': typeof DataGovernanceSchemaCatalogRoute
+  '/data-governance/telemetry-catalog': typeof DataGovernanceTelemetryCatalogRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/data-governance/$telemetryName'
-    | '/data-governance/schema-catalog'
+    | '/data-governance/telemetry-catalog'
   fileRoutesByTo: FileRoutesByTo
-  to: '/data-governance/$telemetryName' | '/data-governance/schema-catalog'
+  to: '/data-governance/$telemetryName' | '/data-governance/telemetry-catalog'
   id:
     | '__root__'
     | '/data-governance/$telemetryName'
-    | '/data-governance/schema-catalog'
+    | '/data-governance/telemetry-catalog'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   DataGovernanceTelemetryNameRoute: typeof DataGovernanceTelemetryNameRoute
-  DataGovernanceSchemaCatalogRoute: typeof DataGovernanceSchemaCatalogRoute
+  DataGovernanceTelemetryCatalogRoute: typeof DataGovernanceTelemetryCatalogRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   DataGovernanceTelemetryNameRoute: DataGovernanceTelemetryNameRoute,
-  DataGovernanceSchemaCatalogRoute: DataGovernanceSchemaCatalogRoute,
+  DataGovernanceTelemetryCatalogRoute: DataGovernanceTelemetryCatalogRoute,
 }
 
 export const routeTree = rootRoute
@@ -104,14 +104,14 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/data-governance/$telemetryName",
-        "/data-governance/schema-catalog"
+        "/data-governance/telemetry-catalog"
       ]
     },
     "/data-governance/$telemetryName": {
       "filePath": "data-governance/$telemetryName.tsx"
     },
-    "/data-governance/schema-catalog": {
-      "filePath": "data-governance/schema-catalog.tsx"
+    "/data-governance/telemetry-catalog": {
+      "filePath": "data-governance/telemetry-catalog.tsx"
     }
   }
 }

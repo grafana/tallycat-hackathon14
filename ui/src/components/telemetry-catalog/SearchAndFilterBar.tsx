@@ -1,6 +1,6 @@
-import { Search } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { StatusFilter } from "./components/filters/StatusFilter"
+import { Search } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { StatusFilter } from './components/filters/StatusFilter'
 
 interface SearchAndFilterBarProps {
   searchQuery: string
@@ -27,8 +27,11 @@ export const SearchAndFilterBar = ({
             className="pl-9 pr-4"
           />
         </div>
-        <StatusFilter activeStatus={activeStatus} onStatusChange={onStatusChange} />
+        <StatusFilter
+          activeStatus={activeStatus}
+          onStatusChange={onStatusChange}
+        />
       </div>
     </div>
   )
-} 
+}

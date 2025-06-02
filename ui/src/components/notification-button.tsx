@@ -1,19 +1,19 @@
-import React from 'react';
+import React from 'react'
 
 interface NotificationButtonProps {
-  hasNotifications?: boolean;
-  onClick?: () => void;
+  hasNotifications?: boolean
+  onClick?: () => void
 }
 
-export const NotificationButton = ({ 
+export const NotificationButton = ({
   hasNotifications = true,
-  onClick
+  onClick,
 }: NotificationButtonProps) => {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
-      onClick?.();
+      onClick?.()
     }
-  };
+  }
 
   return (
     <button
@@ -23,14 +23,14 @@ export const NotificationButton = ({
       onClick={onClick}
       onKeyDown={handleKeyPress}
     >
-      <svg 
-        width="20" 
-        height="20" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth="2" 
-        viewBox="0 0 24 24" 
-        aria-hidden="true" 
+      <svg
+        width="20"
+        height="20"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
         className="text-foreground"
       >
         <path d="M18 16v-5a6 6 0 10-12 0v5a2 2 0 01-2 2h16a2 2 0 01-2-2z" />
@@ -40,5 +40,5 @@ export const NotificationButton = ({
         <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary" />
       )}
     </button>
-  );
-}; 
+  )
+}

@@ -1,10 +1,10 @@
-import React from 'react';
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/app-sidebar';
-import { AppHeader } from '@/components/app-header';
+import React from 'react'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { AppSidebar } from '@/components/app-sidebar'
+import { AppHeader } from '@/components/app-header'
 
 interface BaseLayoutProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 export const BaseLayout = ({ children }: BaseLayoutProps) => {
@@ -13,10 +13,8 @@ export const BaseLayout = ({ children }: BaseLayoutProps) => {
       <AppSidebar />
       <SidebarInset>
         <AppHeader />
-        <div className="flex-1 p-6">
-          {children}
-        </div>
+        <div className="flex-1 p-6">{children}</div>
       </SidebarInset>
     </SidebarProvider>
-  );
-};
+  )
+}

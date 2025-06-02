@@ -1,2 +1,2 @@
 export * from './use-debounce'
-export * from './use-technical-facets' 
+export * from './use-technical-facets'

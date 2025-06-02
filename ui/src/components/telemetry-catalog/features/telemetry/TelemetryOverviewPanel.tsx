@@ -1,4 +1,4 @@
-"use client"
+'use client'
 import {
   Info,
   BarChart2,
@@ -8,16 +8,18 @@ import {
   Calendar,
   Clock,
   Database,
-} from "lucide-react"
-import { type Telemetry, Status } from "@/types/telemetry"
-import { formatDate, DateFormat } from "@/lib/utils"
+} from 'lucide-react'
+import { type Telemetry } from '@/types/telemetry'
+import { formatDate, DateFormat } from '@/lib/utils'
 
 interface TelemetryOverviewPanelProps {
   telemetry: Telemetry
   onViewAllSources: () => void
 }
 
-export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProps) {
+export function TelemetryOverviewPanel({
+  telemetry,
+}: TelemetryOverviewPanelProps) {
   // Calculate source health counts
 
   // Calculate total volume
@@ -30,7 +32,9 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
           <Info className="h-5 w-5 text-primary" />
           <h2 className="text-xl font-medium">Description</h2>
         </div>
-        <p className="text-base leading-relaxed">{telemetry.brief || "No description available"}</p>
+        <p className="text-base leading-relaxed">
+          {telemetry.brief || 'No description available'}
+        </p>
       </div>
 
       {/* Main Content Area - 3 columns (removed Source & Format column) */}
@@ -110,7 +114,9 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-sm">Created</span>
               </div>
-              <span className="text-sm">{formatDate(telemetry.createdAt, DateFormat.datetime)}</span>
+              <span className="text-sm">
+                {formatDate(telemetry.createdAt, DateFormat.datetime)}
+              </span>
             </div>
 
             <div className="flex items-center justify-between">
@@ -118,15 +124,9 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-sm">Updated</span>
               </div>
-              <span className="text-sm">{formatDate(telemetry.updatedAt, DateFormat.datetime)}</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-sm">Version</span>
-              </div>
-              <span className="text-sm font-medium">v{telemetry.schemaVersion || "1.0.0"}</span>
+              <span className="text-sm">
+                {formatDate(telemetry.updatedAt, DateFormat.datetime)}
+              </span>
             </div>
           </div>
         </div>
@@ -145,7 +145,9 @@ export function TelemetryOverviewPanel({ telemetry }: TelemetryOverviewPanelProp
               </div>
               <span className="text-sm font-medium">
                 {Object.keys(telemetry.producers).length}
-                {Object.keys(telemetry.producers).length > 1 ? " Producers" : " Producer"}
+                {Object.keys(telemetry.producers).length > 1
+                  ? ' Producers'
+                  : ' Producer'}
               </span>
             </div>
 

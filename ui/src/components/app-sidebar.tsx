@@ -1,14 +1,14 @@
-import * as React from "react"
+import * as React from 'react'
 import {
   GalleryVerticalEnd,
   SquareTerminal,
   ChevronLeft,
   ChevronRight,
-} from "lucide-react"
+} from 'lucide-react'
 
-import { NavMain } from "@/components/nav-main"
+import { NavMain } from '@/components/nav-main'
 
-import { TeamSwitcher } from "@/components/team-switcher"
+import { TeamSwitcher } from '@/components/team-switcher'
 import {
   Sidebar,
   SidebarContent,
@@ -16,32 +16,32 @@ import {
   SidebarHeader,
   SidebarRail,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from '@/components/ui/sidebar'
 
 // This is sample data.
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: 'shadcn',
+    email: 'm@example.com',
+    avatar: '/avatars/shadcn.jpg',
   },
   teams: [
     {
-      name: "Acme Inc",
+      name: 'Acme Inc',
       logo: GalleryVerticalEnd,
-      plan: "Enterprise",
+      plan: 'Enterprise',
     },
   ],
   navMain: [
     {
-      title: "Data Governance",
-      url: "#",
+      title: 'Data Governance',
+      url: '#',
       icon: SquareTerminal,
       isActive: true,
       items: [
         {
-          title: "Schema Catalog",
-          url: "/data-governance/schema-catalog",
+          title: 'Telemetry Catalog',
+          url: '/data-governance/telemetry-catalog',
         },
       ],
     },
@@ -49,8 +49,7 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-        
-  const { state, toggleSidebar } = useSidebar();
+  const { state, toggleSidebar } = useSidebar()
   return (
     <Sidebar collapsible="icon" {...props} className="relative">
       {/* Floating sidebar toggle button */}
@@ -73,8 +72,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={data.navMain} />
       </SidebarContent>
-      <SidebarFooter>
-      </SidebarFooter>
+      <SidebarFooter></SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )

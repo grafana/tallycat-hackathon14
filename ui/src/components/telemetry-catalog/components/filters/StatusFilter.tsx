@@ -1,6 +1,6 @@
-import { CheckCircle2, SlidersHorizontal } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { CheckCircle2, SlidersHorizontal } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,22 +8,25 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Status } from "@/types/telemetry"
+} from '@/components/ui/dropdown-menu'
+import { Status } from '@/types/telemetry'
 
 interface StatusFilterProps {
   activeStatus: string[]
   onStatusChange: (status: string[]) => void
 }
 
-export const StatusFilter = ({ activeStatus, onStatusChange }: StatusFilterProps) => {
+export const StatusFilter = ({
+  activeStatus,
+  onStatusChange,
+}: StatusFilterProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
           size="sm"
-          className={`h-9 gap-1 ${activeStatus.length > 0 ? "bg-primary/10 border-primary/30 text-primary" : ""}`}
+          className={`h-9 gap-1 ${activeStatus.length > 0 ? 'bg-primary/10 border-primary/30 text-primary' : ''}`}
         >
           <SlidersHorizontal className="h-4 w-4" />
           Filter
@@ -63,4 +66,4 @@ export const StatusFilter = ({ activeStatus, onStatusChange }: StatusFilterProps
       </DropdownMenuContent>
     </DropdownMenu>
   )
-} 
+}

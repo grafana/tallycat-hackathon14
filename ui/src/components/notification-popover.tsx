@@ -1,19 +1,19 @@
-import { useState, useRef, useEffect } from 'react';
-import { Bell } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react'
+import { Bell } from 'lucide-react'
 
 const notifications = [
   { id: 1, title: 'New message from Alice', time: '2m ago' },
   { id: 2, title: 'Server backup completed', time: '10m ago' },
   { id: 3, title: 'Payment received', time: '1h ago' },
-];
+]
 
 export const NotificationPopover = () => {
-  const [open, setOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) return
     const handleClick = (e: MouseEvent) => {
       if (
         popoverRef.current &&
@@ -21,12 +21,12 @@ export const NotificationPopover = () => {
         buttonRef.current &&
         !buttonRef.current.contains(e.target as Node)
       ) {
-        setOpen(false);
+        setOpen(false)
       }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [open]);
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
 
   return (
     <div className="relative">
@@ -49,24 +49,38 @@ export const NotificationPopover = () => {
           role="menu"
           tabIndex={-1}
         >
-          <div className="font-semibold px-3 py-2 text-sm border-b border-border mb-2">Notifications</div>
+          <div className="font-semibold px-3 py-2 text-sm border-b border-border mb-2">
+            Notifications
+          </div>
           {notifications.length === 0 ? (
-            <div className="px-3 py-6 text-center text-muted-foreground text-sm">No notifications</div>
+            <div className="px-3 py-6 text-center text-muted-foreground text-sm">
+              No notifications
+            </div>
           ) : (
             <ul className="flex flex-col gap-1 max-h-60 overflow-auto">
               {notifications.map((n) => (
-                <li key={n.id} className="px-3 py-2 rounded-md hover:bg-sidebar-accent transition-colors cursor-pointer flex items-center justify-between">
+                <li
+                  key={n.id}
+                  className="px-3 py-2 rounded-md hover:bg-sidebar-accent transition-colors cursor-pointer flex items-center justify-between"
+                >
                   <span className="truncate text-sm">{n.title}</span>
-                  <span className="ml-2 text-xs text-muted-foreground whitespace-nowrap">{n.time}</span>
+                  <span className="ml-2 text-xs text-muted-foreground whitespace-nowrap">
+                    {n.time}
+                  </span>
                 </li>
               ))}
             </ul>
           )}
           <div className="mt-2 border-t border-border pt-2 text-right">
-            <a href="#" className="text-xs text-primary hover:underline font-medium">View all</a>
+            <a
+              href="#"
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              View all
+            </a>
           </div>
         </div>
       )}
     </div>
-  );
-}; 
+  )
+}

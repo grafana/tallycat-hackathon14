@@ -1,15 +1,15 @@
-"use client"
+'use client'
 
-import { ChevronRight  } from "lucide-react"
-import type {LucideIcon} from "lucide-react";
-import { SidebarMenuFlyout } from "@/components/ui/sidebar-menu-flyout";
-import { useSidebar } from "@/components/ui/sidebar";
+import { ChevronRight } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { SidebarMenuFlyout } from '@/components/ui/sidebar-menu-flyout'
+import { useSidebar } from '@/components/ui/sidebar'
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+} from '@/components/ui/collapsible'
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -19,7 +19,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from "@/components/ui/sidebar"
+} from '@/components/ui/sidebar'
 
 export function NavMain({
   items,
@@ -35,13 +35,13 @@ export function NavMain({
     }>
   }>
 }) {
-  const { state } = useSidebar();
+  const { state } = useSidebar()
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
-          const hasSubmenu = item.items && item.items.length > 0;
+          const hasSubmenu = item.items && item.items.length > 0
           if (hasSubmenu) {
             if (state === 'collapsed') {
               return (
@@ -70,7 +70,7 @@ export function NavMain({
                     </SidebarMenuSub>
                   </SidebarMenuFlyout>
                 </SidebarMenuItem>
-              );
+              )
             } else {
               return (
                 <Collapsible
@@ -102,7 +102,7 @@ export function NavMain({
                     </CollapsibleContent>
                   </SidebarMenuItem>
                 </Collapsible>
-              );
+              )
             }
           }
           return (
@@ -112,7 +112,7 @@ export function NavMain({
                 <span>{item.title}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-          );
+          )
         })}
       </SidebarMenu>
     </SidebarGroup>

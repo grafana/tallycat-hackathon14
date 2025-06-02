@@ -1,9 +1,21 @@
 import { ChevronDown, Clock, Tag } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import type { Telemetry } from '@/types/telemetry'
 import { DataTypeIcon } from './telemetry-icons'
 import { getTelemetryTypeBgColor, getStatusBadge } from '@/utils/telemetry'
@@ -26,7 +38,10 @@ export const TelemetryCard = ({ item }: TelemetryCardProps) => {
             <DataTypeIcon dataType={item.metricType} />
           </div>
           <CardTitle className="text-base">
-            <Link to={`/data-governance/schema-catalog`} className="hover:text-primary hover:underline">
+            <Link
+              to={`/data-governance/telemetry-catalog`}
+              className="hover:text-primary hover:underline"
+            >
               {item.schemaKey}
             </Link>
           </CardTitle>
@@ -70,7 +85,9 @@ export const TelemetryCard = ({ item }: TelemetryCardProps) => {
           <span className="text-sm font-mono">{item.protocol}</span>
         </div>
         <div className="mt-2">
-          <p className="text-sm text-muted-foreground line-clamp-2">{item.brief}</p>
+          <p className="text-sm text-muted-foreground line-clamp-2">
+            {item.brief}
+          </p>
         </div>
       </CardContent>
       <CardFooter className="border-t bg-muted/30 px-6 py-3">
@@ -87,4 +104,4 @@ export const TelemetryCard = ({ item }: TelemetryCardProps) => {
       </CardFooter>
     </Card>
   )
-} 
+}

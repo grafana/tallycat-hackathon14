@@ -1,14 +1,16 @@
 import type { Telemetry } from '@/types/telemetry'
-import type { Schema } from '@/types/schema-catalog'
 import { API_BASE_URL } from '@/config/api'
-import type { ListSchemaAssignmentsResponse } from '@/types/schema-catalog'
+import type { ListTelemetrySchemasResponse } from '@/types/telemetry-schema'
 
 interface ApiError extends Error {
   status?: number
 }
 
 class ApiError extends Error {
-  constructor(message: string, public status?: number) {
+  constructor(
+    message: string,
+    public status?: number,
+  ) {
     super(message)
     this.name = 'ApiError'
   }
@@ -59,7 +61,7 @@ export const apiClient = {
 }
 
 // Common types
-interface ListResponse<T> {
+export interface ListResponse<T> {
   items: T[]
   total: number
   page: number
@@ -76,17 +78,18 @@ interface ListParams {
 }
 
 // Schema types
-interface ListSchemasResponse extends ListResponse<Telemetry> {}
-interface ListSchemasParams extends ListParams {
+interface ListTelemetriesResponse extends ListResponse<Telemetry> {}
+interface ListTelemetriesParams extends ListParams {
   type?: string
 }
 
 // API endpoints organized by domain
 export const api = {
-  schemas: {
-    getByKey: (key: string) => apiClient.get<Telemetry>(`/api/v1/schemas/${key}`),
-    list: () => apiClient.get<Telemetry[]>('/api/v1/schemas'),
-    listWithParams: (params: ListSchemasParams) => {
+  telemetries: {
+    getByKey: (key: string) =>
+      apiClient.get<Telemetry>(`/api/v1/telemetries/${key}`),
+    list: () => apiClient.get<Telemetry[]>('/api/v1/telemetries'),
+    listWithParams: (params: ListTelemetriesParams) => {
       const searchParams = new URLSearchParams({
         page: params.page.toString(),
         pageSize: params.pageSize.toString(),
@@ -108,25 +111,45 @@ export const api = {
       if (params.filters) {
         Object.entries(params.filters).forEach(([key, values]) => {
           if (values.length > 0) {
-            values.forEach(value => {
+            values.forEach((value) => {
               searchParams.append(`filter_${key}`, value)
             })
           }
         })
       }
 
-      return apiClient.get<ListSchemasResponse>(`/api/v1/schemas?${searchParams.toString()}`)
+      return apiClient.get<ListTelemetriesResponse>(
+        `/api/v1/telemetries?${searchParams.toString()}`,
+      )
     },
-    listAssignments: (key: string, params: { search?: string; status?: string[]; page?: number; pageSize?: number }) => {
+    listSchemas: (
+      key: string,
+      params: {
+        search?: string
+        status?: string[]
+        page?: number
+        pageSize?: number
+      },
+    ) => {
       const searchParams = new URLSearchParams()
       if (params.search) searchParams.append('search', params.search)
-      if (params.status) params.status.forEach(s => searchParams.append('status', s))
+      if (params.status)
+        params.status.forEach((s) => searchParams.append('status', s))
       if (params.page) searchParams.append('page', params.page.toString())
-      if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString())
-      return apiClient.get<ListSchemaAssignmentsResponse>(`/api/v1/schemas/${key}/versions?${searchParams.toString()}`)
+      if (params.pageSize)
+        searchParams.append('pageSize', params.pageSize.toString())
+      return apiClient.get<ListTelemetrySchemasResponse>(
+        `/api/v1/telemetries/${key}/schemas?${searchParams.toString()}`,
+      )
     },
-    assignVersion: async (schemaKey: string, data: { schemaId: string; version: string; description: string }) => {
-      return apiClient.post(`/api/v1/schemas/${schemaKey}/versions`, data)
+    assignTelemetrySchemaVersion: async (
+      schemaKey: string,
+      data: { schemaId: string; version: string; description: string },
+    ) => {
+      return apiClient.post(
+        `/api/v1/telemetries/${schemaKey}/schemas/${data.schemaId}`,
+        data,
+      )
     },
   },
   // Example of how to add new domains:
@@ -142,4 +165,4 @@ export const api = {
   //   list: (params: ListParams) => apiClient.get<ListResponse<Team>>('/api/v1/teams'),
   //   create: (data: CreateTeamRequest) => apiClient.post<Team>('/api/v1/teams', data),
   // },
-} 
+}

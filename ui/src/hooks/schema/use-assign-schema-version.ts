@@ -12,8 +12,17 @@ export const useAssignSchemaVersion = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ schemaKey, schemaId, version, description }: AssignSchemaVersionParams) => {
-      return api.schemas.assignVersion(schemaKey, { schemaId, version, description })
+    mutationFn: async ({
+      schemaKey,
+      schemaId,
+      version,
+      description,
+    }: AssignSchemaVersionParams) => {
+      return api.telemetries.assignTelemetrySchemaVersion(schemaKey, {
+        schemaId,
+        version,
+        description,
+      })
     },
     onSuccess: () => {
       // Invalidate relevant queries to refresh the data
@@ -21,4 +30,4 @@ export const useAssignSchemaVersion = () => {
       queryClient.invalidateQueries({ queryKey: ['schemas'] })
     },
   })
-} 
+}

@@ -17,6 +17,6 @@ interface ListSchemasParams {
 export const useSchemas = (params: ListSchemasParams) => {
   return useQuery({
     queryKey: ['schemas', params],
-    queryFn: () => api.schemas.listWithParams(params),
+    queryFn: () => api.telemetries.listWithParams(params),
   })
-} 
+}

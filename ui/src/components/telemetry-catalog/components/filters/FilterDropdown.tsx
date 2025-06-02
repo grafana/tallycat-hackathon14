@@ -2,9 +2,16 @@ import React from 'react'
 import { Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useTechnicalFacets } from '@/hooks/use-technical-facets'
+import { useTechnicalFacets } from '@/hooks'
 import type { TechnicalFacet, FacetOption } from '@/data/technical-facets'
 
 interface FilterDropdownProps {
@@ -20,7 +27,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
   activeFilterCount,
   onToggleFilter,
   isLoading,
-  error
+  error,
 }) => {
   const { data: technicalFacets } = useTechnicalFacets()
 
@@ -35,7 +42,12 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
 
   if (error) {
     return (
-      <Button variant="outline" size="sm" className="h-9 text-destructive" disabled>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-9 text-destructive"
+        disabled
+      >
         <Filter className="mr-2 h-4 w-4" />
         Error loading filters
       </Button>
@@ -59,7 +71,9 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
         <ScrollArea className="h-[500px]">
           {technicalFacets?.map((facet: TechnicalFacet) => (
             <div key={facet.id} className="px-2 py-1.5">
-              <DropdownMenuLabel className="px-0">{facet.name}</DropdownMenuLabel>
+              <DropdownMenuLabel className="px-0">
+                {facet.name}
+              </DropdownMenuLabel>
               <DropdownMenuSeparator className="mb-1" />
               {facet.options.map((option: FacetOption) => (
                 <DropdownMenuCheckboxItem
@@ -79,4 +93,4 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
       </DropdownMenuContent>
     </DropdownMenu>
   )
-} 
+}

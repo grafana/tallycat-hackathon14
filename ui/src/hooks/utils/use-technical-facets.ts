@@ -6,4 +6,4 @@ export const useTechnicalFacets = () => {
     queryKey: ['technicalFacets'],
     queryFn: getTechnicalFacets,
   })
-} 
+}

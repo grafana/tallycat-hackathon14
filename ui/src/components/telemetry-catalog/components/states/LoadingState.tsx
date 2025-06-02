@@ -4,4 +4,4 @@ export const LoadingState = () => {
       <p className="text-muted-foreground">Loading schema assignments...</p>
     </div>
   )
-} 
+}

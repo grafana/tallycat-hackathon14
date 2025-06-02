@@ -1,16 +1,10 @@
-"use client"
+'use client'
 
-import { useState, useCallback, useMemo } from "react"
-import {
-  Edit,
-  Tag,
-  Database,
-  Eye,
-  MoreHorizontal,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { DataTable } from "@/components/ui/data-table"
+import { useState, useCallback, useMemo } from 'react'
+import { Edit, Tag, Database, Eye, MoreHorizontal } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { DataTable } from '@/components/ui/data-table'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,40 +12,48 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import type { ColumnDef } from "@tanstack/react-table"
+} from '@/components/ui/dropdown-menu'
+import type { ColumnDef } from '@tanstack/react-table'
 
-import type { Schema, VersionAssignmentViewProps } from "@/types/schema-catalog"
-import { Status } from "@/types/telemetry"
-import { formatDate, DateFormat } from "@/lib/utils"
+import type {
+  TelemetrySchema,
+  VersionAssignmentViewProps,
+} from '@/types/telemetry-schema'
+import { Status } from '@/types/telemetry'
+import { formatDate, DateFormat } from '@/lib/utils'
 
-import { SearchAndFilterBar } from "./SearchAndFilterBar"
-import { useSchemaAssignmentData } from "@/hooks/use-schema-assignment-data"
-import { SchemaDetailsModal } from "./modals/SchemaDetailsModal"
-import { StatusBadge } from "./components/badges/StatusBadge"
-import { LoadingState } from "./components/states/LoadingState"
-import { ErrorState } from "./components/states/ErrorState"
-import { VersionAssignmentDialog } from "./features/version-assignment/components/VersionAssignmentDialog"
+import { SearchAndFilterBar } from './SearchAndFilterBar'
+import { useSchemaAssignmentData } from '@/hooks'
+import { SchemaDetailsModal } from './modals/SchemaDetailsModal'
+import { StatusBadge } from './components/badges/StatusBadge'
+import { LoadingState } from './components/states/LoadingState'
+import { ErrorState } from './components/states/ErrorState'
+import { VersionAssignmentDialog } from './features/version-assignment/components/VersionAssignmentDialog'
 
 const createTableColumns = (
-  onViewSchema: (schema: Schema) => void,
-  onAssignVersion: (schema: Schema) => void
-): ColumnDef<Schema>[] => [
+  onViewSchema: (schema: TelemetrySchema) => void,
+  onAssignVersion: (schema: TelemetrySchema) => void,
+): ColumnDef<TelemetrySchema>[] => [
   {
-    accessorKey: "id",
-    header: "Schema ID",
+    accessorKey: 'id',
+    header: 'Schema ID',
     cell: ({ row }) => (
-      <div className="font-mono text-sm text-foreground">{row.original.id}</div>
+      <div
+        className="font-mono text-sm text-foreground cursor-pointer"
+        onClick={() => onViewSchema(row.original)}
+      >
+        {row.original.id}
+      </div>
     ),
   },
   {
-    accessorKey: "status",
-    header: "Status",
+    accessorKey: 'status',
+    header: 'Status',
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
   {
-    accessorKey: "version",
-    header: "Version",
+    accessorKey: 'version',
+    header: 'Version',
     cell: ({ row }) => {
       const schema = row.original
       return schema.version ? (
@@ -67,21 +69,23 @@ const createTableColumns = (
     },
   },
   {
-    accessorKey: "producers",
-    header: "Producers",
+    accessorKey: 'producers',
+    header: 'Producers',
     cell: ({ row }) => {
       const schema = row.original
       return (
         <div className="flex items-center gap-2">
           <Database className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-foreground">{schema.producers.length}</span>
+          <span className="text-sm text-foreground">
+            {schema.producers.length}
+          </span>
         </div>
       )
     },
   },
   {
-    accessorKey: "lastSeen",
-    header: "Last Seen",
+    accessorKey: 'lastSeen',
+    header: 'Last Seen',
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {formatDate(row.original.lastSeen, DateFormat.short)}
@@ -89,7 +93,7 @@ const createTableColumns = (
     ),
   },
   {
-    id: "actions",
+    id: 'actions',
     cell: ({ row }) => {
       const schema = row.original
       return (
@@ -103,12 +107,18 @@ const createTableColumns = (
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => onViewSchema(schema)} className="cursor-pointer">
+              <DropdownMenuItem
+                onClick={() => onViewSchema(schema)}
+                className="cursor-pointer"
+              >
                 <Eye className="mr-2 h-4 w-4" />
                 View Details
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onAssignVersion(schema)} className="cursor-pointer">
+              <DropdownMenuItem
+                onClick={() => onAssignVersion(schema)}
+                className="cursor-pointer"
+              >
                 {schema.status === Status.Experimental ? (
                   <>
                     <Tag className="mr-2 h-4 w-4" />
@@ -133,10 +143,12 @@ const getSummaryText = (
   count: number,
   total: number,
   searchQuery: string,
-  activeStatus: string[]
+  activeStatus: string[],
 ) => {
-  return `Showing ${count} schema${count !== 1 ? "s" : ""}${
-    (searchQuery || activeStatus.length > 0) ? ` (filtered from ${total} total)` : ""
+  return `Showing ${count} schema${count !== 1 ? 's' : ''}${
+    searchQuery || activeStatus.length > 0
+      ? ` (filtered from ${total} total)`
+      : ''
   }`
 }
 
@@ -145,7 +157,9 @@ export function VersionAssignmentView({
 }: VersionAssignmentViewProps) {
   const [selectedSchema, setSelectedSchema] = useState<string | null>(null)
   const [isAssigning, setIsAssigning] = useState(false)
-  const [viewingSchema, setViewingSchema] = useState<Schema | null>(null)
+  const [viewingSchema, setViewingSchema] = useState<TelemetrySchema | null>(
+    null,
+  )
 
   const {
     searchQuery,
@@ -162,18 +176,18 @@ export function VersionAssignmentView({
     totalCount,
   } = useSchemaAssignmentData(telemetry.schemaKey)
 
-  const handleAssignVersion = useCallback((schema: Schema) => {
+  const handleAssignVersion = useCallback((schema: TelemetrySchema) => {
     setSelectedSchema(schema.id)
     setIsAssigning(true)
   }, [])
 
-  const handleViewSchema = useCallback((schema: Schema) => {
+  const handleViewSchema = useCallback((schema: TelemetrySchema) => {
     setViewingSchema(schema)
   }, [])
 
-  const columns = useMemo(() => 
-    createTableColumns(handleViewSchema, handleAssignVersion),
-    [handleViewSchema, handleAssignVersion]
+  const columns = useMemo(
+    () => createTableColumns(handleViewSchema, handleAssignVersion),
+    [handleViewSchema, handleAssignVersion],
   )
 
   if (isLoading) {
@@ -189,9 +203,12 @@ export function VersionAssignmentView({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-foreground">Schema Version Assignment</h2>
+          <h2 className="text-xl font-semibold text-foreground">
+            Schema Version Assignment
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Manage schema versions discovered at runtime for {telemetry.schemaKey}
+            Manage schema versions discovered at runtime for{' '}
+            {telemetry.schemaKey}
           </p>
         </div>
       </div>
@@ -212,7 +229,12 @@ export function VersionAssignmentView({
         onPageSizeChange={setPageSize}
         totalCount={totalCount}
         showColumnVisibility={false}
-        summaryText={getSummaryText(tableData.length, totalCount, searchQuery, activeStatus)}
+        summaryText={getSummaryText(
+          tableData.length,
+          totalCount,
+          searchQuery,
+          activeStatus,
+        )}
       />
 
       <SchemaDetailsModal

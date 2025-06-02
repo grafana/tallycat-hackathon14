@@ -1,22 +1,22 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Monitor, Moon, Sun } from 'lucide-react';
-import { useTheme } from '@/components/theme-provider';
+import React, { useEffect, useRef, useState } from 'react'
+import { Monitor, Moon, Sun } from 'lucide-react'
+import { useTheme } from '@/components/theme-provider'
 
 interface UserMenuProps {
-  userInitials?: string;
-  userEmail?: string;
-  userName?: string;
+  userInitials?: string
+  userEmail?: string
+  userName?: string
 }
 
-export const UserMenu = ({ 
-  userInitials = 'CN', 
-  userEmail = 'm@example.com', 
-  userName = 'shadcn' 
+export const UserMenu = ({
+  userInitials = 'CN',
+  userEmail = 'm@example.com',
+  userName = 'shadcn',
 }: UserMenuProps) => {
-  const { theme, setTheme } = useTheme();
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const avatarRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const { theme, setTheme } = useTheme()
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const avatarRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -26,31 +26,31 @@ export const UserMenu = ({
         avatarRef.current &&
         !avatarRef.current.contains(event.target as Node)
       ) {
-        setIsUserMenuOpen(false);
+        setIsUserMenuOpen(false)
       }
-    };
+    }
 
     if (isUserMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside)
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isUserMenuOpen]);
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isUserMenuOpen])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsUserMenuOpen(false);
-    };
+      if (event.key === 'Escape') setIsUserMenuOpen(false)
+    }
 
     if (isUserMenuOpen) {
-      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('keydown', handleKeyDown)
     }
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isUserMenuOpen]);
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isUserMenuOpen])
 
-  const handleToggle = () => setIsUserMenuOpen((open) => !open);
+  const handleToggle = () => setIsUserMenuOpen((open) => !open)
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') handleToggle();
-  };
+    if (e.key === 'Enter' || e.key === ' ') handleToggle()
+  }
 
   return (
     <div className="relative">
@@ -64,8 +64,12 @@ export const UserMenu = ({
         aria-haspopup="menu"
         aria-expanded={isUserMenuOpen}
       >
-        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-primary font-semibold">{userInitials}</span>
-        <span className="font-medium text-sm text-sidebar-foreground hidden sm:block">{userName}</span>
+        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-primary font-semibold">
+          {userInitials}
+        </span>
+        <span className="font-medium text-sm text-sidebar-foreground hidden sm:block">
+          {userName}
+        </span>
       </button>
       {isUserMenuOpen && (
         <div
@@ -84,17 +88,41 @@ export const UserMenu = ({
             </div>
           </div>
           <div className="my-2 border-t border-border" />
-          <button className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted text-sm text-foreground" role="menuitem" tabIndex={0}>
+          <button
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted text-sm text-foreground"
+            role="menuitem"
+            tabIndex={0}
+          >
             <span className="font-medium">Upgrade to Pro</span>
           </button>
-          <button className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted text-sm text-foreground" role="menuitem" tabIndex={0}>
+          <button
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted text-sm text-foreground"
+            role="menuitem"
+            tabIndex={0}
+          >
             <span>Account</span>
           </button>
-          <button className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted text-sm text-foreground" role="menuitem" tabIndex={0}>
+          <button
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted text-sm text-foreground"
+            role="menuitem"
+            tabIndex={0}
+          >
             <span>Billing</span>
           </button>
-          <button className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted text-sm text-foreground" role="menuitem" tabIndex={0}>
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-muted-foreground">
+          <button
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted text-sm text-foreground"
+            role="menuitem"
+            tabIndex={0}
+          >
+            <svg
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              className="text-muted-foreground"
+            >
               <path d="M18 16v-5a6 6 0 10-12 0v5a2 2 0 01-2 2h16a2 2 0 01-2-2z" />
               <path d="M13.73 21a2 2 0 01-3.46 0" />
             </svg>
@@ -125,11 +153,15 @@ export const UserMenu = ({
               <Monitor className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
-          <button className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-destructive/10 text-sm text-destructive" role="menuitem" tabIndex={0}>
+          <button
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-destructive/10 text-sm text-destructive"
+            role="menuitem"
+            tabIndex={0}
+          >
             <span>Log out</span>
           </button>
         </div>
       )}
     </div>
-  );
-}; 
+  )
+}

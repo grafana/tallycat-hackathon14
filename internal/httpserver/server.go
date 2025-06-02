@@ -21,6 +21,28 @@ type Server struct {
 
 func New(addr string, schemaRepo repository.TelemetrySchemaRepository) *Server {
 	r := chi.NewRouter()
+
+	// Register middlewares
+	registerMiddlewares(r)
+
+	// Register routes
+	registerHealthCheck(r)
+
+	srv := &Server{
+		httpServer: &http.Server{
+			Addr:    addr,
+			Handler: r,
+		},
+		schemaRepo: schemaRepo,
+	}
+
+	// Register API routes
+	registerAPIRoutes(r, srv)
+
+	return srv
+}
+
+func registerMiddlewares(r chi.Router) {
 	// Middlewares must be registered before routes or mounts
 	r.Use(middleware.RealIP)
 	r.Use(middleware.CleanPath)
@@ -38,28 +60,27 @@ func New(addr string, schemaRepo repository.TelemetrySchemaRepository) *Server {
 	}))
 	// Now mount profiler and add routes
 	r.Mount("/debug", middleware.Profiler())
+}
 
-	// Health check endpoint
+func registerHealthCheck(r chi.Router) {
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})
+}
 
-	// Register /api/v1/schemas handler
-	srv := &Server{
-		httpServer: &http.Server{
-			Addr:    addr,
-			Handler: r,
-		},
-		schemaRepo: schemaRepo,
-	}
-	r.Route("/api/v1/schemas", func(r chi.Router) {
-		r.Get("/", api.HandleListSchemas(srv.schemaRepo))
-		r.Get("/{key}", api.HandleGetSchema(srv.schemaRepo))
-		r.Post("/{key}/versions", api.HandleAssignSchemaVersion(srv.schemaRepo))
-		r.Get("/{key}/versions", api.HandleListSchemaAssignmentsForKey(srv.schemaRepo))
+func registerAPIRoutes(r chi.Router, srv *Server) {
+	// API v1 routes
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Route("/telemetries", func(r chi.Router) {
+			r.Get("/", api.HandleTelemetryList(srv.schemaRepo))
+			r.Get("/{key}", api.HandleGetTelemetry(srv.schemaRepo))
+			r.Route("/{key}/schemas", func(r chi.Router) {
+				r.Get("/", api.HandleTelemetrySchemas(srv.schemaRepo))
+				r.Post("/{schemaId}", api.HandleTelemetrySchemaVersionAssignment(srv.schemaRepo))
+			})
+		})
 	})
-	return srv
 }
 
 func (s *Server) Start() error {

@@ -9,8 +9,8 @@ import (
 
 type TelemetrySchemaRepository interface {
 	RegisterTelemetrySchemas(ctx context.Context, schemas []schema.Telemetry) error
-	ListSchemas(ctx context.Context, params query.ListQueryParams) ([]schema.Telemetry, int, error)
-	GetSchemaByKey(ctx context.Context, schemaKey string) (*schema.Telemetry, error)
-	AssignSchemaVersion(ctx context.Context, assignment schema.SchemaAssignment) error
-	ListSchemaAssignmentsForKey(ctx context.Context, schemaKey string, params query.ListQueryParams) ([]schema.SchemaAssignmentRow, int, error)
+	ListTelemetries(ctx context.Context, params query.ListQueryParams) ([]schema.Telemetry, int, error)
+	GetTelemetry(ctx context.Context, schemaKey string) (*schema.Telemetry, error)
+	ListTelemetrySchemas(ctx context.Context, schemaKey string, params query.ListQueryParams) ([]schema.TelemetrySchema, int, error)
+	AssignTelemetrySchemaVersion(ctx context.Context, assignment schema.SchemaAssignment) error
 }

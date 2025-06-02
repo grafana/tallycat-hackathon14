@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useState } from 'react'
 import {
@@ -14,9 +14,27 @@ import {
 } from '@tanstack/react-table'
 import { Input } from './input'
 import { Button } from './button'
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem } from './dropdown-menu'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './select'
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from './table'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+} from './dropdown-menu'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from './select'
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from './table'
 import { Settings2 } from 'lucide-react'
 
 export interface DataTableProps<TData, TValue> {
@@ -40,7 +58,7 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   searchKey,
-  searchPlaceholder = "Search...",
+  searchPlaceholder = 'Search...',
   pageSize = 10,
   showColumnVisibility = true,
   showPagination = true,
@@ -88,7 +106,9 @@ export function DataTable<TData, TValue>({
           <div className="flex items-center gap-2">
             <Input
               placeholder={searchPlaceholder}
-              value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
+              value={
+                (table.getColumn(searchKey)?.getFilterValue() as string) ?? ''
+              }
               onChange={(event) =>
                 table.getColumn(searchKey)?.setFilterValue(event.target.value)
               }
@@ -138,7 +158,7 @@ export function DataTable<TData, TValue>({
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   )
@@ -151,13 +171,13 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
+                  data-state={row.getIsSelected() && 'selected'}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
@@ -182,7 +202,10 @@ export function DataTable<TData, TValue>({
             {summaryText ?? `Showing ${data.length} of ${totalCount} items`}
           </div>
           <div className="flex items-center gap-2">
-            <Select value={pageSize.toString()} onValueChange={(value) => onPageSizeChange(Number(value))}>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => onPageSizeChange(Number(value))}
+            >
               <SelectTrigger className="w-[80px] h-8 text-xs">
                 <SelectValue placeholder="10 per page" />
               </SelectTrigger>
@@ -202,18 +225,20 @@ export function DataTable<TData, TValue>({
               Previous
             </Button>
             <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <Button
-                  key={page}
-                  variant={page === currentPage ? "outline" : "ghost"}
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => onPageChange(page)}
-                  disabled={page === currentPage}
-                >
-                  {page}
-                </Button>
-              ))}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <Button
+                    key={page}
+                    variant={page === currentPage ? 'outline' : 'ghost'}
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => onPageChange(page)}
+                    disabled={page === currentPage}
+                  >
+                    {page}
+                  </Button>
+                ),
+              )}
             </div>
             <Button
               variant="outline"
@@ -228,4 +253,4 @@ export function DataTable<TData, TValue>({
       )}
     </div>
   )
-} 
+}

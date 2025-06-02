@@ -1,36 +1,36 @@
-"use client"
+'use client'
 
-import { useState, useCallback } from "react"
+import { useState, useCallback } from 'react'
+import { XCircle, Save, X, Tag, Info, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
-  XCircle,
-  Save,
-  X,
-  Tag,
-  Info,
-  Loader2,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import type { Schema } from "@/types/schema-catalog"
-import { Status, type Telemetry } from "@/types/telemetry"
-import { useAssignSchemaVersion } from "@/hooks/use-assign-schema-version"
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import type { TelemetrySchema } from '@/types/telemetry-schema'
+import { Status, type Telemetry } from '@/types/telemetry'
+import { useAssignSchemaVersion } from '@/hooks'
 
 interface VersionAssignmentDialogProps {
   isOpen: boolean
   onClose: () => void
-  schema: Schema | null
+  schema: TelemetrySchema | null
   telemetry: Telemetry
 }
 
 // Semantic versioning validation
 const validateSemanticVersion = (version: string): string | null => {
-  const semverRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
-  if (!version) return "Version is required"
-  if (!semverRegex.test(version)) return "Invalid semantic version format"
+  const semverRegex =
+    /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
+  if (!version) return 'Version is required'
+  if (!semverRegex.test(version)) return 'Invalid semantic version format'
   return null
 }
 
@@ -40,10 +40,10 @@ export const VersionAssignmentDialog = ({
   schema,
   telemetry,
 }: VersionAssignmentDialogProps) => {
-  const [version, setVersion] = useState("")
-  const [description, setDescription] = useState("")
+  const [version, setVersion] = useState('')
+  const [description, setDescription] = useState('')
   const [error, setError] = useState<string | null>(null)
-  
+
   const assignVersion = useAssignSchemaVersion()
 
   const handleVersionChange = useCallback((value: string) => {
@@ -71,16 +71,18 @@ export const VersionAssignmentDialog = ({
         version,
         description,
       })
-      
+
       handleClose()
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to assign version")
+      setError(
+        error instanceof Error ? error.message : 'Failed to assign version',
+      )
     }
   }, [schema, version, description, assignVersion])
 
   const handleClose = useCallback(() => {
-    setVersion("")
-    setDescription("")
+    setVersion('')
+    setDescription('')
     setError(null)
     onClose()
   }, [onClose])
@@ -91,7 +93,9 @@ export const VersionAssignmentDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Tag className="h-5 w-5" />
-            {schema?.status === Status.Experimental ? "Assign Schema Version" : "Update Schema Version"}
+            {schema?.status === Status.Experimental
+              ? 'Assign Schema Version'
+              : 'Update Schema Version'}
           </DialogTitle>
           <DialogDescription>
             {schema?.status === Status.Experimental
@@ -124,7 +128,7 @@ export const VersionAssignmentDialog = ({
               placeholder="e.g., 1.2.3, 2.0.0-beta.1"
               value={version}
               onChange={(e) => handleVersionChange(e.target.value)}
-              className={error ? "border-red-500 focus:border-red-500" : ""}
+              className={error ? 'border-red-500 focus:border-red-500' : ''}
               disabled={assignVersion.isPending}
             />
             {error && (
@@ -154,7 +158,9 @@ export const VersionAssignmentDialog = ({
           <div className="flex items-center gap-2 pt-2">
             <Button
               onClick={handleSubmit}
-              disabled={!version || !description || !!error || assignVersion.isPending}
+              disabled={
+                !version || !description || !!error || assignVersion.isPending
+              }
               className="flex items-center gap-2"
             >
               {assignVersion.isPending ? (
@@ -162,11 +168,13 @@ export const VersionAssignmentDialog = ({
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              {schema?.status === Status.Experimental ? "Assign Version" : "Update Version"}
+              {schema?.status === Status.Experimental
+                ? 'Assign Version'
+                : 'Update Version'}
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleClose} 
+            <Button
+              variant="outline"
+              onClick={handleClose}
               className="flex items-center gap-2"
               disabled={assignVersion.isPending}
             >
@@ -178,4 +186,4 @@ export const VersionAssignmentDialog = ({
       </DialogContent>
     </Dialog>
   )
-} 
+}

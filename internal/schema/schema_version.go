@@ -8,7 +8,7 @@ type SchemaAssignment struct {
 	Reason   string `json:"reason,omitempty"`
 }
 
-type SchemaAssignmentRow struct {
+type TelemetrySchema struct {
 	SchemaId      string     `json:"schemaId"`
 	Version       string     `json:"version"`
 	ProducerCount int        `json:"producerCount"`

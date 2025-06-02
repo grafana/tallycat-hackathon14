@@ -4,18 +4,24 @@ import { TelemetryTypeIcon } from '@/components/telemetry/telemetry-icons'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ChevronRight, Server } from 'lucide-react'
 import { useState } from 'react'
-import { useTelemetryDetails } from '@/hooks/use-telemetry-details'
+import { useTelemetryDetails } from '@/hooks'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
 import { TelemetryProducersPanel } from '@/components/telemetry/telemetry-sources-panel'
-import { VersionAssignmentView } from '@/components/schema-catalog/VersionAssignment'
-import { TelemetryOverviewPanel } from '@/components/schema-catalog/features/telemetry/TelemetryOverviewPanel'
-import { SchemaDefinitionView } from '@/components/schema-catalog/features/schema-definition/SchemaDefinitionView'
+import { VersionAssignmentView } from '@/components/telemetry-catalog/VersionAssignment'
+import { TelemetryOverviewPanel } from '@/components/telemetry-catalog/features/telemetry/TelemetryOverviewPanel'
+import { SchemaDefinitionView } from '@/components/telemetry-catalog/features/schema-definition/SchemaDefinitionView'
 
 export const TelemetryDetails = () => {
-  const { telemetryName } = useParams({ from: '/data-governance/$telemetryName' })
-  const [activeTab, setActiveTab] = useState("schema")
-  const { data: telemetry, isLoading, error } = useTelemetryDetails({ telemetryName })
+  const { telemetryName } = useParams({
+    from: '/data-governance/$telemetryName',
+  })
+  const [activeTab, setActiveTab] = useState('schema')
+  const {
+    data: telemetry,
+    isLoading,
+    error,
+  } = useTelemetryDetails({ telemetryName })
   const [isProducersPanelOpen, setIsProducersPanelOpen] = useState(false)
 
   const handleViewAllSources = () => {
@@ -33,7 +39,9 @@ export const TelemetryDetails = () => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
-        <p className="text-destructive">Error loading telemetry details. Please try again later.</p>
+        <p className="text-destructive">
+          Error loading telemetry details. Please try again later.
+        </p>
       </div>
     )
   }
@@ -43,10 +51,11 @@ export const TelemetryDetails = () => {
       <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
         <h1 className="text-2xl font-medium">Telemetry signal not found</h1>
         <p className="text-muted-foreground">
-          The telemetry signal you're looking for doesn't exist or has been removed.
+          The telemetry signal you're looking for doesn't exist or has been
+          removed.
         </p>
         <Button asChild>
-          <Link to="/data-governance/schema-catalog">
+          <Link to="/data-governance/telemetry-catalog">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Telemetry Catalog
           </Link>
@@ -60,17 +69,22 @@ export const TelemetryDetails = () => {
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild className="h-8 w-8 p-0">
-            <Link to="/data-governance/schema-catalog">
+            <Link to="/data-governance/telemetry-catalog">
               <ArrowLeft className="h-4 w-4" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link to="/data-governance/schema-catalog" className="hover:text-foreground">
+            <Link
+              to="/data-governance/telemetry-catalog"
+              className="hover:text-foreground"
+            >
               Telemetry Catalog
             </Link>
             <ChevronRight className="h-4 w-4" />
-            <span className="font-medium text-foreground">{telemetry.schemaKey}</span>
+            <span className="font-medium text-foreground">
+              {telemetry.schemaKey}
+            </span>
           </div>
         </div>
 
@@ -80,7 +94,9 @@ export const TelemetryDetails = () => {
               {TelemetryTypeIcon({ type: telemetry.telemetryType })}
             </div>
             <div>
-              <h1 className="text-2xl font-medium font-mono">{telemetry.schemaKey}</h1>
+              <h1 className="text-2xl font-medium font-mono">
+                {telemetry.schemaKey}
+              </h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <span className="capitalize">
@@ -103,14 +119,22 @@ export const TelemetryDetails = () => {
             </Button>
 
             {/* View Validation Button */}
-            <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setActiveTab("validation")}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setActiveTab('validation')}
+            >
               View Validation
             </Button>
           </div>
         </div>
       </div>
 
-      <TelemetryOverviewPanel telemetry={telemetry} onViewAllSources={handleViewAllSources} />
+      <TelemetryOverviewPanel
+        telemetry={telemetry}
+        onViewAllSources={handleViewAllSources}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
@@ -149,4 +173,4 @@ export const Route = createFileRoute('/data-governance/$telemetryName')({
   validateSearch: (search: Record<string, unknown>) => {
     return search
   },
-}) 
+})

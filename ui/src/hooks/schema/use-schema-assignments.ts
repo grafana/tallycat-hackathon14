@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
-import type { ListSchemaAssignmentsResponse } from '@/types/schema-catalog'
+import type { ListTelemetrySchemasResponse } from '@/types/telemetry-schema'
 
 interface UseSchemaAssignmentsOptions {
   schemaKey: string
@@ -10,11 +10,22 @@ interface UseSchemaAssignmentsOptions {
   pageSize?: number
 }
 
-export const useSchemaAssignments = ({ schemaKey, search, status, page, pageSize }: UseSchemaAssignmentsOptions) => {
-  return useQuery<ListSchemaAssignmentsResponse>({
+export const useSchemaAssignments = ({
+  schemaKey,
+  search,
+  status,
+  page,
+  pageSize,
+}: UseSchemaAssignmentsOptions) => {
+  return useQuery<ListTelemetrySchemasResponse>({
     queryKey: ['schemaAssignments', schemaKey, search, status, page, pageSize],
     queryFn: async () => {
-      return api.schemas.listAssignments(schemaKey, { search, status, page, pageSize })
+      return api.telemetries.listSchemas(schemaKey, {
+        search,
+        status,
+        page,
+        pageSize,
+      })
     },
   })
-} 
+}

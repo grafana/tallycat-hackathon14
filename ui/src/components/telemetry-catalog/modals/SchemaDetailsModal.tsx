@@ -1,16 +1,42 @@
-"use client"
+'use client'
 
-import { Database, Users, Search, SlidersHorizontal, CheckCircle2, Server, MoreHorizontal, Eye, AlertTriangle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DataTable } from "@/components/ui/data-table"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { SchemaDefinitionView } from "@/components/schema-catalog/features/schema-definition/SchemaDefinitionView"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Database,
+  Users,
+  Search,
+  SlidersHorizontal,
+  CheckCircle2,
+  Server,
+  MoreHorizontal,
+  Eye,
+  AlertTriangle,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { DataTable } from '@/components/ui/data-table'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { SchemaDefinitionView } from '@/components/telemetry-catalog/features/schema-definition/SchemaDefinitionView'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,22 +44,22 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import type { ColumnDef } from "@tanstack/react-table"
-import type { Schema, Producer } from "@/types/schema-catalog"
-import type { Telemetry } from "@/types/telemetry"
+} from '@/components/ui/dropdown-menu'
+import type { ColumnDef } from '@tanstack/react-table'
+import type { TelemetrySchema } from '@/types/telemetry-schema'
+import type { Telemetry, TelemetryProducer } from '@/types/telemetry'
 
 interface SchemaDetailsModalProps {
-  viewingSchema: Schema | null
+  viewingSchema: TelemetrySchema | null
   onClose: () => void
   telemetry: Telemetry
 }
 
 // Producer columns definition
-const producerColumns: ColumnDef<Producer>[] = [
+const producerColumns: ColumnDef<TelemetryProducer>[] = [
   {
-    accessorKey: "name",
-    header: "Service",
+    accessorKey: 'name',
+    header: 'Service',
     cell: ({ row }) => {
       const producer = row.original
       return (
@@ -43,48 +69,29 @@ const producerColumns: ColumnDef<Producer>[] = [
           </div>
           <div>
             <div className="font-medium text-sm">{producer.name}</div>
-            <div className="text-xs text-muted-foreground font-mono">{producer.id}</div>
+            <div className="text-xs text-muted-foreground font-mono">
+              {producer.namespace}
+            </div>
           </div>
         </div>
       )
     },
   },
   {
-    accessorKey: "team",
-    header: "Team",
+    accessorKey: 'team',
+    header: 'Team',
     cell: ({ row }) => {
       const producer = row.original
       return (
         <Badge variant="outline" className="text-xs">
-          {producer.team}
+          {producer.namespace}
         </Badge>
       )
     },
   },
   {
-    accessorKey: "environment",
-    header: "Environment",
-    cell: ({ row }) => {
-      const producer = row.original
-      return (
-        <Badge
-          variant="outline"
-          className={`text-xs ${
-            producer.environment === "production"
-              ? "bg-red-500/10 text-red-500 border-red-500/20"
-              : producer.environment === "staging"
-                ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                : "bg-blue-500/10 text-blue-500 border-blue-500/20"
-          }`}
-        >
-          {producer.environment}
-        </Badge>
-      )
-    },
-  },
-  {
-    id: "health",
-    header: "Health",
+    id: 'health',
+    header: 'Health',
     cell: () => (
       <Badge
         variant="outline"
@@ -96,7 +103,7 @@ const producerColumns: ColumnDef<Producer>[] = [
     ),
   },
   {
-    id: "actions",
+    id: 'actions',
     cell: () => (
       <div className="text-right">
         <DropdownMenu>
@@ -128,7 +135,11 @@ const producerColumns: ColumnDef<Producer>[] = [
   },
 ]
 
-export function SchemaDetailsModal({ viewingSchema, onClose, telemetry }: SchemaDetailsModalProps) {
+export function SchemaDetailsModal({
+  viewingSchema,
+  onClose,
+  telemetry,
+}: SchemaDetailsModalProps) {
   return (
     <Dialog open={!!viewingSchema} onOpenChange={onClose}>
       <DialogContent className="w-[90vw] max-w-3xl md:w-[60vw] md:max-w-4xl px-8 py-6 max-h-[80vh] overflow-hidden">
@@ -138,7 +149,8 @@ export function SchemaDetailsModal({ viewingSchema, onClose, telemetry }: Schema
             Schema Details: {viewingSchema?.id}
           </DialogTitle>
           <DialogDescription>
-            Detailed information about this schema variant including all attributes and producers
+            Detailed information about this schema variant including all
+            attributes and producers
           </DialogDescription>
         </DialogHeader>
         <div className="overflow-y-auto max-h-[60vh] mt-4">
@@ -146,7 +158,10 @@ export function SchemaDetailsModal({ viewingSchema, onClose, telemetry }: Schema
             <Tabs defaultValue="schema" className="w-full h-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="schema">Schema Definition</TabsTrigger>
-                <TabsTrigger value="producers" className="flex items-center gap-2">
+                <TabsTrigger
+                  value="producers"
+                  className="flex items-center gap-2"
+                >
                   Producers
                   <Badge variant="secondary" className="ml-1">
                     {viewingSchema.producers.length}
@@ -165,12 +180,17 @@ export function SchemaDetailsModal({ viewingSchema, onClose, telemetry }: Schema
                       <Users className="h-5 w-5 text-primary" />
                       Telemetry Producers
                     </h3>
-                    <p className="text-sm text-muted-foreground">Services currently producing this schema variant</p>
+                    <p className="text-sm text-muted-foreground">
+                      Services currently producing this schema variant
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input placeholder="Search producers..." className="pl-9 w-64" />
+                      <Input
+                        placeholder="Search producers..."
+                        className="pl-9 w-64"
+                      />
                     </div>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -179,66 +199,108 @@ export function SchemaDetailsModal({ viewingSchema, onClose, telemetry }: Schema
                           Filter
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-80" align="end" sideOffset={5}>
+                      <PopoverContent
+                        className="w-80"
+                        align="end"
+                        sideOffset={5}
+                      >
                         <div className="space-y-4">
                           <div className="flex items-center justify-between">
-                            <h4 className="font-medium text-sm">Filter Producers</h4>
+                            <h4 className="font-medium text-sm">
+                              Filter Producers
+                            </h4>
                           </div>
 
                           <div className="space-y-4">
                             {/* Team Filter */}
                             <div className="space-y-2">
-                              <Label className="text-xs font-medium text-foreground">Team</Label>
+                              <Label className="text-xs font-medium text-foreground">
+                                Team
+                              </Label>
                               <Select>
                                 <SelectTrigger className="h-8">
                                   <SelectValue placeholder="All Teams" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="all">All Teams</SelectItem>
-                                  <SelectItem value="api-team">API Team</SelectItem>
-                                  <SelectItem value="user-team">User Team</SelectItem>
-                                  <SelectItem value="order-team">Order Team</SelectItem>
-                                  <SelectItem value="payment-team">Payment Team</SelectItem>
-                                  <SelectItem value="notification-team">Notification Team</SelectItem>
+                                  <SelectItem value="api-team">
+                                    API Team
+                                  </SelectItem>
+                                  <SelectItem value="user-team">
+                                    User Team
+                                  </SelectItem>
+                                  <SelectItem value="order-team">
+                                    Order Team
+                                  </SelectItem>
+                                  <SelectItem value="payment-team">
+                                    Payment Team
+                                  </SelectItem>
+                                  <SelectItem value="notification-team">
+                                    Notification Team
+                                  </SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
 
                             {/* Environment Filter */}
                             <div className="space-y-2">
-                              <Label className="text-xs font-medium text-foreground">Environment</Label>
+                              <Label className="text-xs font-medium text-foreground">
+                                Environment
+                              </Label>
                               <Select>
                                 <SelectTrigger className="h-8">
                                   <SelectValue placeholder="All Environments" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="all">All Environments</SelectItem>
-                                  <SelectItem value="production">Production</SelectItem>
-                                  <SelectItem value="staging">Staging</SelectItem>
-                                  <SelectItem value="development">Development</SelectItem>
+                                  <SelectItem value="all">
+                                    All Environments
+                                  </SelectItem>
+                                  <SelectItem value="production">
+                                    Production
+                                  </SelectItem>
+                                  <SelectItem value="staging">
+                                    Staging
+                                  </SelectItem>
+                                  <SelectItem value="development">
+                                    Development
+                                  </SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
 
                             {/* Health Status Filter */}
                             <div className="space-y-2">
-                              <Label className="text-xs font-medium text-foreground">Health Status</Label>
+                              <Label className="text-xs font-medium text-foreground">
+                                Health Status
+                              </Label>
                               <Select>
                                 <SelectTrigger className="h-8">
                                   <SelectValue placeholder="All Statuses" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="all">All Statuses</SelectItem>
-                                  <SelectItem value="healthy">Healthy</SelectItem>
-                                  <SelectItem value="warning">Warning</SelectItem>
-                                  <SelectItem value="critical">Critical</SelectItem>
+                                  <SelectItem value="all">
+                                    All Statuses
+                                  </SelectItem>
+                                  <SelectItem value="healthy">
+                                    Healthy
+                                  </SelectItem>
+                                  <SelectItem value="warning">
+                                    Warning
+                                  </SelectItem>
+                                  <SelectItem value="critical">
+                                    Critical
+                                  </SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
                           </div>
 
                           <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                            <Button variant="outline" size="sm" className="h-7 px-3 text-xs">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-3 text-xs"
+                            >
                               Clear All
                             </Button>
                             <Button size="sm" className="h-7 px-3 text-xs">
@@ -260,29 +322,49 @@ export function SchemaDetailsModal({ viewingSchema, onClose, telemetry }: Schema
                   onPageSizeChange={() => {}}
                   totalCount={viewingSchema.producers.length}
                   showColumnVisibility={false}
-                  summaryText={`Showing ${viewingSchema.producers.length} producer${viewingSchema.producers.length !== 1 ? "s" : ""}`}
+                  summaryText={`Showing ${viewingSchema.producers.length} producer${viewingSchema.producers.length !== 1 ? 's' : ''}`}
                 />
 
                 {/* Summary Stats */}
                 <div className="grid grid-cols-4 gap-4 pt-4 border-t">
                   <div className="text-center p-3 rounded-md bg-muted/50">
-                    <div className="text-lg font-semibold">{viewingSchema.producers.length}</div>
-                    <div className="text-xs text-muted-foreground">Total Services</div>
+                    <div className="text-lg font-semibold">
+                      {viewingSchema.producers.length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Total Services
+                    </div>
                   </div>
                   <div className="text-center p-3 rounded-md bg-muted/50">
                     <div className="text-lg font-semibold">
-                      {Array.from(new Set(viewingSchema.producers.map((p) => p.team))).length}
+                      {
+                        Array.from(
+                          new Set(
+                            viewingSchema.producers.map((p) => p.namespace),
+                          ),
+                        ).length
+                      }
                     </div>
                     <div className="text-xs text-muted-foreground">Teams</div>
                   </div>
                   <div className="text-center p-3 rounded-md bg-muted/50">
                     <div className="text-lg font-semibold">
-                      {Array.from(new Set(viewingSchema.producers.map((p) => p.environment))).length}
+                      {
+                        Array.from(
+                          new Set(
+                            viewingSchema.producers.map((p) => p.namespace),
+                          ),
+                        ).length
+                      }
                     </div>
-                    <div className="text-xs text-muted-foreground">Environments</div>
+                    <div className="text-xs text-muted-foreground">
+                      Environments
+                    </div>
                   </div>
                   <div className="text-center p-3 rounded-md bg-muted/50">
-                    <div className="text-lg font-semibold text-green-500">{viewingSchema.producers.length}</div>
+                    <div className="text-lg font-semibold text-green-500">
+                      {viewingSchema.producers.length}
+                    </div>
                     <div className="text-xs text-muted-foreground">Healthy</div>
                   </div>
                 </div>
@@ -293,4 +375,4 @@ export function SchemaDetailsModal({ viewingSchema, onClose, telemetry }: Schema
       </DialogContent>
     </Dialog>
   )
-} 
+}

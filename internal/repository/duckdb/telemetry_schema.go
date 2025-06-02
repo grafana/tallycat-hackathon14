@@ -133,7 +133,7 @@ func (r *TelemetrySchemaRepository) RegisterTelemetrySchemas(ctx context.Context
 	return nil
 }
 
-func (r *TelemetrySchemaRepository) ListSchemas(ctx context.Context, params query.ListQueryParams) ([]schema.Telemetry, int, error) {
+func (r *TelemetrySchemaRepository) ListTelemetries(ctx context.Context, params query.ListQueryParams) ([]schema.Telemetry, int, error) {
 	var args []any
 	where := ""
 
@@ -252,7 +252,7 @@ func (r *TelemetrySchemaRepository) ListSchemas(ctx context.Context, params quer
 	return schemas, total, nil
 }
 
-func (r *TelemetrySchemaRepository) GetSchemaByKey(ctx context.Context, schemaKey string) (*schema.Telemetry, error) {
+func (r *TelemetrySchemaRepository) GetTelemetry(ctx context.Context, schemaKey string) (*schema.Telemetry, error) {
 	queryStr := `
 		WITH latest_schema
 			AS (SELECT 	t.schema_id,
@@ -402,7 +402,7 @@ func (r *TelemetrySchemaRepository) GetSchemaByKey(ctx context.Context, schemaKe
 	return &s, nil
 }
 
-func (r *TelemetrySchemaRepository) AssignSchemaVersion(ctx context.Context, assgiment schema.SchemaAssignment) error {
+func (r *TelemetrySchemaRepository) AssignTelemetrySchemaVersion(ctx context.Context, assgiment schema.SchemaAssignment) error {
 	tx, err := r.pool.GetConnection().BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -441,7 +441,7 @@ func (r *TelemetrySchemaRepository) AssignSchemaVersion(ctx context.Context, ass
 	return nil
 }
 
-func (r *TelemetrySchemaRepository) ListSchemaAssignmentsForKey(ctx context.Context, schemaKey string, params query.ListQueryParams) ([]schema.SchemaAssignmentRow, int, error) {
+func (r *TelemetrySchemaRepository) ListTelemetrySchemas(ctx context.Context, schemaKey string, params query.ListQueryParams) ([]schema.TelemetrySchema, int, error) {
 	var args []any
 	where := " AND t.schema_key = ?"
 	args = append(args, schemaKey)
@@ -473,7 +473,7 @@ func (r *TelemetrySchemaRepository) ListSchemaAssignmentsForKey(ctx context.Cont
 	}
 
 	if total == 0 {
-		return []schema.SchemaAssignmentRow{}, 0, nil
+		return []schema.TelemetrySchema{}, 0, nil
 	}
 
 	query := `
@@ -501,9 +501,9 @@ func (r *TelemetrySchemaRepository) ListSchemaAssignmentsForKey(ctx context.Cont
 	}
 	defer rows.Close()
 
-	var assignments []schema.SchemaAssignmentRow
+	var assignments []schema.TelemetrySchema
 	for rows.Next() {
-		var row schema.SchemaAssignmentRow
+		var row schema.TelemetrySchema
 		var lastSeen sql.NullTime
 		if err := rows.Scan(&row.SchemaId, &row.Version, &row.ProducerCount, &lastSeen); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan schema assignment row: %w", err)

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
-import { useSchemaAssignments } from '@/hooks/use-schema-assignments'
+import { useSchemaAssignments } from '@/hooks'
 import { Status } from '@/types/telemetry'
-import type { Schema } from '@/types/schema-catalog'
+import type { TelemetrySchema } from '@/types/telemetry-schema'
 
 interface UseSchemaAssignmentDataReturn {
   searchQuery: string
@@ -12,14 +12,16 @@ interface UseSchemaAssignmentDataReturn {
   setCurrentPage: (page: number) => void
   pageSize: number
   setPageSize: (size: number) => void
-  tableData: Schema[]
+  tableData: TelemetrySchema[]
   isLoading: boolean
   error: Error | null
   totalCount: number
 }
 
-export const useSchemaAssignmentData = (schemaKey: string): UseSchemaAssignmentDataReturn => {
-  const [searchQuery, setSearchQuery] = useState("")
+export const useSchemaAssignmentData = (
+  schemaKey: string,
+): UseSchemaAssignmentDataReturn => {
+  const [searchQuery, setSearchQuery] = useState('')
   const [activeStatus, setActiveStatus] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -32,19 +34,25 @@ export const useSchemaAssignmentData = (schemaKey: string): UseSchemaAssignmentD
     pageSize,
   })
 
-  const tableData = useMemo(() => 
-    (data?.items ?? []).map(item => ({
-      id: item.schemaId,
-      name: item.schemaId,
-      status: item.version && item.version !== 'Unassigned' ? Status.Active : Status.Experimental,
-      version: item.version === 'Unassigned' ? null : item.version,
-      producers: Array(item.producerCount).fill({}),
-      lastSeen: item.lastSeen,
-      discoveredAt: '',
-      resourceAttributes: [],
-      instrumentationAttributes: [],
-      telemetryAttributes: [],
-    })), [data?.items])
+  const tableData = useMemo(
+    () =>
+      (data?.items ?? []).map((item) => ({
+        id: item.schemaId,
+        name: item.schemaId,
+        status:
+          item.version && item.version !== 'Unassigned'
+            ? Status.Active
+            : Status.Experimental,
+        version: item.version === 'Unassigned' ? null : item.version,
+        producers: Array(item.producerCount).fill({}),
+        lastSeen: item.lastSeen,
+        discoveredAt: '',
+        resourceAttributes: [],
+        instrumentationAttributes: [],
+        telemetryAttributes: [],
+      })),
+    [data?.items],
+  )
 
   return {
     searchQuery,
@@ -60,4 +68,4 @@ export const useSchemaAssignmentData = (schemaKey: string): UseSchemaAssignmentD
     error,
     totalCount: data?.total ?? 0,
   }
-} 
+}

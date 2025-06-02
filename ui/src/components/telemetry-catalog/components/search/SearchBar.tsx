@@ -18,4 +18,4 @@ export const SearchBar: React.FC<SearchBarProps> = ({ value, onChange }) => (
       onChange={(e) => onChange(e.target.value)}
     />
   </div>
-) 
+)
