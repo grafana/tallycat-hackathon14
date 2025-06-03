@@ -10,13 +10,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { TelemetryProducersPanel } from '@/components/telemetry/telemetry-sources-panel'
 import { VersionAssignmentView } from '@/components/telemetry-catalog/VersionAssignment'
 import { TelemetryOverviewPanel } from '@/components/telemetry-catalog/features/telemetry/TelemetryOverviewPanel'
-import { SchemaDefinitionView } from '@/components/telemetry-catalog/features/schema-definition/SchemaDefinitionView'
+// import { SchemaDefinitionView } from '@/components/telemetry-catalog/features/schema-definition/SchemaDefinitionView'
 
 export const TelemetryDetails = () => {
   const { telemetryName } = useParams({
     from: '/data-governance/$telemetryName',
   })
-  const [activeTab, setActiveTab] = useState('schema')
+  const [activeTab, setActiveTab] = useState('schemas')
   const {
     data: telemetry,
     isLoading,
@@ -138,19 +138,19 @@ export const TelemetryDetails = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="schema">Schema</TabsTrigger>
-          <TabsTrigger value="versions">Versions</TabsTrigger>
+          {/* <TabsTrigger value="attributes">Attributes</TabsTrigger> */}
+          <TabsTrigger value="schemas">Schemas</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="schema" className="mt-0 space-y-4">
+        {/* <TabsContent value="attributes" className="mt-0 space-y-4">
           <Card>
             <CardContent className="p-6">
               <SchemaDefinitionView schemaData={telemetry} />
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
 
-        <TabsContent value="versions" className="mt-0 space-y-4">
+        <TabsContent value="schemas" className="mt-0 space-y-4">
           <Card>
             <CardContent className="p-6">
               <VersionAssignmentView telemetry={telemetry} />

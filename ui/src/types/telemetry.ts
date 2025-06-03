@@ -17,6 +17,7 @@ export type ViewMode = 'grid' | 'list'
 export interface TelemetryProducer {
   name: string
   namespace: string
+  version?: string
   firstSeen: string
   lastSeen: string
 }

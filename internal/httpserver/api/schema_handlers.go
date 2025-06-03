@@ -106,3 +106,19 @@ func HandleTelemetrySchemaVersionAssignment(schemaRepo repository.TelemetrySchem
 		json.NewEncoder(w).Encode(assignment)
 	}
 }
+
+func HandleGetTelemetrySchema(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		schemaId := chi.URLParam(r, "schemaId")
+
+		schema, err := schemaRepo.GetTelemetrySchema(ctx, schemaId)
+		if err != nil {
+			http.Error(w, "failed to get schema", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(schema)
+	}
+}

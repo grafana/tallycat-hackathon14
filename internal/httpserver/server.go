@@ -78,6 +78,7 @@ func registerAPIRoutes(r chi.Router, srv *Server) {
 			r.Route("/{key}/schemas", func(r chi.Router) {
 				r.Get("/", api.HandleTelemetrySchemas(srv.schemaRepo))
 				r.Post("/{schemaId}", api.HandleTelemetrySchemaVersionAssignment(srv.schemaRepo))
+				r.Get("/{schemaId}", api.HandleGetTelemetrySchema(srv.schemaRepo))
 			})
 		})
 	})

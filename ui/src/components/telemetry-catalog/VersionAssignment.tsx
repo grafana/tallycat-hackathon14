@@ -23,7 +23,7 @@ import { Status } from '@/types/telemetry'
 import { formatDate, DateFormat } from '@/lib/utils'
 
 import { SearchAndFilterBar } from './SearchAndFilterBar'
-import { useSchemaAssignmentData } from '@/hooks'
+import { useSchemaAssignmentData, useSchemaDetails } from '@/hooks'
 import { SchemaDetailsModal } from './modals/SchemaDetailsModal'
 import { StatusBadge } from './components/badges/StatusBadge'
 import { LoadingState } from './components/states/LoadingState'
@@ -157,9 +157,7 @@ export function VersionAssignmentView({
 }: VersionAssignmentViewProps) {
   const [selectedSchema, setSelectedSchema] = useState<string | null>(null)
   const [isAssigning, setIsAssigning] = useState(false)
-  const [viewingSchema, setViewingSchema] = useState<TelemetrySchema | null>(
-    null,
-  )
+  const [viewingSchemaId, setViewingSchemaId] = useState<string | null>(null)
 
   const {
     searchQuery,
@@ -176,13 +174,19 @@ export function VersionAssignmentView({
     totalCount,
   } = useSchemaAssignmentData(telemetry.schemaKey)
 
+  const { data: schemaDetails, isLoading: isLoadingSchemaDetails } = useSchemaDetails({
+    schemaKey: telemetry.schemaKey,
+    schemaId: viewingSchemaId ?? '',
+    enabled: !!viewingSchemaId,
+  })
+
   const handleAssignVersion = useCallback((schema: TelemetrySchema) => {
     setSelectedSchema(schema.id)
     setIsAssigning(true)
   }, [])
 
   const handleViewSchema = useCallback((schema: TelemetrySchema) => {
-    setViewingSchema(schema)
+    setViewingSchemaId(schema.id)
   }, [])
 
   const columns = useMemo(
@@ -238,8 +242,9 @@ export function VersionAssignmentView({
       />
 
       <SchemaDetailsModal
-        viewingSchema={viewingSchema}
-        onClose={() => setViewingSchema(null)}
+        viewingSchema={schemaDetails ?? null}
+        isLoading={isLoadingSchemaDetails}
+        onClose={() => setViewingSchemaId(null)}
         telemetry={telemetry}
       />
 

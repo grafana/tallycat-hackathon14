@@ -1,4 +1,5 @@
 import type { Telemetry } from '@/types/telemetry'
+import type { TelemetrySchema } from '@/types/telemetry-schema'
 import { API_BASE_URL } from '@/config/api'
 import type { ListTelemetrySchemasResponse } from '@/types/telemetry-schema'
 
@@ -151,6 +152,8 @@ export const api = {
         data,
       )
     },
+    getSchemaById: (schemaKey: string, schemaId: string) =>
+      apiClient.get<TelemetrySchema>(`/api/v1/telemetries/${schemaKey}/schemas/${schemaId}`),
   },
   // Example of how to add new domains:
   // users: {

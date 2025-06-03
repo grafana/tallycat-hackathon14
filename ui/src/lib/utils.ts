@@ -11,6 +11,7 @@ export enum DateFormat {
   long = 'long',
   time = 'time',
   datetime = 'datetime',
+  shortDateTime = 'shortDateTime',
 }
 
 type DateTimeConfig = {
@@ -39,12 +40,18 @@ const config: DateTimeConfig = {
     month: 'short',
     day: 'numeric',
   },
+  [DateFormat.shortDateTime]: {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  },
 }
 
 /**
  * Formats a date string into a localized date format
  * @param dateString - The date string to format
- * @param format - The format to use ('short' | 'long' | 'time' | 'datetime')
+ * @param format - The format to use ('short' | 'long' | 'time' | 'datetime' | 'shortDateTime')
  * @returns Formatted date string
  *
  * @example
@@ -52,6 +59,7 @@ const config: DateTimeConfig = {
  * formatDate('2024-03-20', DateFormat.long) // "March 20, 2024"
  * formatDate('2024-03-20', DateFormat.time) // "12:00 AM"
  * formatDate('2024-03-20', DateFormat.datetime) // "Mar 20, 2024, 12:00 AM"
+ * formatDate('2024-03-20', DateFormat.shortDateTime) // "Mar 20, 12:00 AM"
  */
 export const formatDate = (
   dateString: string,

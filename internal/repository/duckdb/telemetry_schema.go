@@ -522,3 +522,110 @@ func (r *TelemetrySchemaRepository) ListTelemetrySchemas(ctx context.Context, sc
 
 	return assignments, total, nil
 }
+
+func (r *TelemetrySchemaRepository) GetTelemetrySchema(ctx context.Context, schemaId string) (*schema.TelemetrySchema, error) {
+	query := `
+		SELECT
+			t.schema_id,
+			COALESCE(sv.version, 'Unassigned') AS version,
+			COUNT(DISTINCT sp.producer_id) AS producer_count,
+			MAX(sp.last_seen) AS last_seen
+		FROM telemetry_schemas t
+		LEFT JOIN schema_versions sv ON t.schema_id = sv.schema_id
+		LEFT JOIN schema_producers sp ON t.schema_id = sp.schema_id
+		WHERE t.schema_id = ?
+		GROUP BY t.schema_id, sv.version`
+
+	db := r.pool.GetConnection()
+
+	// Use context timeout for query
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	var s schema.TelemetrySchema
+	var lastSeen sql.NullTime
+
+	err := db.QueryRowContext(ctx, query, schemaId).Scan(
+		&s.SchemaId,
+		&s.Version,
+		&s.ProducerCount,
+		&lastSeen,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to query schema: %w", err)
+	}
+
+	if lastSeen.Valid {
+		s.LastSeen = &lastSeen.Time
+	}
+
+	// Get attributes for this schema
+	attrQuery := `
+		SELECT DISTINCT name, type, source
+		FROM schema_attributes
+		WHERE schema_id = ?
+		ORDER BY name`
+
+	rows, err := db.QueryContext(ctx, attrQuery, schemaId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query schema attributes: %w", err)
+	}
+	defer rows.Close()
+
+	var attributes []schema.Attribute
+	for rows.Next() {
+		var attr schema.Attribute
+		if err := rows.Scan(&attr.Name, &attr.Type, &attr.Source); err != nil {
+			return nil, fmt.Errorf("failed to scan attribute row: %w", err)
+		}
+		attributes = append(attributes, attr)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating attribute rows: %w", err)
+	}
+
+	s.Attributes = attributes
+
+	// Get producers for this schema
+	producerQuery := `
+		SELECT producer_id, name, namespace, version, instance_id,
+			   first_seen, last_seen
+		FROM schema_producers
+		WHERE schema_id = ?`
+
+	rows, err = db.QueryContext(ctx, producerQuery, schemaId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query schema producers: %w", err)
+	}
+	defer rows.Close()
+
+	var producers []schema.Producer
+	for rows.Next() {
+		var producer schema.Producer
+		var producerID string
+		if err := rows.Scan(
+			&producerID,
+			&producer.Name,
+			&producer.Namespace,
+			&producer.Version,
+			&producer.InstanceID,
+			&producer.FirstSeen,
+			&producer.LastSeen,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan producer row: %w", err)
+		}
+		producers = append(producers, producer)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating producer rows: %w", err)
+	}
+
+	s.Producers = producers
+
+	return &s, nil
+}
