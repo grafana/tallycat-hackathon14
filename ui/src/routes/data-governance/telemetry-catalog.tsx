@@ -378,81 +378,79 @@ export const SchemaCatalog = () => {
   }
 
   return (
-    <div className="mx-auto">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-medium">Telemetry Catalog</h1>
+        <p className="text-muted-foreground">
+          Browse and manage your observability telemetry signals
+        </p>
+      </div>
+
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-medium">Telemetry Catalog</h1>
-          <p className="text-muted-foreground">
-            Browse and manage your observability telemetry signals
-          </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <SearchBar value={searchQuery} onChange={setSearchQuery} />
+
+          <div className="flex flex-wrap items-center gap-2">
+            <FilterDropdown
+              activeFilters={activeFilters}
+              activeFilterCount={activeFilterCount}
+              onToggleFilter={toggleFilter}
+              isLoading={isLoadingFacets}
+              error={facetsError}
+            />
+            <SortDropdown
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={handleSort}
+            />
+            <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <SearchBar value={searchQuery} onChange={setSearchQuery} />
+        {activeFilterCount > 0 && (
+          <ActiveFilters
+            activeFilters={activeFilters}
+            removeFilter={removeFilter}
+            clearAllFilters={clearAllFilters}
+          />
+        )}
 
-            <div className="flex flex-wrap items-center gap-2">
-              <FilterDropdown
-                activeFilters={activeFilters}
-                activeFilterCount={activeFilterCount}
-                onToggleFilter={toggleFilter}
-                isLoading={isLoadingFacets}
-                error={facetsError}
-              />
-              <SortDropdown
-                sortField={sortField}
-                sortDirection={sortDirection}
-                onSort={handleSort}
-              />
-              <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
+          <TabsList>
+            <TabsTrigger value="all">All Telemetry</TabsTrigger>
+            <TabsTrigger value="metric">Metrics</TabsTrigger>
+            <TabsTrigger value="log">Logs</TabsTrigger>
+            <TabsTrigger value="trace">Traces</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {/* Table and bottom controls */}
+        <div className="flex flex-col gap-2">
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {schemasData?.items.map((item) => (
+                <TelemetryCard
+                  key={`${item.schemaId}-${item.schemaKey}`}
+                  item={item}
+                />
+              ))}
             </div>
-          </div>
-
-          {activeFilterCount > 0 && (
-            <ActiveFilters
-              activeFilters={activeFilters}
-              removeFilter={removeFilter}
-              clearAllFilters={clearAllFilters}
+          ) : (
+            <DataTable
+              columns={columns}
+              data={schemasData?.items || []}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+              totalCount={schemasData?.total || 0}
+              showColumnVisibility={false}
             />
           )}
-
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList>
-              <TabsTrigger value="all">All Telemetry</TabsTrigger>
-              <TabsTrigger value="metric">Metrics</TabsTrigger>
-              <TabsTrigger value="log">Logs</TabsTrigger>
-              <TabsTrigger value="trace">Traces</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {/* Table and bottom controls */}
-          <div className="flex flex-col gap-2">
-            {viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {schemasData?.items.map((item) => (
-                  <TelemetryCard
-                    key={`${item.schemaId}-${item.schemaKey}`}
-                    item={item}
-                  />
-                ))}
-              </div>
-            ) : (
-              <DataTable
-                columns={columns}
-                data={schemasData?.items || []}
-                currentPage={currentPage}
-                pageSize={pageSize}
-                onPageChange={handlePageChange}
-                onPageSizeChange={handlePageSizeChange}
-                totalCount={schemasData?.total || 0}
-                showColumnVisibility={false}
-              />
-            )}
-          </div>
         </div>
       </div>
     </div>

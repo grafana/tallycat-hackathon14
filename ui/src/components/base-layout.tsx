@@ -9,12 +9,14 @@ interface BaseLayoutProps {
 
 export const BaseLayout = ({ children }: BaseLayoutProps) => {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <AppHeader />
-        <div className="flex-1 p-6">{children}</div>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="min-h-screen flex">
+      <SidebarProvider>
+        <AppSidebar className="h-screen" />
+        <SidebarInset className="flex flex-col h-screen w-full">
+          <AppHeader />
+          <div className="flex-1 overflow-auto p-6">{children}</div>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
   )
 }

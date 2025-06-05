@@ -51,7 +51,7 @@ const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { state, toggleSidebar } = useSidebar()
   return (
-    <Sidebar collapsible="icon" {...props} className="relative">
+    <Sidebar collapsible="icon" {...props} className="relative h-full">
       {/* Floating sidebar toggle button */}
       <button
         type="button"
