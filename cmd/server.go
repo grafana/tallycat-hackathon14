@@ -76,6 +76,7 @@ and processes log data according to the OpenTelemetry protocol.`,
 		}
 
 		schemaRepo := duckdb.NewTelemetrySchemaRepository(pool.(*duckdb.ConnectionPool))
+		historyRepo := duckdb.NewTelemetryHistoryRepository(pool.(*duckdb.ConnectionPool))
 
 		// Initialize database connection
 		db, err := sql.Open("duckdb", databasePath)
@@ -95,7 +96,7 @@ and processes log data according to the OpenTelemetry protocol.`,
 		metricsService := grpcserver.NewMetricsServiceServer(schemaRepo)
 		srv.RegisterService(&metricspb.MetricsService_ServiceDesc, metricsService)
 
-		httpSrv := httpserver.New(httpAddr, schemaRepo)
+		httpSrv := httpserver.New(httpAddr, schemaRepo, historyRepo)
 
 		g, _ := errgroup.WithContext(ctx)
 

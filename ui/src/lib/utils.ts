@@ -65,7 +65,14 @@ export const formatDate = (
   dateString: string,
   format: DateFormat = DateFormat.short,
 ) => {
-  return new Intl.DateTimeFormat('en-US', config[format]).format(
-    new Date(dateString),
-  )
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) {
+      return 'Invalid date'
+    }
+    return new Intl.DateTimeFormat('en-US', config[format]).format(date)
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return 'Invalid date'
+  }
 }

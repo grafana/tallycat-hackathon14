@@ -7,7 +7,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { NotificationPopover } from '@/components/notification-popover'
 import { UserMenu } from '@/components/user-menu'
 import { useMatches } from '@tanstack/react-router'
 
@@ -70,7 +69,7 @@ export const AppHeader = ({ breadcrumbs: propBreadcrumbs }: AppHeaderProps) => {
       </div>
       {/* Right section */}
       <div className="flex items-center gap-4">
-        <NotificationPopover />
+        {/* <NotificationPopover /> */}
         <UserMenu />
       </div>
     </header>

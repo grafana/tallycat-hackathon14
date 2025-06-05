@@ -15,11 +15,16 @@ import (
 )
 
 type Server struct {
-	httpServer *http.Server
-	schemaRepo repository.TelemetrySchemaRepository
+	httpServer  *http.Server
+	schemaRepo  repository.TelemetrySchemaRepository
+	historyRepo repository.TelemetryHistoryRepository
 }
 
-func New(addr string, schemaRepo repository.TelemetrySchemaRepository) *Server {
+func New(
+	addr string,
+	schemaRepo repository.TelemetrySchemaRepository,
+	historyRepo repository.TelemetryHistoryRepository,
+) *Server {
 	r := chi.NewRouter()
 
 	// Register middlewares
@@ -33,7 +38,8 @@ func New(addr string, schemaRepo repository.TelemetrySchemaRepository) *Server {
 			Addr:    addr,
 			Handler: r,
 		},
-		schemaRepo: schemaRepo,
+		schemaRepo:  schemaRepo,
+		historyRepo: historyRepo,
 	}
 
 	// Register API routes
@@ -75,9 +81,10 @@ func registerAPIRoutes(r chi.Router, srv *Server) {
 		r.Route("/telemetries", func(r chi.Router) {
 			r.Get("/", api.HandleTelemetryList(srv.schemaRepo))
 			r.Get("/{key}", api.HandleGetTelemetry(srv.schemaRepo))
+			r.Get("/{key}/history", api.HandleTelemetryHistory(srv.historyRepo))
 			r.Route("/{key}/schemas", func(r chi.Router) {
 				r.Get("/", api.HandleTelemetrySchemas(srv.schemaRepo))
-				r.Post("/{schemaId}", api.HandleTelemetrySchemaVersionAssignment(srv.schemaRepo))
+				r.Post("/{schemaId}", api.HandleTelemetrySchemaVersionAssignment(srv.schemaRepo, srv.historyRepo))
 				r.Get("/{schemaId}", api.HandleGetTelemetrySchema(srv.schemaRepo))
 			})
 		})

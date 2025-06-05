@@ -629,3 +629,7 @@ func (r *TelemetrySchemaRepository) GetTelemetrySchema(ctx context.Context, sche
 
 	return &s, nil
 }
+
+func (r *TelemetrySchemaRepository) Pool() *ConnectionPool {
+	return r.pool
+}
