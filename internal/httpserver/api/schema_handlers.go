@@ -2,8 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/tallycat/tallycat/internal/repository"
@@ -22,7 +24,7 @@ func HandleTelemetryList(schemaRepo repository.TelemetrySchemaRepository) http.H
 			return
 		}
 
-		resp := ListSchemasResponse{
+		resp := ListResponse[schema.Telemetry]{
 			Items:    telemetries,
 			Total:    total,
 			Page:     params.Page,
@@ -68,12 +70,7 @@ func HandleTelemetrySchemas(schemaRepo repository.TelemetrySchemaRepository) htt
 			return
 		}
 
-		resp := struct {
-			Items    any `json:"items"`
-			Total    int `json:"total"`
-			Page     int `json:"page"`
-			PageSize int `json:"pageSize"`
-		}{
+		resp := ListResponse[schema.TelemetrySchema]{
 			Items:    assignments,
 			Total:    total,
 			Page:     params.Page,
@@ -85,9 +82,13 @@ func HandleTelemetrySchemas(schemaRepo repository.TelemetrySchemaRepository) htt
 	}
 }
 
-func HandleTelemetrySchemaVersionAssignment(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+func HandleTelemetrySchemaVersionAssignment(
+	schemaRepo repository.TelemetrySchemaRepository,
+	historyRepo repository.TelemetryHistoryRepository,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		schemaKey := chi.URLParam(r, "key")
 
 		assignment := schema.SchemaAssignment{}
 		err := json.NewDecoder(r.Body).Decode(&assignment)
@@ -100,6 +101,21 @@ func HandleTelemetrySchemaVersionAssignment(schemaRepo repository.TelemetrySchem
 		if err != nil {
 			http.Error(w, "failed to assign schema version", http.StatusInternalServerError)
 			return
+		}
+
+		// Record history entry after successful version assignment
+		history := &schema.TelemetryHistory{
+			SchemaKey: schemaKey,
+			Version:   assignment.Version,
+			Timestamp: time.Now(),
+			Author:    nil,
+			Summary:   fmt.Sprintf("Assigned schema version %s to schema %s", assignment.Version, assignment.SchemaId),
+			Status:    "",
+			Snapshot:  nil,
+		}
+
+		if err := historyRepo.InsertTelemetryHistory(ctx, history); err != nil {
+			slog.Error("failed to record telemetry history", "error", err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -120,5 +136,30 @@ func HandleGetTelemetrySchema(schemaRepo repository.TelemetrySchemaRepository) h
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(schema)
+	}
+}
+
+// HandleTelemetryHistory returns paginated/sorted telemetry history entries for a given telemetry_id
+func HandleTelemetryHistory(historyRepo repository.TelemetryHistoryRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		telemetryID := chi.URLParam(r, "key")
+		params := ParseListQueryParams(r)
+
+		histories, total, err := historyRepo.ListTelemetryHistory(ctx, telemetryID, params.Page, params.PageSize)
+		if err != nil {
+			http.Error(w, "failed to list telemetry history", http.StatusInternalServerError)
+			return
+		}
+
+		resp := ListResponse[schema.TelemetryHistory]{
+			Items:    histories,
+			Total:    total,
+			Page:     params.Page,
+			PageSize: params.PageSize,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
 	}
 }

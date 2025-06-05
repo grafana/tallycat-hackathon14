@@ -15,3 +15,8 @@ type TelemetrySchemaRepository interface {
 	AssignTelemetrySchemaVersion(ctx context.Context, assignment schema.SchemaAssignment) error
 	GetTelemetrySchema(ctx context.Context, schemaId string) (*schema.TelemetrySchema, error)
 }
+
+type TelemetryHistoryRepository interface {
+	InsertTelemetryHistory(ctx context.Context, h *schema.TelemetryHistory) error
+	ListTelemetryHistory(ctx context.Context, telemetryID string, page, pageSize int) ([]schema.TelemetryHistory, int, error)
+}

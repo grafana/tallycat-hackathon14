@@ -45,3 +45,15 @@ export interface Attribute {
   type: string
   source: string
 }
+
+export interface TelemetryHistory {
+  id: number
+  schemaKey: string
+  version: string
+  timestamp: string
+  summary: string
+  status: string
+  snapshot: string
+  createdAt: string
+  updatedAt: string
+}

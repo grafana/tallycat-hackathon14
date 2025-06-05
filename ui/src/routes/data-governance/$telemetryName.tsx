@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { TelemetryProducersPanel } from '@/components/telemetry/telemetry-sources-panel'
 import { VersionAssignmentView } from '@/components/telemetry-catalog/VersionAssignment'
 import { TelemetryOverviewPanel } from '@/components/telemetry-catalog/features/telemetry/TelemetryOverviewPanel'
+import { SchemaHistoryView } from '@/components/telemetry-catalog/features/history/SchemaHistoryView'
 // import { SchemaDefinitionView } from '@/components/telemetry-catalog/features/schema-definition/SchemaDefinitionView'
 
 export const TelemetryDetails = () => {
@@ -140,6 +141,7 @@ export const TelemetryDetails = () => {
         <TabsList className="mb-4">
           {/* <TabsTrigger value="attributes">Attributes</TabsTrigger> */}
           <TabsTrigger value="schemas">Schemas</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
 
         {/* <TabsContent value="attributes" className="mt-0 space-y-4">
@@ -154,6 +156,13 @@ export const TelemetryDetails = () => {
           <Card>
             <CardContent className="p-6">
               <VersionAssignmentView telemetry={telemetry} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="history" className="mt-0 space-y-4">
+        <Card>
+            <CardContent className="p-6">
+              <SchemaHistoryView telemetry={telemetry} />
             </CardContent>
           </Card>
         </TabsContent>

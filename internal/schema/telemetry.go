@@ -55,3 +55,16 @@ type Telemetry struct {
 	// Producers maps producer keys to their information
 	Producers map[string]*Producer `json:"producers"`
 }
+
+type TelemetryHistory struct {
+	Id        int       `json:"id"`
+	SchemaKey string    `json:"schemaKey"`
+	Version   string    `json:"version"`
+	Timestamp time.Time `json:"timestamp"`
+	Author    *string   `json:"author,omitempty"`
+	Summary   string    `json:"summary"`
+	Status    string    `json:"status"`
+	Snapshot  []byte    `json:"snapshot"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}

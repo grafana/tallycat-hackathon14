@@ -9,9 +9,8 @@ interface UserMenuProps {
 }
 
 export const UserMenu = ({
-  userInitials = 'CN',
-  userEmail = 'm@example.com',
-  userName = 'shadcn',
+  userInitials = 'TC',
+  userName = 'TallyCat',
 }: UserMenuProps) => {
   const { theme, setTheme } = useTheme()
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
@@ -84,32 +83,25 @@ export const UserMenu = ({
             </div>
             <div>
               <div className="font-medium text-foreground">{userName}</div>
-              <div className="text-xs text-muted-foreground">{userEmail}</div>
+              {/* <div className="text-xs text-muted-foreground">{userEmail}</div> */}
             </div>
           </div>
           <div className="my-2 border-t border-border" />
-          <button
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted text-sm text-foreground"
-            role="menuitem"
-            tabIndex={0}
-          >
-            <span className="font-medium">Upgrade to Pro</span>
-          </button>
-          <button
+          {/* <button
             className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted text-sm text-foreground"
             role="menuitem"
             tabIndex={0}
           >
             <span>Account</span>
-          </button>
-          <button
+          </button> */}
+          {/* <button
             className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted text-sm text-foreground"
             role="menuitem"
             tabIndex={0}
           >
             <span>Billing</span>
-          </button>
-          <button
+          </button> */}
+          {/* <button
             className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted text-sm text-foreground"
             role="menuitem"
             tabIndex={0}
@@ -127,8 +119,8 @@ export const UserMenu = ({
               <path d="M13.73 21a2 2 0 01-3.46 0" />
             </svg>
             <span>Notifications</span>
-          </button>
-          <div className="my-2 border-t border-border" />
+          </button> */}
+          {/* <div className="my-2 border-t border-border" /> */}
           <div className="w-full flex items-center gap-2 px-3 py-2">
             <span className="text-sm text-foreground">Theme</span>
             <button
@@ -153,13 +145,13 @@ export const UserMenu = ({
               <Monitor className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
-          <button
+          {/* <button
             className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-destructive/10 text-sm text-destructive"
             role="menuitem"
             tabIndex={0}
           >
             <span>Log out</span>
-          </button>
+          </button> */}
         </div>
       )}
     </div>
