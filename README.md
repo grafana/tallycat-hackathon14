@@ -64,6 +64,8 @@ Think of it like **dbt** or **OpenMetadata**, but for **OpenTelemetry signals**.
 TallyCat is under active development. The MVP includes:
 
 - ✅ Schema inference for OTLP data
+- ✅ Telemetry Schema Version Assignment
+- ✅ Telemetry History
 
 Coming next:
 
