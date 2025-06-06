@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { TelemetrySchema } from '@/types/telemetry-schema'
 import type { Telemetry } from '@/types/telemetry'
 import { TelemetryProducersTable } from '@/components/telemetry/telemetry-producers-table'
+import { WeaverDefinition } from '@/components/telemetry-catalog/features/weaver-definition/WeaverDefinition'
 
 interface SchemaDetailsModalProps {
   viewingSchema: TelemetrySchema | null
@@ -73,7 +74,7 @@ export function SchemaDetailsModal({
             </div>
           ) : viewingSchema ? (
             <Tabs defaultValue="schema" className="w-full h-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="schema">Schema Definition</TabsTrigger>
                 <TabsTrigger
                   value="producers"
@@ -84,6 +85,7 @@ export function SchemaDetailsModal({
                     {filteredProducers.length}
                   </Badge>
                 </TabsTrigger>
+                <TabsTrigger value="weaver">Weaver Definition</TabsTrigger>
               </TabsList>
 
               <TabsContent value="schema" className="mt-4">
@@ -116,6 +118,11 @@ export function SchemaDetailsModal({
 
                 <TelemetryProducersTable producers={filteredProducers} />
               </TabsContent>
+
+              <TabsContent value="weaver" className="mt-4">
+                <WeaverDefinition telemetry={telemetry} schema={viewingSchema} />
+              </TabsContent>
+
             </Tabs>
           ) : null}
         </div>

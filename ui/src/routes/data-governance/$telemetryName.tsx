@@ -120,14 +120,14 @@ export const TelemetryDetails = () => {
             </Button>
 
             {/* View Validation Button */}
-            <Button
+            {/* <Button
               variant="outline"
               size="sm"
               className="h-7 px-2 text-xs"
               onClick={() => setActiveTab('validation')}
             >
               View Validation
-            </Button>
+            </Button> */}
           </div>
         </div>
       </div>
@@ -154,14 +154,14 @@ export const TelemetryDetails = () => {
 
         <TabsContent value="schemas" className="mt-0 space-y-4">
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-6 min-h-[300px]">
               <VersionAssignmentView telemetry={telemetry} />
             </CardContent>
           </Card>
         </TabsContent>
         <TabsContent value="history" className="mt-0 space-y-4">
         <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-6 min-h-[300px]">
               <SchemaHistoryView telemetry={telemetry} />
             </CardContent>
           </Card>

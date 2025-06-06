@@ -13,23 +13,23 @@ interface SchemaHistoryViewProps {
 }
 
 const EmptyState = () => (
-    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-        <div className="relative mb-6">
-            <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted/50 mb-4">
-                <Clock className="h-10 w-10 text-muted-foreground/60" />
+    <div className="flex flex-col items-center justify-center py-8 px-6 text-center">
+        <div className="relative mb-4">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted/50 mb-2">
+                <Clock className="h-6 w-6 text-muted-foreground/60" />
             </div>
-            <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-primary" />
+            <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                <Sparkles className="h-3 w-3 text-primary" />
             </div>
         </div>
 
-        <h4 className="text-lg font-semibold mb-2">No Version History Yet</h4>
-        <p className="text-muted-foreground mb-6 max-w-md">
+        <h4 className="text-lg font-semibold mb-1">No Version History Yet</h4>
+        <p className="text-muted-foreground mb-4 max-w-md">
             This schema is just getting started! As changes are made and new versions are created, you'll see a
             beautiful timeline of its evolution here.
         </p>
 
-        <div className="flex items-center gap-6 text-sm text-muted-foreground">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-primary"></div>
                 <span>Version releases</span>
@@ -44,7 +44,7 @@ const EmptyState = () => (
             </div>
         </div>
 
-        <div className="mt-8 p-4 bg-muted/30 rounded-lg">
+        <div className="mt-4 p-3 bg-muted/30 rounded-lg">
             <p className="text-xs text-muted-foreground">
                 💡 <strong>Coming soon:</strong> Version history will automatically populate as your schema evolves
             </p>
