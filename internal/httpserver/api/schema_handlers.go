@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/tallycat/tallycat/internal/repository"
 	"github.com/tallycat/tallycat/internal/schema"
+	"github.com/tallycat/tallycat/internal/weaver"
 )
 
 // HandleTelemetryList returns a paginated, filtered, and searched list of schemas as JSON.
@@ -136,6 +137,40 @@ func HandleGetTelemetrySchema(schemaRepo repository.TelemetrySchemaRepository) h
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(schema)
+	}
+}
+
+func HandleWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		schemaId := chi.URLParam(r, "schemaId")
+
+		schema, err := schemaRepo.GetTelemetrySchema(ctx, schemaId)
+		if err != nil {
+			http.Error(w, "failed to get schema", http.StatusInternalServerError)
+			return
+		}
+
+		if schema == nil {
+			http.Error(w, "schema not found", http.StatusNotFound)
+			return
+		}
+
+		telemetry, err := schemaRepo.GetTelemetry(ctx, schema.SchemaId)
+		if err != nil {
+			http.Error(w, "failed to get telemetry", http.StatusInternalServerError)
+			return
+		}
+
+		yaml, err := weaver.GenerateYAML(telemetry, schema)
+		if err != nil {
+			http.Error(w, "failed to generate YAML", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Disposition", "attachment; filename="+schema.SchemaId+".yaml")
+		w.Write([]byte(yaml))
 	}
 }
 
