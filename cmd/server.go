@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"os"
@@ -78,14 +77,8 @@ and processes log data according to the OpenTelemetry protocol.`,
 		schemaRepo := duckdb.NewTelemetrySchemaRepository(pool.(*duckdb.ConnectionPool))
 		historyRepo := duckdb.NewTelemetryHistoryRepository(pool.(*duckdb.ConnectionPool))
 
-		// Initialize database connection
-		db, err := sql.Open("duckdb", databasePath)
-		if err != nil {
-			slog.Error("failed to open database", "error", err)
-		}
-		defer db.Close()
-
-		// Run migrations
+		// Run migrations using the pool connection
+		db := pool.GetConnection()
 		if err := migrator.ApplyMigrations(db); err != nil {
 			slog.Error("failed to run migrations", "error", err)
 		}
@@ -116,6 +109,7 @@ and processes log data according to the OpenTelemetry protocol.`,
 				switch sig {
 				case syscall.SIGTERM, syscall.SIGINT:
 					slog.Info("Received shutdown signal", "signal", sig)
+					pool.Close()
 					cancel()
 				case syscall.SIGHUP:
 					slog.Info("Received reload signal", "signal", sig)
