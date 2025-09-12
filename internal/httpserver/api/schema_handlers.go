@@ -1,6 +1,8 @@
 package api
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -144,6 +146,7 @@ func HandleWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepository) h
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		schemaId := chi.URLParam(r, "schemaId")
+		metricKey := chi.URLParam(r, "key")
 
 		schema, err := schemaRepo.GetTelemetrySchema(ctx, schemaId)
 		if err != nil {
@@ -156,7 +159,7 @@ func HandleWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepository) h
 			return
 		}
 
-		telemetry, err := schemaRepo.GetTelemetry(ctx, schema.SchemaId)
+		telemetry, err := schemaRepo.GetTelemetry(ctx, metricKey)
 		if err != nil {
 			http.Error(w, "failed to get telemetry", http.StatusInternalServerError)
 			return
@@ -168,9 +171,39 @@ func HandleWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepository) h
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Content-Disposition", "attachment; filename="+schema.SchemaId+".yaml")
-		w.Write([]byte(yaml))
+		// Create a ZIP file containing the YAML content
+		var buf bytes.Buffer
+		zipWriter := zip.NewWriter(&buf)
+
+		// Create a file inside the ZIP with the YAML content
+		yamlFileName := schema.SchemaId + ".yaml"
+		yamlFile, err := zipWriter.Create(yamlFileName)
+		if err != nil {
+			http.Error(w, "failed to create zip file", http.StatusInternalServerError)
+			return
+		}
+
+		// Write the YAML content to the file inside the ZIP
+		_, err = yamlFile.Write([]byte(yaml))
+		if err != nil {
+			http.Error(w, "failed to write yaml to zip", http.StatusInternalServerError)
+			return
+		}
+
+		// Close the ZIP writer to finalize the archive
+		err = zipWriter.Close()
+		if err != nil {
+			http.Error(w, "failed to close zip file", http.StatusInternalServerError)
+			return
+		}
+
+		// Set the appropriate headers for ZIP file download
+		w.Header().Set("Content-Type", "application/zip")
+		w.Header().Set("Content-Disposition", "attachment; filename="+schema.SchemaId+".zip")
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", buf.Len()))
+
+		// Write the ZIP file content to the response
+		w.Write(buf.Bytes())
 	}
 }
 
