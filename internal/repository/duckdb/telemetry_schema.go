@@ -630,6 +630,156 @@ func (r *TelemetrySchemaRepository) GetTelemetrySchema(ctx context.Context, sche
 	return &s, nil
 }
 
+func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Context, producerName, producerVersion string) ([]schema.Telemetry, error) {
+	query := `
+		WITH latest_schemas AS (
+			SELECT 
+				t.schema_id,
+				t.schema_version,
+				t.schema_url,
+				t.signal_type,
+				t.schema_key,
+				t.unit,
+				t.metric_type,
+				t.temporality,
+				t.brief,
+				t.note,
+				t.protocol,
+				t.seen_count,
+				t.created_at,
+				t.updated_at,
+				ROW_NUMBER() OVER (
+					PARTITION BY t.signal_type, t.schema_key 
+					ORDER BY t.updated_at DESC
+				) as rn
+			FROM telemetry_schemas t
+			INNER JOIN schema_producers sp ON t.schema_id = sp.schema_id
+			WHERE sp.name = ? AND sp.version = ?
+		)
+		SELECT 
+			schema_id, schema_version, schema_url, signal_type,
+			schema_key, unit, metric_type, temporality,
+			brief, note, protocol, seen_count,
+			created_at, updated_at
+		FROM latest_schemas
+		WHERE rn = 1
+		ORDER BY updated_at DESC`
+
+	db := r.pool.GetConnection()
+
+	// Use context timeout for query
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	rows, err := db.QueryContext(ctx, query, producerName, producerVersion)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query telemetries by producer: %w", err)
+	}
+	defer rows.Close()
+
+	var telemetries []schema.Telemetry
+	for rows.Next() {
+		var t schema.Telemetry
+
+		err := rows.Scan(
+			&t.SchemaID,
+			&t.SchemaVersion,
+			&t.SchemaURL,
+			&t.TelemetryType,
+			&t.SchemaKey,
+			&t.MetricUnit,
+			&t.MetricType,
+			&t.MetricTemporality,
+			&t.Brief,
+			&t.Note,
+			&t.Protocol,
+			&t.SeenCount,
+			&t.CreatedAt,
+			&t.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan telemetry row: %w", err)
+		}
+
+		telemetries = append(telemetries, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating telemetry rows: %w", err)
+	}
+
+	// For each telemetry, get its attributes and producers
+	for i := range telemetries {
+		// Get attributes
+		attrQuery := `
+			SELECT DISTINCT name, type, source
+			FROM schema_attributes
+			WHERE schema_id = ?
+			ORDER BY name`
+
+		attrRows, err := db.QueryContext(ctx, attrQuery, telemetries[i].SchemaID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query schema attributes: %w", err)
+		}
+
+		var attributes []schema.Attribute
+		for attrRows.Next() {
+			var attr schema.Attribute
+			if err := attrRows.Scan(&attr.Name, &attr.Type, &attr.Source); err != nil {
+				attrRows.Close()
+				return nil, fmt.Errorf("failed to scan attribute row: %w", err)
+			}
+			attributes = append(attributes, attr)
+		}
+		attrRows.Close()
+
+		if err := attrRows.Err(); err != nil {
+			return nil, fmt.Errorf("error iterating attribute rows: %w", err)
+		}
+
+		telemetries[i].Attributes = attributes
+
+		// Get producers
+		producerQuery := `
+			SELECT producer_id, name, namespace, version, instance_id,
+				   first_seen, last_seen
+			FROM schema_producers
+			WHERE schema_id = ?`
+
+		prodRows, err := db.QueryContext(ctx, producerQuery, telemetries[i].SchemaID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query schema producers: %w", err)
+		}
+
+		telemetries[i].Producers = make(map[string]*schema.Producer)
+		for prodRows.Next() {
+			var producer schema.Producer
+			var producerID string
+			if err := prodRows.Scan(
+				&producerID,
+				&producer.Name,
+				&producer.Namespace,
+				&producer.Version,
+				&producer.InstanceID,
+				&producer.FirstSeen,
+				&producer.LastSeen,
+			); err != nil {
+				prodRows.Close()
+				return nil, fmt.Errorf("failed to scan producer row: %w", err)
+			}
+
+			telemetries[i].Producers[producerID] = &producer
+		}
+		prodRows.Close()
+
+		if err := prodRows.Err(); err != nil {
+			return nil, fmt.Errorf("error iterating producer rows: %w", err)
+		}
+	}
+
+	return telemetries, nil
+}
+
 func (r *TelemetrySchemaRepository) Pool() *ConnectionPool {
 	return r.pool
 }

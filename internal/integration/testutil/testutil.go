@@ -29,7 +29,7 @@ type TestDB struct {
 // NewTestDB creates a new test database instance
 func NewTestDB(t *testing.T) *TestDB {
 	pool, err := duckdb.NewConnectionPool(&duckdb.Config{
-		DatabasePath:    "../../tmp/data/tallycat.db", // Use in-memory database for tests
+		DatabasePath:    ":memory:", // Use in-memory database for tests
 		MaxOpenConns:    10,
 		MaxIdleConns:    5,
 		ConnMaxLifetime: time.Hour,
@@ -50,6 +50,11 @@ func NewTestDB(t *testing.T) *TestDB {
 // Close closes the test database connection
 func (db *TestDB) Close() error {
 	return db.pool.Close()
+}
+
+// Repo returns the telemetry schema repository
+func (db *TestDB) Repo() *duckdb.TelemetrySchemaRepository {
+	return db.repo
 }
 
 // SetupTestDB sets up the test database with the required schema
