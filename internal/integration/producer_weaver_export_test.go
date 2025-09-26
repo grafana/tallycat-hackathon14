@@ -1,10 +1,13 @@
 package integration
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -132,14 +135,14 @@ func TestProducerWeaverSchemaExport_Integration(t *testing.T) {
 
 	// Test 1: Producer with multiple metrics
 	t.Run("producer with multiple metrics", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/v1/producers/my-service@1.0.0/weaver-schema.zip", nil)
+		req := httptest.NewRequest("GET", "/api/v1/producers/my-service---1.0.0/weaver-schema.zip", nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
 
 		require.Equal(t, http.StatusOK, w.Code)
 		require.Equal(t, "application/zip", w.Header().Get("Content-Type"))
-		require.Equal(t, "attachment; filename=my-service@1.0.0.zip", w.Header().Get("Content-Disposition"))
+		require.Equal(t, "attachment; filename=my-service---1.0.0.zip", w.Header().Get("Content-Disposition"))
 		require.NotEmpty(t, w.Body.Bytes())
 
 		// Verify ZIP content contains expected YAML structure
@@ -149,20 +152,20 @@ func TestProducerWeaverSchemaExport_Integration(t *testing.T) {
 
 	// Test 2: Producer with single metric
 	t.Run("producer with single metric", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/v1/producers/other-service@2.0.0/weaver-schema.zip", nil)
+		req := httptest.NewRequest("GET", "/api/v1/producers/other-service---2.0.0/weaver-schema.zip", nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
 
 		require.Equal(t, http.StatusOK, w.Code)
 		require.Equal(t, "application/zip", w.Header().Get("Content-Type"))
-		require.Equal(t, "attachment; filename=other-service@2.0.0.zip", w.Header().Get("Content-Disposition"))
+		require.Equal(t, "attachment; filename=other-service---2.0.0.zip", w.Header().Get("Content-Disposition"))
 		require.NotEmpty(t, w.Body.Bytes())
 	})
 
 	// Test 3: Non-existent producer
 	t.Run("non-existent producer", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/v1/producers/non-existent-service@1.0.0/weaver-schema.zip", nil)
+		req := httptest.NewRequest("GET", "/api/v1/producers/non-existent-service---1.0.0/weaver-schema.zip", nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
@@ -235,7 +238,7 @@ func TestProducerWeaverSchemaExport_YAMLContent(t *testing.T) {
 	require.NoError(t, err)
 
 	// Make request
-	req := httptest.NewRequest("GET", "/api/v1/producers/test-service@1.0.0/weaver-schema.zip", nil)
+	req := httptest.NewRequest("GET", "/api/v1/producers/test-service---1.0.0/weaver-schema.zip", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -272,7 +275,7 @@ func TestProducerWeaverSchemaExport_RouteIntegration(t *testing.T) {
 	}{
 		{
 			name:       "valid producer route",
-			path:       "/api/v1/producers/service@1.0.0/weaver-schema.zip",
+			path:       "/api/v1/producers/service---1.0.0/weaver-schema.zip",
 			expectCode: http.StatusNoContent, // No metrics, so 204
 		},
 		{
@@ -282,7 +285,7 @@ func TestProducerWeaverSchemaExport_RouteIntegration(t *testing.T) {
 		},
 		{
 			name:       "non-existent route",
-			path:       "/api/v1/producers/service@1.0.0/invalid",
+			path:       "/api/v1/producers/service---1.0.0/invalid",
 			expectCode: http.StatusNotFound,
 		},
 	}
@@ -296,5 +299,125 @@ func TestProducerWeaverSchemaExport_RouteIntegration(t *testing.T) {
 
 			require.Equal(t, tc.expectCode, w.Code)
 		})
+	}
+}
+
+func TestProducerWeaverSchemaExport_ZipContents(t *testing.T) {
+	testDB := testutil.NewTestDB(t)
+	defer testDB.Close()
+	testDB.SetupTestDB(t)
+
+	// Create test data
+	now := time.Now()
+	testTelemetries := []schema.Telemetry{
+		{
+			SchemaID:      "test_schema_id",
+			SchemaKey:     "test.metric",
+			Brief:         "A test metric",
+			MetricType:    schema.MetricTypeGauge,
+			MetricUnit:    "1",
+			TelemetryType: schema.TelemetryTypeMetric,
+			Protocol:      schema.TelemetryProtocolOTLP,
+			SeenCount:     1,
+			CreatedAt:     now,
+			UpdatedAt:     now,
+			Producers: map[string]*schema.Producer{
+				"producer1": {
+					Name:      "test-service",
+					Version:   "1.0.0",
+					Namespace: "default",
+					FirstSeen: now,
+					LastSeen:  now,
+				},
+			},
+		},
+	}
+
+	// Insert test data
+	err := testDB.Repo().RegisterTelemetrySchemas(context.Background(), testTelemetries)
+	if err != nil {
+		t.Fatalf("Failed to register test telemetries: %v", err)
+	}
+
+	// Create router and register routes
+	router := chi.NewRouter()
+	router.Route("/api/v1", func(r chi.Router) {
+		r.Get("/producers/{producerNameVersion}/weaver-schema.zip", api.HandleProducerWeaverSchemaExport(testDB.Repo()))
+	})
+
+	// Test request
+	req := httptest.NewRequest("GET", "/api/v1/producers/test-service---1.0.0/weaver-schema.zip", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Verify response
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
+
+	// Verify content type
+	if w.Header().Get("Content-Type") != "application/zip" {
+		t.Errorf("Expected Content-Type application/zip, got %s", w.Header().Get("Content-Type"))
+	}
+
+	// Parse ZIP file contents
+	zipReader, err := zip.NewReader(bytes.NewReader(w.Body.Bytes()), int64(w.Body.Len()))
+	if err != nil {
+		t.Fatalf("Failed to read ZIP file: %v", err)
+	}
+
+	// Verify ZIP contains exactly 2 files
+	if len(zipReader.File) != 2 {
+		t.Errorf("Expected 2 files in ZIP, got %d", len(zipReader.File))
+	}
+
+	// Check file names
+	fileNames := make(map[string]bool)
+	for _, file := range zipReader.File {
+		fileNames[file.Name] = true
+	}
+
+	expectedFiles := []string{
+		"test-service---1.0.0.yaml",
+		"registry_manifest.yaml",
+	}
+
+	for _, expectedFile := range expectedFiles {
+		if !fileNames[expectedFile] {
+			t.Errorf("Expected file %s not found in ZIP. Found files: %v", expectedFile, fileNames)
+		}
+	}
+
+	// Verify manifest content
+	var manifestContent string
+	for _, file := range zipReader.File {
+		if file.Name == "registry_manifest.yaml" {
+			rc, err := file.Open()
+			if err != nil {
+				t.Fatalf("Failed to open manifest file: %v", err)
+			}
+			defer rc.Close()
+
+			content, err := io.ReadAll(rc)
+			if err != nil {
+				t.Fatalf("Failed to read manifest content: %v", err)
+			}
+			manifestContent = string(content)
+			break
+		}
+	}
+
+	// Verify manifest contains expected content
+	expectedManifestLines := []string{
+		"name: test-service",
+		"description: Schema for test-service, version 1.0.0",
+		"semconv_version: 1.0.0",
+		"schema_base_url: http://github.com/nicolastakashi/tallycat/test-service---1.0.0",
+	}
+
+	for _, expectedLine := range expectedManifestLines {
+		if !strings.Contains(manifestContent, expectedLine) {
+			t.Errorf("Expected manifest to contain '%s', but it didn't.\nActual manifest:\n%s", expectedLine, manifestContent)
+		}
 	}
 }

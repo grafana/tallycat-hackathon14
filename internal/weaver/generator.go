@@ -7,6 +7,16 @@ import (
 	"github.com/tallycat/tallycat/internal/schema"
 )
 
+// quoteYAMLString ensures a string is properly quoted for YAML output
+// Always quotes strings to avoid issues with special characters like colons
+func quoteYAMLString(s string) string {
+	if s == "" {
+		return `""`
+	}
+	// Always quote to avoid YAML parsing issues with special characters
+	return fmt.Sprintf(`"%s"`, strings.ReplaceAll(s, `"`, `\"`))
+}
+
 // GenerateYAML generates a Weaver format YAML string from telemetry schema data
 func GenerateYAML(telemetry *schema.Telemetry, telemetrySchema *schema.TelemetrySchema) (string, error) {
 	if telemetry == nil {
@@ -22,21 +32,13 @@ func GenerateYAML(telemetry *schema.Telemetry, telemetrySchema *schema.Telemetry
 	yamlLines = append(yamlLines, "    type: metric")
 	yamlLines = append(yamlLines, fmt.Sprintf("    metric_name: %s", telemetry.SchemaKey))
 
-	brief := telemetry.Brief
-	if brief == "" {
-		brief = `""`
-	}
-	yamlLines = append(yamlLines, fmt.Sprintf("    brief: %s", brief))
+	yamlLines = append(yamlLines, fmt.Sprintf("    brief: %s", quoteYAMLString(telemetry.Brief)))
 
 	// Add instrument (metric type)
 	yamlLines = append(yamlLines, fmt.Sprintf("    instrument: %s", convertMetricTypeToInstrument(telemetry.MetricType)))
 
 	// Add unit - always include even if empty (required by Weaver schema)
-	unit := telemetry.MetricUnit
-	if unit == "" {
-		unit = `""`
-	}
-	yamlLines = append(yamlLines, fmt.Sprintf("    unit: %s", unit))
+	yamlLines = append(yamlLines, fmt.Sprintf("    unit: %s", quoteYAMLString(telemetry.MetricUnit)))
 
 	// Filter and format attributes - only include DataPoint attributes as per frontend logic
 	var dataPointAttributes []schema.Attribute
@@ -88,11 +90,7 @@ func formatAttribute(attr schema.Attribute) []string {
 	lines = append(lines, fmt.Sprintf("        requirement_level: %s", requirementLevel))
 
 	// Add brief - always include even if empty (required by Weaver schema)
-	brief := attr.Brief
-	if brief == "" {
-		brief = `""`
-	}
-	lines = append(lines, fmt.Sprintf("        brief: %s", brief))
+	lines = append(lines, fmt.Sprintf("        brief: %s", quoteYAMLString(attr.Brief)))
 
 	return lines
 }
@@ -136,6 +134,18 @@ func GenerateMultiMetricYAML(telemetries []schema.Telemetry, schemas map[string]
 	}
 
 	return strings.Join(yamlLines, "\n"), nil
+}
+
+// GenerateRegistryManifest generates a registry_manifest.yaml content for a producer
+func GenerateRegistryManifest(producerName, producerVersion string) string {
+	var lines []string
+
+	lines = append(lines, fmt.Sprintf("name: %s", producerName))
+	lines = append(lines, fmt.Sprintf("description: Schema for %s, version %s", producerName, producerVersion))
+	lines = append(lines, fmt.Sprintf("semconv_version: %s", producerVersion))
+	lines = append(lines, fmt.Sprintf("schema_base_url: http://github.com/nicolastakashi/tallycat/%s---%s", producerName, producerVersion))
+
+	return strings.Join(lines, "\n") + "\n"
 }
 
 // convertMetricTypeToInstrument converts internal metric types to OpenTelemetry Weaver instrument names

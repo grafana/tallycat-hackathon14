@@ -631,39 +631,81 @@ func (r *TelemetrySchemaRepository) GetTelemetrySchema(ctx context.Context, sche
 }
 
 func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Context, producerName, producerVersion string) ([]schema.Telemetry, error) {
-	query := `
-		WITH latest_schemas AS (
+	// Handle empty version by checking for NULL or empty string in database
+	var query string
+	var args []interface{}
+	
+	if producerVersion == "" {
+		query = `
+			WITH latest_schemas AS (
+				SELECT 
+					t.schema_id,
+					t.schema_version,
+					t.schema_url,
+					t.signal_type,
+					t.schema_key,
+					t.unit,
+					t.metric_type,
+					t.temporality,
+					t.brief,
+					t.note,
+					t.protocol,
+					t.seen_count,
+					t.created_at,
+					t.updated_at,
+					ROW_NUMBER() OVER (
+						PARTITION BY t.signal_type, t.schema_key 
+						ORDER BY t.updated_at DESC
+					) as rn
+				FROM telemetry_schemas t
+				INNER JOIN schema_producers sp ON t.schema_id = sp.schema_id
+				WHERE sp.name = ? AND (sp.version IS NULL OR sp.version = '')
+			)
 			SELECT 
-				t.schema_id,
-				t.schema_version,
-				t.schema_url,
-				t.signal_type,
-				t.schema_key,
-				t.unit,
-				t.metric_type,
-				t.temporality,
-				t.brief,
-				t.note,
-				t.protocol,
-				t.seen_count,
-				t.created_at,
-				t.updated_at,
-				ROW_NUMBER() OVER (
-					PARTITION BY t.signal_type, t.schema_key 
-					ORDER BY t.updated_at DESC
-				) as rn
-			FROM telemetry_schemas t
-			INNER JOIN schema_producers sp ON t.schema_id = sp.schema_id
-			WHERE sp.name = ? AND sp.version = ?
-		)
-		SELECT 
-			schema_id, schema_version, schema_url, signal_type,
-			schema_key, unit, metric_type, temporality,
-			brief, note, protocol, seen_count,
-			created_at, updated_at
-		FROM latest_schemas
-		WHERE rn = 1
-		ORDER BY updated_at DESC`
+				schema_id, schema_version, schema_url, signal_type,
+				schema_key, unit, metric_type, temporality,
+				brief, note, protocol, seen_count,
+				created_at, updated_at
+			FROM latest_schemas
+			WHERE rn = 1
+			ORDER BY updated_at DESC`
+		args = []interface{}{producerName}
+	} else {
+		query = `
+			WITH latest_schemas AS (
+				SELECT 
+					t.schema_id,
+					t.schema_version,
+					t.schema_url,
+					t.signal_type,
+					t.schema_key,
+					t.unit,
+					t.metric_type,
+					t.temporality,
+					t.brief,
+					t.note,
+					t.protocol,
+					t.seen_count,
+					t.created_at,
+					t.updated_at,
+					ROW_NUMBER() OVER (
+						PARTITION BY t.signal_type, t.schema_key 
+						ORDER BY t.updated_at DESC
+					) as rn
+				FROM telemetry_schemas t
+				INNER JOIN schema_producers sp ON t.schema_id = sp.schema_id
+				WHERE sp.name = ? AND sp.version = ?
+			)
+			SELECT 
+				schema_id, schema_version, schema_url, signal_type,
+				schema_key, unit, metric_type, temporality,
+				brief, note, protocol, seen_count,
+				created_at, updated_at
+			FROM latest_schemas
+			WHERE rn = 1
+			ORDER BY updated_at DESC`
+		args = []interface{}{producerName, producerVersion}
+	}
 
 	db := r.pool.GetConnection()
 
@@ -671,7 +713,7 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	rows, err := db.QueryContext(ctx, query, producerName, producerVersion)
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query telemetries by producer: %w", err)
 	}

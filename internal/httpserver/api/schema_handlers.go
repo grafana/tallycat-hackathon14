@@ -216,7 +216,7 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 		// Parse producer name and version from the URL parameter
 		producerName, producerVersion, err := parseProducerNameVersion(producerNameVersion)
 		if err != nil {
-			http.Error(w, "invalid producer format, expected name-version", http.StatusBadRequest)
+			http.Error(w, "invalid producer format, expected name---version or name---", http.StatusBadRequest)
 			return
 		}
 
@@ -245,11 +245,14 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 			return
 		}
 
-		// Create a ZIP file containing the YAML content
+		// Generate registry manifest
+		manifest := weaver.GenerateRegistryManifest(producerName, producerVersion)
+
+		// Create a ZIP file containing both the YAML schema and registry manifest
 		var buf bytes.Buffer
 		zipWriter := zip.NewWriter(&buf)
 
-		// Create a file inside the ZIP with the YAML content
+		// Create the schema YAML file inside the ZIP
 		yamlFileName := producerNameVersion + ".yaml"
 		yamlFile, err := zipWriter.Create(yamlFileName)
 		if err != nil {
@@ -257,10 +260,24 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 			return
 		}
 
-		// Write the YAML content to the file inside the ZIP
+		// Write the YAML content to the schema file inside the ZIP
 		_, err = yamlFile.Write([]byte(yaml))
 		if err != nil {
 			http.Error(w, "failed to write yaml to zip", http.StatusInternalServerError)
+			return
+		}
+
+		// Create the registry manifest file inside the ZIP
+		manifestFile, err := zipWriter.Create("registry_manifest.yaml")
+		if err != nil {
+			http.Error(w, "failed to create manifest file in zip", http.StatusInternalServerError)
+			return
+		}
+
+		// Write the manifest content to the manifest file inside the ZIP
+		_, err = manifestFile.Write([]byte(manifest))
+		if err != nil {
+			http.Error(w, "failed to write manifest to zip", http.StatusInternalServerError)
 			return
 		}
 
@@ -281,16 +298,25 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 	}
 }
 
-// parseProducerNameVersion parses the producer name@version format
+// parseProducerNameVersion parses the producer name---version format
+// Supports empty versions (e.g., "node-exporter---" for producers without version)
 func parseProducerNameVersion(nameVersion string) (string, string, error) {
-	// Find the last @ to separate name and version
-	lastAt := strings.LastIndex(nameVersion, "@")
-	if lastAt == -1 || lastAt == 0 || lastAt == len(nameVersion)-1 {
-		return "", "", fmt.Errorf("invalid producer format, expected name@version")
+	// Find the last --- to separate name and version
+	separator := "---"
+	lastSep := strings.LastIndex(nameVersion, separator)
+	if lastSep == -1 || lastSep == 0 {
+		return "", "", fmt.Errorf("invalid producer format, expected name---version or name---")
 	}
 
-	name := nameVersion[:lastAt]
-	version := nameVersion[lastAt+1:]
+	// Allow empty version (URL ending with ---)
+	if lastSep == len(nameVersion)-len(separator) {
+		// URL ends with ---
+		name := nameVersion[:lastSep]
+		return name, "", nil
+	}
+
+	name := nameVersion[:lastSep]
+	version := nameVersion[lastSep+len(separator):]
 
 	return name, version, nil
 }

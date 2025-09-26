@@ -486,3 +486,35 @@ func TestGenerateYAML_MetricWithoutUnit(t *testing.T) {
 		}
 	}
 }
+
+func TestGenerateRegistryManifest(t *testing.T) {
+	producerName := "otelcontribcol"
+	producerVersion := "0.134.0-dev"
+
+	manifest := GenerateRegistryManifest(producerName, producerVersion)
+
+	expectedLines := []string{
+		"name: otelcontribcol",
+		"description: Schema for otelcontribcol, version 0.134.0-dev",
+		"semconv_version: 0.134.0-dev",
+		"schema_base_url: http://github.com/nicolastakashi/tallycat/otelcontribcol---0.134.0-dev",
+	}
+
+	for _, expectedLine := range expectedLines {
+		if !strings.Contains(manifest, expectedLine) {
+			t.Errorf("Expected manifest to contain '%s', but it didn't.\nActual manifest:\n%s", expectedLine, manifest)
+		}
+	}
+
+	// Verify the manifest is valid YAML format (each line should be key: value)
+	lines := strings.Split(strings.TrimSpace(manifest), "\n")
+	if len(lines) != 4 {
+		t.Errorf("Expected 4 lines in manifest, got %d", len(lines))
+	}
+
+	for _, line := range lines {
+		if !strings.Contains(line, ": ") {
+			t.Errorf("Expected line to contain ': ' separator, got: %s", line)
+		}
+	}
+}
