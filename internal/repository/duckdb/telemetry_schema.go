@@ -32,10 +32,11 @@ func (r *TelemetrySchemaRepository) RegisterTelemetrySchemas(ctx context.Context
 
 	schemaStmt, err := tx.PrepareContext(ctx, `
 		INSERT INTO telemetry_schemas (
-			schema_id, schema_key, schema_version, schema_url, 
-			signal_type, metric_type, temporality, unit, 
-			brief, note, protocol, seen_count, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			schema_id, schema_key, schema_version, schema_url, signal_type, 
+			metric_type, temporality, unit, brief, 
+			log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
+			note, protocol, seen_count, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (schema_id) DO UPDATE SET
 			seen_count = telemetry_schemas.seen_count + excluded.seen_count,
 			updated_at = excluded.updated_at
@@ -81,6 +82,14 @@ func (r *TelemetrySchemaRepository) RegisterTelemetrySchemas(ctx context.Context
 			schema.MetricTemporality,
 			schema.MetricUnit,
 			schema.Brief,
+			schema.LogSeverityNumber,
+			schema.LogSeverityText,
+			schema.LogBody,
+			schema.LogFlags,
+			schema.LogTraceID,
+			schema.LogSpanID,
+			schema.LogEventName,
+			schema.LogDroppedAttributesCount,
 			schema.Note,
 			schema.Protocol,
 			schema.SeenCount,
@@ -176,10 +185,21 @@ func (r *TelemetrySchemaRepository) ListTelemetries(ctx context.Context, params 
 				t.schema_url,
 				t.signal_type,
 				t.schema_key,
+				-- Metric fields
 				t.unit,
 				t.metric_type,
 				t.temporality,
 				t.brief,
+				-- Log fields
+				t.log_severity_number,
+				t.log_severity_text,
+				t.log_body,
+				t.log_flags,
+				t.log_trace_id,
+				t.log_span_id,
+				t.log_event_name,
+				t.log_dropped_attributes_count,
+				-- Common fields
 				t.note,
 				t.protocol,
 				t.seen_count,
@@ -194,9 +214,10 @@ func (r *TelemetrySchemaRepository) ListTelemetries(ctx context.Context, params 
 			WHERE 1=1` + where + `
 		)
 		SELECT 
-			schema_id, schema_version, schema_url, signal_type,
-			schema_key, unit, metric_type, temporality,
-			brief, note, protocol, seen_count,
+			schema_id, schema_version, schema_url, signal_type, schema_key, 
+			unit, metric_type, temporality, brief,
+			log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
+			note, protocol, seen_count,
 			created_at, updated_at, version_count
 		FROM latest_schemas
 		WHERE rn = 1
@@ -232,6 +253,14 @@ func (r *TelemetrySchemaRepository) ListTelemetries(ctx context.Context, params 
 			&schema.MetricType,
 			&schema.MetricTemporality,
 			&schema.Brief,
+			&schema.LogSeverityNumber,
+			&schema.LogSeverityText,
+			&schema.LogBody,
+			&schema.LogFlags,
+			&schema.LogTraceID,
+			&schema.LogSpanID,
+			&schema.LogEventName,
+			&schema.LogDroppedAttributesCount,
 			&schema.Note,
 			&schema.Protocol,
 			&schema.SeenCount,
@@ -260,10 +289,21 @@ func (r *TelemetrySchemaRepository) GetTelemetry(ctx context.Context, schemaKey 
 						t.schema_url,
 						t.signal_type,
 						t.schema_key,
+						-- Metric fields
 						t.unit,
 						t.metric_type,
 						t.temporality,
 						t.brief,
+						-- Log fields
+						t.log_severity_number,
+						t.log_severity_text,
+						t.log_body,
+						t.log_flags,
+						t.log_trace_id,
+						t.log_span_id,
+						t.log_event_name,
+						t.log_dropped_attributes_count,
+						-- Common fields
 						t.note,
 						t.protocol,
 						t.seen_count,
@@ -283,10 +323,21 @@ func (r *TelemetrySchemaRepository) GetTelemetry(ctx context.Context, schemaKey 
 			schema_url,
 			signal_type,
 			schema_key,
+			-- Metric fields
 			unit,
 			metric_type,
 			temporality,
 			brief,
+			-- Log fields
+			log_severity_number,
+			log_severity_text,
+			log_body,
+			log_flags,
+			log_trace_id,
+			log_span_id,
+			log_event_name,
+			log_dropped_attributes_count,
+			-- Common fields
 			note,
 			protocol,
 			seen_count,
@@ -315,6 +366,14 @@ func (r *TelemetrySchemaRepository) GetTelemetry(ctx context.Context, schemaKey 
 		&s.MetricType,
 		&s.MetricTemporality,
 		&s.Brief,
+		&s.LogSeverityNumber,
+		&s.LogSeverityText,
+		&s.LogBody,
+		&s.LogFlags,
+		&s.LogTraceID,
+		&s.LogSpanID,
+		&s.LogEventName,
+		&s.LogDroppedAttributesCount,
 		&s.Note,
 		&s.Protocol,
 		&s.SeenCount,
@@ -634,7 +693,7 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 	// Handle empty version by checking for NULL or empty string in database
 	var query string
 	var args []interface{}
-	
+
 	if producerVersion == "" {
 		query = `
 			WITH latest_schemas AS (
@@ -644,10 +703,21 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 					t.schema_url,
 					t.signal_type,
 					t.schema_key,
+					-- Metric fields
 					t.unit,
 					t.metric_type,
 					t.temporality,
 					t.brief,
+					-- Log fields
+					t.log_severity_number,
+					t.log_severity_text,
+					t.log_body,
+					t.log_flags,
+					t.log_trace_id,
+					t.log_span_id,
+					t.log_event_name,
+					t.log_dropped_attributes_count,
+					-- Common fields
 					t.note,
 					t.protocol,
 					t.seen_count,
@@ -662,9 +732,10 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 				WHERE sp.name = ? AND (sp.version IS NULL OR sp.version = '')
 			)
 			SELECT 
-				schema_id, schema_version, schema_url, signal_type,
-				schema_key, unit, metric_type, temporality,
-				brief, note, protocol, seen_count,
+				schema_id, schema_version, schema_url, signal_type, schema_key,
+				unit, metric_type, temporality, brief,
+				log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
+				note, protocol, seen_count,
 				created_at, updated_at
 			FROM latest_schemas
 			WHERE rn = 1
@@ -679,10 +750,21 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 					t.schema_url,
 					t.signal_type,
 					t.schema_key,
+					-- Metric fields
 					t.unit,
 					t.metric_type,
 					t.temporality,
 					t.brief,
+					-- Log fields
+					t.log_severity_number,
+					t.log_severity_text,
+					t.log_body,
+					t.log_flags,
+					t.log_trace_id,
+					t.log_span_id,
+					t.log_event_name,
+					t.log_dropped_attributes_count,
+					-- Common fields
 					t.note,
 					t.protocol,
 					t.seen_count,
@@ -697,9 +779,10 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 				WHERE sp.name = ? AND sp.version = ?
 			)
 			SELECT 
-				schema_id, schema_version, schema_url, signal_type,
-				schema_key, unit, metric_type, temporality,
-				brief, note, protocol, seen_count,
+				schema_id, schema_version, schema_url, signal_type, schema_key,
+				unit, metric_type, temporality, brief,
+				log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
+				note, protocol, seen_count,
 				created_at, updated_at
 			FROM latest_schemas
 			WHERE rn = 1
@@ -733,6 +816,14 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 			&t.MetricType,
 			&t.MetricTemporality,
 			&t.Brief,
+			&t.LogSeverityNumber,
+			&t.LogSeverityText,
+			&t.LogBody,
+			&t.LogFlags,
+			&t.LogTraceID,
+			&t.LogSpanID,
+			&t.LogEventName,
+			&t.LogDroppedAttributesCount,
 			&t.Note,
 			&t.Protocol,
 			&t.SeenCount,

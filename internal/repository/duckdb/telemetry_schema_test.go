@@ -32,10 +32,21 @@ func setupTestDB(t *testing.T) *TelemetrySchemaRepository {
 			schema_version TEXT,
 			schema_url TEXT,
 			signal_type TEXT,
+			-- Metric fields
 			metric_type TEXT,
 			temporality TEXT,
 			unit TEXT,
 			brief TEXT,
+			-- Log fields
+			log_severity_number INTEGER,
+			log_severity_text TEXT,
+			log_body TEXT,
+			log_flags INTEGER,
+			log_trace_id TEXT,
+			log_span_id TEXT,
+			log_event_name TEXT,
+			log_dropped_attributes_count INTEGER,
+			-- Common fields
 			note TEXT,
 			protocol TEXT,
 			seen_count INTEGER,
@@ -94,6 +105,16 @@ func TestListTelemetriesByProducer_ProducerWithMetrics(t *testing.T) {
 			MetricType:    schema.MetricTypeHistogram,
 			MetricUnit:    "ms",
 			Brief:         "HTTP server request duration",
+			// Log fields
+			LogSeverityNumber: 0,
+			LogSeverityText:   "",
+			LogBody:           "",
+			LogFlags:          0,
+			LogTraceID:        "",
+			LogSpanID:         "",
+			LogEventName:      "",
+			LogDroppedAttributesCount: 0,
+			// Common fields
 			Protocol:      schema.TelemetryProtocolOTLP,
 			SeenCount:     10,
 			CreatedAt:     time.Now(),
@@ -115,6 +136,16 @@ func TestListTelemetriesByProducer_ProducerWithMetrics(t *testing.T) {
 			MetricType:    schema.MetricTypeSum,
 			MetricUnit:    "1",
 			Brief:         "HTTP server request count",
+			// Log fields
+			LogSeverityNumber: 0,
+			LogSeverityText:   "",
+			LogBody:           "",
+			LogFlags:          0,
+			LogTraceID:        "",
+			LogSpanID:         "",
+			LogEventName:      "",
+			LogDroppedAttributesCount: 0,
+			// Common fields
 			Protocol:      schema.TelemetryProtocolOTLP,
 			SeenCount:     5,
 			CreatedAt:     time.Now(),
@@ -136,6 +167,16 @@ func TestListTelemetriesByProducer_ProducerWithMetrics(t *testing.T) {
 			MetricType:    schema.MetricTypeGauge,
 			MetricUnit:    "%",
 			Brief:         "CPU usage percentage",
+			// Log fields
+			LogSeverityNumber: 0,
+			LogSeverityText:   "",
+			LogBody:           "",
+			LogFlags:          0,
+			LogTraceID:        "",
+			LogSpanID:         "",
+			LogEventName:      "",
+			LogDroppedAttributesCount: 0,
+			// Common fields
 			Protocol:      schema.TelemetryProtocolOTLP,
 			SeenCount:     3,
 			CreatedAt:     time.Now(),
@@ -185,6 +226,16 @@ func TestListTelemetriesByProducer_ProducerWithNoMetrics(t *testing.T) {
 			MetricType:    schema.MetricTypeGauge,
 			MetricUnit:    "1",
 			Brief:         "Test metric",
+			// Log fields
+			LogSeverityNumber: 0,
+			LogSeverityText:   "",
+			LogBody:           "",
+			LogFlags:          0,
+			LogTraceID:        "",
+			LogSpanID:         "",
+			LogEventName:      "",
+			LogDroppedAttributesCount: 0,
+			// Common fields
 			Protocol:      schema.TelemetryProtocolOTLP,
 			SeenCount:     1,
 			CreatedAt:     time.Now(),
@@ -206,6 +257,181 @@ func TestListTelemetriesByProducer_ProducerWithNoMetrics(t *testing.T) {
 
 	// Test: Look for a producer that has no metrics
 	telemetries, err := repo.ListTelemetriesByProducer(ctx, "my-service", "1.0.0")
+
+	require.NoError(t, err)
+	require.Empty(t, telemetries)
+}
+
+func TestListTelemetriesByProducer_ProducerWithLogRecords(t *testing.T) {
+	repo := setupTestDB(t)
+	ctx := context.Background()
+
+	// Insert test data
+	testTelemetries := []schema.Telemetry{
+		{
+			SchemaID:      "log1_schema_id",
+			SchemaKey:     "Reading CPU usage",
+			TelemetryType: schema.TelemetryTypeLog,
+			// Metric fields
+			MetricType:    schema.MetricTypeEmpty,
+			MetricUnit:    "",
+			Brief:         "",
+			// Log fields
+			LogSeverityNumber: 1,
+			LogSeverityText:   "INFO",
+			LogBody:           "Reading CPU usage",
+			LogFlags:          0,
+			LogTraceID:        "1234567890ABCDEF1234567890ABCDEF",
+			LogSpanID:         "1234567890ABCDEF",
+			LogEventName:      "Reading CPU usage",
+			LogDroppedAttributesCount: 0,
+			// Common fields
+			Protocol:      schema.TelemetryProtocolOTLP,
+			SeenCount:     10,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+			Producers: map[string]*schema.Producer{
+				"producer1": {
+					Name:      "my-service",
+					Version:   "1.0.0",
+					Namespace: "default",
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
+				},
+			},
+		},
+		{
+			SchemaID:      "log2_schema_id",
+			SchemaKey:     "Reading Total Memory",
+			TelemetryType: schema.TelemetryTypeLog,
+			// Metric fields
+			MetricType:    schema.MetricTypeEmpty,
+			MetricUnit:    "",
+			Brief:         "",
+			// Log fields
+			LogSeverityNumber: 1,
+			LogSeverityText:   "INFO",
+			LogBody:           "Reading Total Memory",
+			LogFlags:          0,
+			LogTraceID:        "1234567890ABCDEF1234567890ABCDEF",
+			LogSpanID:         "1234567890ABCDEF",
+			LogEventName:      "Reading Total Memory",
+			LogDroppedAttributesCount: 0,
+			// Common fields
+			Protocol:      schema.TelemetryProtocolOTLP,
+			SeenCount:     5,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+			Producers: map[string]*schema.Producer{
+				"producer1": {
+					Name:      "my-service",
+					Version:   "1.0.0",
+					Namespace: "default",
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
+				},
+			},
+		},
+		{
+			SchemaID:      "log3_schema_id",
+			SchemaKey:     "HTTP server requested",
+			TelemetryType: schema.TelemetryTypeLog,
+			// Metric fields
+			MetricType:    schema.MetricTypeEmpty,
+			MetricUnit:    "",
+			Brief:         "",
+			// Log fields
+			LogSeverityNumber: 1,
+			LogSeverityText:   "INFO",
+			LogBody:           "HTTP server requested",
+			LogFlags:          0,
+			LogTraceID:        "1234567890ABCDEF1234567890ABCDEF",
+			LogSpanID:         "1234567890ABCDEF",
+			LogEventName:      "HTTP server requested",
+			LogDroppedAttributesCount: 0,
+			// Common fields
+			Protocol:      schema.TelemetryProtocolOTLP,
+			SeenCount:     3,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+			Producers: map[string]*schema.Producer{
+				"producer2": {
+					Name:      "other-service",
+					Version:   "2.0.0",
+					Namespace: "default",
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
+				},
+			},
+		},
+	}
+
+	// Register test telemetries
+	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
+	require.NoError(t, err)
+
+	// Test: Get metrics for my-service v1.0.0
+	telemetries, err := repo.ListTelemetriesByProducer(ctx, "my-service", "1.0.0")
+
+	require.NoError(t, err)
+	require.Len(t, telemetries, 2)
+
+	// Verify we got the right metrics
+	schemaKeys := make([]string, len(telemetries))
+	for i, t := range telemetries {
+		schemaKeys[i] = t.SchemaKey
+	}
+	require.Contains(t, schemaKeys, "Reading CPU usage")
+	require.Contains(t, schemaKeys, "Reading Total Memory")
+	require.NotContains(t, schemaKeys, "HTTP server requested")
+}
+
+func TestListTelemetriesByProducer_ProducerWithNoLogRecords(t *testing.T) {
+	repo := setupTestDB(t)
+	ctx := context.Background()
+
+	// Insert test data
+	testTelemetries := []schema.Telemetry{
+		{
+			SchemaID:      "log1_schema_id",
+			SchemaKey:     "Reading CPU usage",
+			TelemetryType: schema.TelemetryTypeLog,
+			// Metric fields
+			MetricType:    schema.MetricTypeEmpty,
+			MetricUnit:    "",
+			Brief:         "",
+			// Log fields
+			LogSeverityNumber: 1,
+			LogSeverityText:   "INFO",
+			LogBody:           "Reading CPU usage",
+			LogFlags:          0,
+			LogTraceID:        "1234567890ABCDEF1234567890ABCDEF",
+			LogSpanID:         "1234567890ABCDEF",
+			LogEventName:      "Reading CPU usage",
+			LogDroppedAttributesCount: 0,
+			// Common fields
+			Protocol:      schema.TelemetryProtocolOTLP,
+			SeenCount:     10,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+			Producers: map[string]*schema.Producer{
+				"producer1": {
+					Name:      "my-service",
+					Version:   "1.0.0",
+					Namespace: "default",
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
+				},
+			},
+		},
+	}
+
+	// Register test telemetries
+	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
+	require.NoError(t, err)
+
+	// Test: Get metrics for my-service v1.0.0
+	telemetries, err := repo.ListTelemetriesByProducer(ctx, "my-service", "2.0.0")
 
 	require.NoError(t, err)
 	require.Empty(t, telemetries)
