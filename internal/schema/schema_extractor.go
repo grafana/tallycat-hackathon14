@@ -207,10 +207,22 @@ func ExtractFromLogs(logs plog.Logs) []Telemetry {
 				logRecord := scopeLog.LogRecords().At(l)
 				logAttributes := logRecord.Attributes()
 
+				// Determine schema key: use event name if available, otherwise use service name from attributes
+				schemaKey := logRecord.EventName()
+				if schemaKey == "" {
+					// Try to get message from log attributes
+					if serviceAttr, exists := logRecord.Attributes().Get("message"); exists {
+						schemaKey = serviceAttr.Str()
+					} else {
+						// Fallback to a generic log schema key
+						schemaKey = "application_log"
+					}
+				}
+
 				telemetry := Telemetry{
 					SchemaURL:                 scopeLog.SchemaUrl(),
 					TelemetryType:             TelemetryTypeLog,
-					SchemaKey:                 logRecord.EventName(),
+					SchemaKey:                 schemaKey,
 					LogSeverityNumber:         int(logRecord.SeverityNumber()),
 					LogSeverityText:           logRecord.SeverityText(),
 					LogBody:                   logRecord.Body().AsString(),
