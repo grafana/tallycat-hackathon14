@@ -23,6 +23,20 @@ func GenerateYAML(telemetry *schema.Telemetry, telemetrySchema *schema.Telemetry
 		return "", fmt.Errorf("telemetry cannot be nil")
 	}
 
+	// Generate different YAML based on telemetry type
+	switch telemetry.TelemetryType {
+	case schema.TelemetryTypeLog:
+		return generateLogEventYAML(telemetry, telemetrySchema)
+	case schema.TelemetryTypeMetric:
+		return generateMetricYAML(telemetry, telemetrySchema)
+	default:
+		// Default to metric for backwards compatibility
+		return generateMetricYAML(telemetry, telemetrySchema)
+	}
+}
+
+// generateMetricYAML generates YAML for metric telemetries (existing logic)
+func generateMetricYAML(telemetry *schema.Telemetry, telemetrySchema *schema.TelemetrySchema) (string, error) {
 	// Build the YAML structure
 	var yamlLines []string
 
@@ -71,6 +85,94 @@ func GenerateYAML(telemetry *schema.Telemetry, telemetrySchema *schema.Telemetry
 	return strings.Join(yamlLines, "\n"), nil
 }
 
+// generateLogEventYAML generates YAML for log telemetries as events
+func generateLogEventYAML(telemetry *schema.Telemetry, telemetrySchema *schema.TelemetrySchema) (string, error) {
+	// Build the YAML structure
+	var yamlLines []string
+
+	// Determine event name: use LogEventName if available, otherwise use SchemaKey
+	eventName := telemetry.LogEventName
+	if eventName == "" {
+		eventName = telemetry.SchemaKey
+	}
+
+	// Start with the groups section
+	yamlLines = append(yamlLines, "groups:")
+	yamlLines = append(yamlLines, fmt.Sprintf("  - id: event.%s", eventName))
+	yamlLines = append(yamlLines, "    type: event")
+	yamlLines = append(yamlLines, fmt.Sprintf("    event_name: %s", eventName))
+
+	yamlLines = append(yamlLines, fmt.Sprintf("    brief: %s", quoteYAMLString(telemetry.Brief)))
+
+	// Collect all attributes (LogRecord source + log-specific attributes)
+	var allAttributes []schema.Attribute
+	var attributesToUse []schema.Attribute
+
+	// Determine which attributes to use
+	if telemetrySchema != nil && len(telemetrySchema.Attributes) > 0 {
+		attributesToUse = telemetrySchema.Attributes
+	} else {
+		attributesToUse = telemetry.Attributes
+	}
+
+	// Filter for LogRecord source attributes
+	for _, attr := range attributesToUse {
+		if attr.Source == schema.AttributeSourceLogRecord {
+			allAttributes = append(allAttributes, attr)
+		}
+	}
+
+	// Add log-specific attributes
+	logAttributes := generateLogSpecificAttributes(telemetry)
+	allAttributes = append(allAttributes, logAttributes...)
+
+	// Always add attributes section for events (at minimum log severity attributes)
+	yamlLines = append(yamlLines, "    attributes:")
+
+	// Format each attribute
+	for _, attr := range allAttributes {
+		yamlLines = append(yamlLines, formatAttribute(attr)...)
+	}
+
+	return strings.Join(yamlLines, "\n"), nil
+}
+
+// generateLogSpecificAttributes creates standard log attributes from telemetry fields
+func generateLogSpecificAttributes(telemetry *schema.Telemetry) []schema.Attribute {
+	var attributes []schema.Attribute
+
+	// Always add log severity number
+	attributes = append(attributes, schema.Attribute{
+		Name:             "log.severity.number",
+		Type:             schema.AttributeTypeInt,
+		RequirementLevel: schema.RequirementLevelRecommended,
+		Brief:            "Log severity number",
+		Source:           schema.AttributeSourceLogRecord,
+	})
+
+	// Always add log severity text
+	attributes = append(attributes, schema.Attribute{
+		Name:             "log.severity.text",
+		Type:             schema.AttributeTypeStr,
+		RequirementLevel: schema.RequirementLevelRecommended,
+		Brief:            "Log severity text",
+		Source:           schema.AttributeSourceLogRecord,
+	})
+
+	// Add log body if present
+	if telemetry.LogBody != "" {
+		attributes = append(attributes, schema.Attribute{
+			Name:             "log.body",
+			Type:             schema.AttributeTypeStr,
+			RequirementLevel: schema.RequirementLevelRecommended,
+			Brief:            "Log body content",
+			Source:           schema.AttributeSourceLogRecord,
+		})
+	}
+
+	return attributes
+}
+
 // formatAttribute formats a single attribute into YAML lines
 func formatAttribute(attr schema.Attribute) []string {
 	var lines []string
@@ -115,10 +217,10 @@ func GenerateMultiMetricYAML(telemetries []schema.Telemetry, schemas map[string]
 			telemetrySchema = schemas[telemetry.SchemaID]
 		}
 
-		// Generate YAML for this single metric using the existing function
+		// Generate YAML for this single telemetry using the existing function
 		singleYAML, err := GenerateYAML(&telemetry, telemetrySchema)
 		if err != nil {
-			return "", fmt.Errorf("failed to generate YAML for metric %s: %w", telemetry.SchemaKey, err)
+			return "", fmt.Errorf("failed to generate YAML for telemetry %s: %w", telemetry.SchemaKey, err)
 		}
 
 		// Parse the single YAML and extract the group content

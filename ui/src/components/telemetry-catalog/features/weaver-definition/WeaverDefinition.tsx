@@ -1,6 +1,7 @@
 import { Code, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Attribute, Telemetry } from '@/types/telemetry'
+import { TelemetryType } from '@/types/telemetry'
 import type { TelemetrySchema } from '@/types/telemetry-schema'
 
 interface WeaverDefinitionProps {
@@ -11,28 +12,174 @@ interface WeaverDefinitionProps {
 export function WeaverDefinition({ telemetry, schema }: WeaverDefinitionProps) {
   const formatAttribute = (attribute: Attribute) => {
     const id = attribute.name || ''
-    const type = attribute.type || ''
+    const type = convertAttributeType(attribute.type || '')
     return [
-      `    - id: ${id}`,
-      `      type: ${type}`,
-      `      requirement_level: recommended`,
+      `      - id: ${id}`,
+      `        type: ${type}`,
+      `        requirement_level: recommended`,
+      `        brief: "${attribute.brief || ''}"`,
     ].join('\n')
   }
 
-  const generateWeaverYaml = () => {
-    const yamlLines = [
-      'groups:',
-      '  - id: metric.' + telemetry.schemaKey,
-      '    type: metric',
-      '    metric_name: ' + telemetry.schemaKey,
-      '    brief: ' + telemetry.brief,
-      '    instrument: ' + telemetry.metricType,
-      '    unit: ' + telemetry.metricUnit,
-      '    attributes:',
-      schema.attributes.filter((attribute) => attribute.source === 'DataPoint').map(formatAttribute).join('\n')
+  // Convert internal attribute types to Weaver-compatible types
+  const convertAttributeType = (attrType: string): string => {
+    switch (attrType) {
+      case 'Str':
+        return 'string'
+      case 'Bool':
+        return 'boolean'
+      case 'Int':
+        return 'int'
+      case 'Double':
+        return 'double'
+      case 'Map':
+        return 'string'
+      case 'Slice':
+        return 'string[]'
+      case 'Bytes':
+        return 'string'
+      default:
+        return 'string'
+    }
+  }
+
+  // Convert metric type to instrument
+  const convertMetricTypeToInstrument = (metricType: string): string => {
+    switch (metricType) {
+      case 'Gauge':
+        return 'gauge'
+      case 'Sum':
+        return 'sum'
+      case 'Histogram':
+        return 'histogram'
+      case 'ExponentialHistogram':
+        return 'histogram'
+      case 'Summary':
+        return 'histogram'
+      default:
+        return 'gauge'
+    }
+  }
+
+  // Generate log-specific attributes
+  const generateLogAttributes = (): string[] => {
+    const logAttributes = [
+      [
+        '      - id: log.severity.number',
+        '        type: int',
+        '        requirement_level: recommended',
+        '        brief: "Log severity number"',
+      ].join('\n'),
+      [
+        '      - id: log.severity.text',
+        '        type: string',
+        '        requirement_level: recommended',
+        '        brief: "Log severity text"',
+      ].join('\n'),
     ]
 
+    // Add log body if present
+    if (telemetry.logBody && telemetry.logBody.trim() !== '') {
+      logAttributes.push([
+        '      - id: log.body',
+        '        type: string',
+        '        requirement_level: recommended',
+        '        brief: "Log body content"',
+      ].join('\n'))
+    }
+
+    return logAttributes
+  }
+
+  const generateMetricYaml = (): string => {
+    const yamlLines = [
+      'groups:',
+      `  - id: metric.${telemetry.schemaKey}`,
+      '    type: metric',
+      `    metric_name: ${telemetry.schemaKey}`,
+      `    brief: "${telemetry.brief || ''}"`,
+      `    instrument: ${convertMetricTypeToInstrument(telemetry.metricType)}`,
+      `    unit: "${telemetry.metricUnit || ''}"`,
+    ]
+
+    // Filter for DataPoint attributes
+    const dataPointAttributes = schema.attributes.filter(
+      (attribute) => attribute.source === 'DataPoint'
+    )
+
+    if (dataPointAttributes.length > 0) {
+      yamlLines.push('    attributes:')
+      dataPointAttributes.forEach((attribute) => {
+        yamlLines.push(formatAttribute(attribute))
+      })
+    }
+
     return yamlLines.join('\n')
+  }
+
+  const generateLogEventYaml = (): string => {
+    // Determine event name: use logEventName if available, otherwise use schemaKey
+    const eventName = telemetry.logEventName || telemetry.schemaKey
+
+    const yamlLines = [
+      'groups:',
+      `  - id: event.${eventName}`,
+      '    type: event',
+      `    event_name: ${eventName}`,
+      `    brief: "${telemetry.brief || ''}"`,
+      '    attributes:',
+    ]
+
+    // Add LogRecord attributes first
+    const logRecordAttributes = schema.attributes.filter(
+      (attribute) => attribute.source === 'LogRecord'
+    )
+
+    logRecordAttributes.forEach((attribute) => {
+      yamlLines.push(formatAttribute(attribute))
+    })
+
+    // Add log-specific attributes
+    const logAttributes = generateLogAttributes()
+    logAttributes.forEach((attr) => {
+      yamlLines.push(attr)
+    })
+
+    return yamlLines.join('\n')
+  }
+
+  const generateWeaverYaml = (): string => {
+    switch (telemetry.telemetryType) {
+      case TelemetryType.Log:
+        return generateLogEventYaml()
+      case TelemetryType.Metric:
+        return generateMetricYaml()
+      default:
+        // Default to metric for backwards compatibility
+        return generateMetricYaml()
+    }
+  }
+
+  const getFilePrefix = (): string => {
+    switch (telemetry.telemetryType) {
+      case TelemetryType.Log:
+        return telemetry.logEventName || telemetry.schemaKey
+      case TelemetryType.Metric:
+        return telemetry.schemaKey
+      default:
+        return telemetry.schemaKey
+    }
+  }
+
+  const getTelemetryTypeLabel = (): string => {
+    switch (telemetry.telemetryType) {
+      case TelemetryType.Log:
+        return 'log event'
+      case TelemetryType.Metric:
+        return 'metric'
+      default:
+        return 'telemetry'
+    }
   }
 
   const handleCopyYaml = () => {
@@ -46,7 +193,7 @@ export function WeaverDefinition({ telemetry, schema }: WeaverDefinitionProps) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${telemetry.schemaKey}.yaml`
+    a.download = `${getFilePrefix()}.yaml`
     a.click()
   }
 
@@ -58,7 +205,7 @@ export function WeaverDefinition({ telemetry, schema }: WeaverDefinitionProps) {
           OpenTelemetry Weaver Definition
         </h3>
         <p className="text-sm text-muted-foreground">
-          Semantic convention definition in Weaver format for OpenTelemetry instrumentation
+          Semantic convention definition in Weaver format for OpenTelemetry {getTelemetryTypeLabel()} instrumentation
         </p>
       </div>
 
