@@ -14,6 +14,7 @@ type TelemetrySchemaRepository interface {
 	ListTelemetrySchemas(ctx context.Context, schemaKey string, params query.ListQueryParams) ([]schema.TelemetrySchema, int, error)
 	AssignTelemetrySchemaVersion(ctx context.Context, assignment schema.SchemaAssignment) error
 	GetTelemetrySchema(ctx context.Context, schemaId string) (*schema.TelemetrySchema, error)
+	ListTelemetriesByProducer(ctx context.Context, producerName, producerVersion string) ([]schema.Telemetry, error)
 }
 
 type TelemetryHistoryRepository interface {
