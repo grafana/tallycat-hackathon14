@@ -425,6 +425,7 @@ export const SchemaCatalog = () => {
             <TabsTrigger value="metric">Metrics</TabsTrigger>
             <TabsTrigger value="log">Logs</TabsTrigger>
             <TabsTrigger value="trace">Traces</TabsTrigger>
+            <TabsTrigger value="profile">Profiles</TabsTrigger>
           </TabsList>
         </Tabs>
 

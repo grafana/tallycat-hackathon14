@@ -49,7 +49,7 @@ export function AttributesView({ attributes }: AttributesViewProps) {
     (attr) => attr.source === 'Scope'
   )
   const dataPointAttributes = filteredAttributes.filter(
-    (attr) => attr.source === 'DataPoint'
+    (attr) => attr.source === 'DataPoint' || attr.source === 'LogRecord'
   )
 
   const toggleSection = (section: keyof typeof expandedSections) => {

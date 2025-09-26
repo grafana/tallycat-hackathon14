@@ -2,7 +2,7 @@ export enum TelemetryType {
   Metric = 'Metric',
   Log = 'Log',
   Trace = 'Trace',
-  Event = 'Event',
+  Profile = 'Profile',
 }
 
 export enum Status {
