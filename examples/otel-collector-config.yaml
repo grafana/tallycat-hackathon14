@@ -1,4 +1,16 @@
 receivers:
+  # Generate synthetic logs for testing
+  filelog:
+    include: ["examples/test-logs/*.log"]
+    start_at: beginning
+    operators:
+      - type: json_parser
+        id: json_parser
+        output: extract_timestamp_parser
+      - type: time_parser
+        id: extract_timestamp_parser
+        parse_from: attributes.timestamp
+        layout: '%Y-%m-%d %H:%M:%S'
   prometheus:
     config:
       scrape_configs:
@@ -6,15 +18,36 @@ receivers:
           scrape_interval: 10s
           static_configs:
             - targets: ['127.0.0.1:8888']
-        - job_name: 'otel-collector-metrics'
-          scrape_interval: 10s
-          static_configs:
-            - targets: ['127.0.0.1:8889']
 
 processors:
   batch:
     timeout: 1s
     send_batch_size: 1024
+  
+  # Add resource attributes to identify the source
+  resource:
+    attributes:
+      - key: service.name
+        value: "otel-collector-example"
+        action: insert
+      - key: service.version
+        value: "1.0.0"
+        action: insert
+      - key: deployment.environment
+        value: "testing"
+        action: insert
+
+  # Transform logs to add severity and structured data
+  transform/logs:
+    log_statements:
+      - context: log
+        statements:
+          - set(log.severity_text, "INFO") where log.severity_text == nil
+          - set(log.severity_number, 9) where log.severity_number == nil
+          - set(log.attributes["log.source"], "otel-collector-example")
+          # Add event names for proper schema identification
+          - set(log.event_name, log.attributes["service"]) where log.event_name == nil and log.attributes["service"] != nil
+          - set(log.event_name, "application_log") where log.event_name == nil
 
 exporters:
   otlp:
@@ -27,5 +60,10 @@ service:
   pipelines:
     metrics:
       receivers: [prometheus]
-      processors: [batch]
+      processors: [resource, batch]
+      exporters: [otlp]
+    
+    logs:
+      receivers: [filelog]
+      processors: [resource, transform/logs, batch]
       exporters: [otlp] 

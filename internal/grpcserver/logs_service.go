@@ -25,10 +25,10 @@ func NewLogsServiceServer(schemaRepo repository.TelemetrySchemaRepository) *Logs
 }
 
 func (s *LogsServiceServer) Export(ctx context.Context, req *logspb.ExportLogsServiceRequest) (*logspb.ExportLogsServiceResponse, error) {
-    logs := plog.NewLogs()
+	logs := plog.NewLogs()
 	rls := logs.ResourceLogs()
 	rls.EnsureCapacity(len(req.ResourceLogs))
-	
+
 	for _, rl := range req.ResourceLogs {
 		resourceLog := rls.AppendEmpty()
 		resourceLog.SetSchemaUrl(rl.SchemaUrl)
@@ -69,10 +69,14 @@ func (s *LogsServiceServer) Export(ctx context.Context, req *logspb.ExportLogsSe
 				logRecord.SetSeverityText(l.SeverityText)
 				logRecord.Body().SetStr(l.Body.GetStringValue())
 				logRecord.SetFlags(plog.LogRecordFlags(l.Flags))
-				logRecord.SetTraceID(pcommon.TraceID(l.TraceId))
-				logRecord.SetSpanID(pcommon.SpanID(l.SpanId))
+				if len(l.TraceId) == 16 {
+					logRecord.SetTraceID(pcommon.TraceID(l.TraceId))
+				}
+				if len(l.SpanId) == 8 {
+					logRecord.SetSpanID(pcommon.SpanID(l.SpanId))
+				}
 				logRecord.SetEventName(l.EventName)
-				
+
 				for _, attr := range l.Attributes {
 					logRecord.Attributes().PutStr(attr.Key, attr.Value.GetStringValue())
 				}
