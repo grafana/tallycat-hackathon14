@@ -3,15 +3,17 @@ package schema
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cespare/xxhash/v2"
 	"go.opentelemetry.io/collector/pdata/pcommon"
+	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 )
 
-// generateTelemetrySchemaID creates a deterministic schema ID based on telemetry characteristics.
+// generateMetricSchemaID creates a deterministic schema ID based on telemetry characteristics.
 // The schema ID is a unique identifier that represents the structure of a telemetry object,
 // including its metric name, unit, type, temporality, and all its attributes.
 //
@@ -23,7 +25,7 @@ import (
 //
 // The ID is generated using xxhash for performance, and is deterministic
 // meaning the same telemetry structure will always produce the same ID.
-func generateTelemetrySchemaID(telemetry Telemetry) string {
+func generateMetricSchemaID(telemetry Telemetry) string {
 	attributeNames := make([]string, 0, len(telemetry.Attributes))
 	for _, attr := range telemetry.Attributes {
 		// Accorting to the spec, only data point attributes are part of the schema
@@ -143,7 +145,137 @@ func ExtractFromMetrics(metrics pmetric.Metrics) []Telemetry {
 					return true
 				})
 
-				telemetry.SchemaID = generateTelemetrySchemaID(telemetry)
+				telemetry.SchemaID = generateMetricSchemaID(telemetry)
+				if existing, ok := telemetries[telemetry.SchemaID]; ok {
+					existing.SeenCount++
+				} else {
+					telemetries[telemetry.SchemaID] = telemetry
+				}
+			}
+		}
+	}
+
+	result := make([]Telemetry, 0, len(telemetries))
+	for _, telemetry := range telemetries {
+		result = append(result, telemetry)
+	}
+
+	return result
+}
+
+func generateLogSchemaID(telemetry Telemetry) string {
+	attributeNames := make([]string, 0, len(telemetry.Attributes))
+	for _, attr := range telemetry.Attributes {
+		// Accorting to the spec, only data point attributes are part of the schema
+		// which means we will only detect drift if the telemetry attributes change
+		if attr.Source == AttributeSourceDataPoint {
+			attributeNames = append(attributeNames, attr.Name)
+		}
+	}
+	sort.Strings(attributeNames)
+
+	parts := []string{
+		telemetry.SchemaKey,
+		strconv.Itoa(telemetry.LogSeverityNumber),
+		telemetry.LogSeverityText,
+		telemetry.LogBody,
+		strconv.Itoa(telemetry.LogFlags),
+		telemetry.LogTraceID,
+		telemetry.LogSpanID,
+		telemetry.LogEventName,
+		strconv.Itoa(telemetry.LogDroppedAttributesCount),
+		strings.Join(attributeNames, ","),
+	}
+
+	h := xxhash.New()
+	h.Write([]byte(strings.Join(parts, "|")))
+	return fmt.Sprintf("%x", h.Sum64())
+}
+
+func ExtractFromLogs(logs plog.Logs) []Telemetry {
+	telemetries := map[string]Telemetry{}
+
+	for i := range logs.ResourceLogs().Len() {
+		resourceLog := logs.ResourceLogs().At(i)
+		resourceAttributes := resourceLog.Resource().Attributes()
+
+		for k := range resourceLog.ScopeLogs().Len() {
+			scopeLog := resourceLog.ScopeLogs().At(k)
+			scopeAttributes := scopeLog.Scope().Attributes()
+
+			for l := range scopeLog.LogRecords().Len() {
+				logRecord := scopeLog.LogRecords().At(l)
+				logAttributes := logRecord.Attributes()
+
+				telemetry := Telemetry{
+					SchemaURL:                 scopeLog.SchemaUrl(),
+					TelemetryType:             TelemetryTypeLog,
+					SchemaKey:                 logRecord.EventName(),
+					LogSeverityNumber:         int(logRecord.SeverityNumber()),
+					LogSeverityText:           logRecord.SeverityText(),
+					LogBody:                   logRecord.Body().AsString(),
+					LogFlags:                  int(logRecord.Flags()),
+					LogTraceID:                logRecord.TraceID().String(),
+					LogSpanID:                 logRecord.SpanID().String(),
+					LogEventName:              logRecord.EventName(),
+					LogDroppedAttributesCount: int(logRecord.DroppedAttributesCount()),
+					Attributes:                make([]Attribute, 0, resourceAttributes.Len()+scopeAttributes.Len()+logAttributes.Len()),
+					Protocol:                  TelemetryProtocolOTLP,
+					SeenCount:                 1,
+					CreatedAt:                 time.Now(),
+					UpdatedAt:                 time.Now(),
+					Producers:                 make(map[string]*Producer),
+				}
+
+				producer := &Producer{
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
+				}
+
+				resourceAttributes.Range(func(key string, value pcommon.Value) bool {
+					switch key {
+					case "service.name":
+						producer.Name = value.Str()
+					case "service.namespace":
+						producer.Namespace = value.Str()
+					case "service.version":
+						producer.Version = value.Str()
+					case "service.instance.id":
+						producer.InstanceID = value.Str()
+					}
+
+					telemetry.Attributes = append(telemetry.Attributes, Attribute{
+						Name:   key,
+						Type:   AttributeType(value.Type().String()),
+						Source: AttributeSourceResource,
+					})
+					return true
+				})
+
+				// Add producer if it has a name
+				if producer.Name != "" {
+					telemetry.Producers[producer.ProducerID()] = producer
+				}
+
+				scopeAttributes.Range(func(key string, value pcommon.Value) bool {
+					telemetry.Attributes = append(telemetry.Attributes, Attribute{
+						Name:   key,
+						Type:   AttributeType(value.Type().String()),
+						Source: AttributeSourceScope,
+					})
+					return true
+				})
+
+				logAttributes.Range(func(key string, value pcommon.Value) bool {
+					telemetry.Attributes = append(telemetry.Attributes, Attribute{
+						Name:   key,
+						Type:   AttributeType(value.Type().String()),
+						Source: AttributeSourceLogRecord,
+					})
+					return true
+				})
+
+				telemetry.SchemaID = generateLogSchemaID(telemetry)
 				if existing, ok := telemetries[telemetry.SchemaID]; ok {
 					existing.SeenCount++
 				} else {
