@@ -47,6 +47,7 @@ func generateMetricYAML(telemetry *schema.Telemetry, telemetrySchema *schema.Tel
 	yamlLines = append(yamlLines, fmt.Sprintf("    metric_name: %s", telemetry.SchemaKey))
 
 	yamlLines = append(yamlLines, fmt.Sprintf("    brief: %s", quoteYAMLString(telemetry.Brief)))
+	yamlLines = append(yamlLines, "    stability: stable")
 
 	// Add instrument (metric type)
 	yamlLines = append(yamlLines, fmt.Sprintf("    instrument: %s", convertMetricTypeToInstrument(telemetry.MetricType)))
@@ -100,9 +101,9 @@ func generateLogEventYAML(telemetry *schema.Telemetry, telemetrySchema *schema.T
 	yamlLines = append(yamlLines, "groups:")
 	yamlLines = append(yamlLines, fmt.Sprintf("  - id: event.%s", eventName))
 	yamlLines = append(yamlLines, "    type: event")
-	yamlLines = append(yamlLines, fmt.Sprintf("    event_name: %s", eventName))
-
+	yamlLines = append(yamlLines, fmt.Sprintf("    name: %s", eventName))
 	yamlLines = append(yamlLines, fmt.Sprintf("    brief: %s", quoteYAMLString(telemetry.Brief)))
+	yamlLines = append(yamlLines, "    stability: stable")
 
 	// Collect all attributes (LogRecord source + log-specific attributes)
 	var allAttributes []schema.Attribute
@@ -159,17 +160,6 @@ func generateLogSpecificAttributes(telemetry *schema.Telemetry) []schema.Attribu
 		Source:           schema.AttributeSourceLogRecord,
 	})
 
-	// Add log body if present
-	if telemetry.LogBody != "" {
-		attributes = append(attributes, schema.Attribute{
-			Name:             "log.body",
-			Type:             schema.AttributeTypeStr,
-			RequirementLevel: schema.RequirementLevelRecommended,
-			Brief:            "Log body content",
-			Source:           schema.AttributeSourceLogRecord,
-		})
-	}
-
 	return attributes
 }
 
@@ -191,16 +181,47 @@ func formatAttribute(attr schema.Attribute) []string {
 	}
 	lines = append(lines, fmt.Sprintf("        requirement_level: %s", requirementLevel))
 
+	lines = append(lines, "        stability: stable")
+
 	// Add brief - always include even if empty (required by Weaver schema)
 	lines = append(lines, fmt.Sprintf("        brief: %s", quoteYAMLString(attr.Brief)))
 
 	return lines
 }
 
-// GenerateMultiMetricYAML generates a Weaver format YAML string from multiple telemetry schema data
+// GenerateMultiMetricYAML generates a Weaver format YAML string from multiple metric telemetry schema data
+// Only processes telemetries with TelemetryType = TelemetryTypeMetric
 func GenerateMultiMetricYAML(telemetries []schema.Telemetry, schemas map[string]*schema.TelemetrySchema) (string, error) {
+	// Filter for metrics only
+	var metricTelemetries []schema.Telemetry
+	for _, telemetry := range telemetries {
+		if telemetry.TelemetryType == schema.TelemetryTypeMetric {
+			metricTelemetries = append(metricTelemetries, telemetry)
+		}
+	}
+
+	return generateMultiTelemetryYAML(metricTelemetries, schemas)
+}
+
+// GenerateMultiLogYAML generates a Weaver format YAML string from multiple log telemetry schema data
+// Only processes telemetries with TelemetryType = TelemetryTypeLog
+func GenerateMultiLogYAML(telemetries []schema.Telemetry, schemas map[string]*schema.TelemetrySchema) (string, error) {
+	// Filter for logs only
+	var logTelemetries []schema.Telemetry
+	for _, telemetry := range telemetries {
+		if telemetry.TelemetryType == schema.TelemetryTypeLog {
+			logTelemetries = append(logTelemetries, telemetry)
+		}
+	}
+
+	return generateMultiTelemetryYAML(logTelemetries, schemas)
+}
+
+// generateMultiTelemetryYAML is a helper function that generates YAML from a list of telemetries
+// This function does not filter by type - it processes all provided telemetries
+func generateMultiTelemetryYAML(telemetries []schema.Telemetry, schemas map[string]*schema.TelemetrySchema) (string, error) {
 	if len(telemetries) == 0 {
-		return "groups: []", nil
+		return "", nil
 	}
 
 	// Build the YAML structure

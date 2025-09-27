@@ -68,11 +68,11 @@ func TestHandleProducerWeaverSchemaExport_ProducerNotFound(t *testing.T) {
 
 	handler := HandleProducerWeaverSchemaExport(mockRepo)
 
-	req := httptest.NewRequest("GET", "/api/v1/producers/non-existent-service@1.0.0/weaver-schema.zip", nil)
+	req := httptest.NewRequest("GET", "/api/v1/producers/non-existent-service---1.0.0/weaver-schema.zip", nil)
 
 	// Set up chi context with URL parameters
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("producerNameVersion", "non-existent-service@1.0.0")
+	rctx.URLParams.Add("producerNameVersion", "non-existent-service---1.0.0")
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 	w := httptest.NewRecorder()
@@ -90,11 +90,11 @@ func TestHandleProducerWeaverSchemaExport_ProducerWithNoMetrics(t *testing.T) {
 
 	handler := HandleProducerWeaverSchemaExport(mockRepo)
 
-	req := httptest.NewRequest("GET", "/api/v1/producers/empty-service@1.0.0/weaver-schema.zip", nil)
+	req := httptest.NewRequest("GET", "/api/v1/producers/empty-service---1.0.0/weaver-schema.zip", nil)
 
 	// Set up chi context with URL parameters
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("producerNameVersion", "empty-service@1.0.0")
+	rctx.URLParams.Add("producerNameVersion", "empty-service---1.0.0")
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 	w := httptest.NewRecorder()
@@ -149,11 +149,11 @@ func TestHandleProducerWeaverSchemaExport_ProducerWithMetrics(t *testing.T) {
 
 	handler := HandleProducerWeaverSchemaExport(mockRepo)
 
-	req := httptest.NewRequest("GET", "/api/v1/producers/my-service@1.0.0/weaver-schema.zip", nil)
+	req := httptest.NewRequest("GET", "/api/v1/producers/my-service---1.0.0/weaver-schema.zip", nil)
 
 	// Set up chi context with URL parameters
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("producerNameVersion", "my-service@1.0.0")
+	rctx.URLParams.Add("producerNameVersion", "my-service---1.0.0")
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 	w := httptest.NewRecorder()
@@ -161,7 +161,7 @@ func TestHandleProducerWeaverSchemaExport_ProducerWithMetrics(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, w.Code)
 	require.Equal(t, "application/zip", w.Header().Get("Content-Type"))
-	require.Equal(t, "attachment; filename=my-service@1.0.0.zip", w.Header().Get("Content-Disposition"))
+	require.Equal(t, "attachment; filename=my-service---1.0.0.zip", w.Header().Get("Content-Disposition"))
 	require.NotEmpty(t, w.Body.Bytes())
 
 	mockRepo.AssertExpectations(t)
@@ -196,11 +196,11 @@ func TestHandleProducerWeaverSchemaExport_RepositoryError(t *testing.T) {
 
 	handler := HandleProducerWeaverSchemaExport(mockRepo)
 
-	req := httptest.NewRequest("GET", "/api/v1/producers/error-service@1.0.0/weaver-schema.zip", nil)
+	req := httptest.NewRequest("GET", "/api/v1/producers/error-service---1.0.0/weaver-schema.zip", nil)
 
 	// Set up chi context with URL parameters
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("producerNameVersion", "error-service@1.0.0")
+	rctx.URLParams.Add("producerNameVersion", "error-service---1.0.0")
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 	w := httptest.NewRecorder()
@@ -219,12 +219,12 @@ func TestParseProducerNameVersion(t *testing.T) {
 		expectedVersion string
 		expectError     bool
 	}{
-		{"my-service@1.0.0", "my-service", "1.0.0", false},
-		{"service@2.1.0", "service", "2.1.0", false},
-		{"complex-service-name@1.2.3", "complex-service-name", "1.2.3", false},
+		{"my-service---1.0.0", "my-service", "1.0.0", false},
+		{"service---2.1.0", "service", "2.1.0", false},
+		{"complex-service-name---1.2.3", "complex-service-name", "1.2.3", false},
 		{"invalid", "", "", true},
-		{"@invalid", "", "", true},
-		{"invalid@", "", "", true},
+		{"---invalid", "", "", true},
+		{"invalid---", "invalid", "", false},
 		{"", "", "", true},
 	}
 

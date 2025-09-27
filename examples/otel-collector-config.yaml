@@ -28,13 +28,13 @@ processors:
   resource:
     attributes:
       - key: service.name
-        value: "otel-collector-example"
+        value: "otelcontribcol"
         action: insert
       - key: service.version
-        value: "1.0.0"
+        value: "0.134.0-dev"
         action: insert
       - key: deployment.environment
-        value: "testing"
+        value: "development"
         action: insert
 
   # Transform logs to add severity and structured data
@@ -44,7 +44,7 @@ processors:
         statements:
           - set(log.severity_text, "INFO") where log.severity_text == nil
           - set(log.severity_number, 9) where log.severity_number == nil
-          - set(log.attributes["log.source"], "otel-collector-example")
+          - set(log.attributes["log.source"], "otelcontribcol")
           # Add event names for proper schema identification
           - set(log.event_name, log.attributes["service"]) where log.event_name == nil and log.attributes["service"] != nil
           - set(log.event_name, "application_log") where log.event_name == nil
