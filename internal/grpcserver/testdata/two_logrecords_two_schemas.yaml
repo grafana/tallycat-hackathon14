@@ -1,0 +1,60 @@
+resourceMetrics:
+  - schemaUrl: https://opentelemetry.io/schemas/1.9.0
+    resource:
+      attributes:
+        - key: service.name
+          value:
+            stringValue: test-service
+        - key: service.version
+          value:
+            stringValue: "1.0.0"
+        - key: deployment.environment.name
+          value:
+            stringValue: "production"
+    scopeMetrics:
+      - schemaUrl: https://opentelemetry.io/schemas/1.9.0
+        scope:
+          name: test-instrumentation
+          version: "1.0.0"
+          attributes:
+            - key: instrumentation.provider
+              value:
+                stringValue: "test"
+        metrics:
+          - timeUnixNano: 1234567890
+            observedTimeUnixNano: 1234567890
+            serverityNumber: 1
+            serverityText: "INFO"
+            body:
+              stringValue: "test"
+            flags: 1
+            traceId: "1234567890ABCDEF1234567890ABCDEF"
+            spanId: "1234567890ABCDEF"
+            eventName: "Reading Memory usage"
+            attributes:
+              - key: type
+                value:
+                  stringValue: "RSS"
+          - timeUnixNano: 1234567890
+            observedTimeUnixNano: 1234567890
+            serverityNumber: 1
+            serverityText: "INFO"
+            body:
+              stringValue: "test"
+            flags: 1
+            traceId: "1234567890ABCDEF1234567890ABCDEF"
+            spanId: "1234567890ABCDEF"
+            eventName: "Reading CPU usage"
+            attributes:
+              - key: cpu
+                value:
+                  stringValue: "1"
+              - key: mode
+                value:
+                  stringValue: "user"
+              - key: state
+                value:
+                  stringValue: "idle"
+              - key: arch
+                value:
+                  stringValue: "x86_64"

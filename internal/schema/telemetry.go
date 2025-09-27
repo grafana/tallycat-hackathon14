@@ -34,24 +34,36 @@ type TelemetryType string
 
 const (
 	TelemetryTypeMetric TelemetryType = "Metric"
+	TelemetryTypeLog    TelemetryType = "Log"
 )
 
 type Telemetry struct {
-	SchemaID          string            `json:"schemaId"`
-	SchemaVersion     string            `json:"schemaVersion"`
-	SchemaURL         string            `json:"schemaURL,omitempty"`
-	SchemaKey         string            `json:"schemaKey"`
-	TelemetryType     TelemetryType     `json:"telemetryType"`
+	SchemaID      string        `json:"schemaId"`
+	SchemaVersion string        `json:"schemaVersion"`
+	SchemaURL     string        `json:"schemaURL,omitempty"`
+	SchemaKey     string        `json:"schemaKey"`
+	TelemetryType TelemetryType `json:"telemetryType"`
+	// Metric fields
 	MetricUnit        string            `json:"metricUnit"`
 	MetricType        MetricType        `json:"metricType"`
 	MetricTemporality MetricTemporality `json:"metricTemporality"`
-	Attributes        []Attribute       `json:"attributes"`
 	Brief             string            `json:"brief,omitempty"`
-	Note              string            `json:"note,omitempty"`
-	Protocol          TelemetryProtocol `json:"protocol"`
-	SeenCount         int               `json:"seenCount"`
-	CreatedAt         time.Time         `json:"createdAt"`
-	UpdatedAt         time.Time         `json:"updatedAt"`
+	//Log fields
+	LogSeverityNumber         int    `json:"logSeverityNumber"`
+	LogSeverityText           string `json:"logSeverityText"`
+	LogBody                   string `json:"logBody"`
+	LogFlags                  int    `json:"logFlags"`
+	LogTraceID                string `json:"logTraceID"`
+	LogSpanID                 string `json:"logSpanID"`
+	LogEventName              string `json:"logEventName"`
+	LogDroppedAttributesCount int    `json:"logDroppedAttributesCount"`
+
+	Attributes []Attribute       `json:"attributes"`
+	Note       string            `json:"note,omitempty"`
+	Protocol   TelemetryProtocol `json:"protocol"`
+	SeenCount  int               `json:"seenCount"`
+	CreatedAt  time.Time         `json:"createdAt"`
+	UpdatedAt  time.Time         `json:"updatedAt"`
 	// Producers maps producer keys to their information
 	Producers map[string]*Producer `json:"producers"`
 }

@@ -5,10 +5,21 @@ CREATE TABLE IF NOT EXISTS telemetry_schemas (
     schema_version TEXT,
     schema_url TEXT,
     signal_type TEXT,
+    -- Metric fields
     metric_type TEXT,
     temporality TEXT,
     unit TEXT,
     brief TEXT,
+    -- Log fields
+    log_severity_number INTEGER,
+    log_severity_text TEXT,
+    log_body TEXT,
+    log_flags INTEGER,
+    log_trace_id TEXT,
+    log_span_id TEXT,
+    log_event_name TEXT,
+    log_dropped_attributes_count INTEGER,
+    -- Common fields
     note TEXT,
     protocol TEXT,
     seen_count INTEGER,

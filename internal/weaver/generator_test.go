@@ -55,14 +55,16 @@ func TestGenerateYAML_BasicTelemetry(t *testing.T) {
 		"  - id: metric.http.server.duration",
 		"    type: metric",
 		"    metric_name: http.server.duration",
-		"    brief: Measures the duration of HTTP server requests",
+		"    brief: \"Measures the duration of HTTP server requests\"",
+		"    stability: stable",
 		"    instrument: histogram",
-		"    unit: ms",
+		"    unit: \"ms\"",
 		"    attributes:",
 		"      - id: http.method",
 		"        type: string",
 		"        requirement_level: required",
-		"        brief: HTTP request method",
+		"        stability: stable",
+		"        brief: \"HTTP request method\"",
 	}
 
 	for _, expectedLine := range expectedLines {
@@ -195,7 +197,7 @@ func TestGenerateMultiMetricYAML_EmptyTelemetries(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	expected := "groups: []"
+	expected := ""
 	if yaml != expected {
 		t.Errorf("Expected YAML to be '%s', got '%s'", expected, yaml)
 	}
@@ -236,14 +238,16 @@ func TestGenerateMultiMetricYAML_SingleMetric(t *testing.T) {
 		"  - id: metric.http.server.duration",
 		"    type: metric",
 		"    metric_name: http.server.duration",
-		"    brief: Measures the duration of HTTP server requests",
+		"    brief: \"Measures the duration of HTTP server requests\"",
+		"    stability: stable",
 		"    instrument: histogram",
-		"    unit: ms",
+		"    unit: \"ms\"",
 		"    attributes:",
 		"      - id: http.method",
 		"        type: string",
 		"        requirement_level: required",
-		"        brief: HTTP request method",
+		"        stability: stable",
+		"        brief: \"HTTP request method\"",
 	}
 
 	for _, expectedLine := range expectedLines {
@@ -475,7 +479,8 @@ func TestGenerateYAML_MetricWithoutUnit(t *testing.T) {
 		"  - id: metric.test.metric",
 		"    type: metric",
 		"    metric_name: test.metric",
-		"    brief: Test metric",
+		"    brief: \"Test metric\"",
+		"    stability: stable",
 		"    instrument: gauge",
 		`    unit: ""`,
 	}
@@ -515,6 +520,471 @@ func TestGenerateRegistryManifest(t *testing.T) {
 	for _, line := range lines {
 		if !strings.Contains(line, ": ") {
 			t.Errorf("Expected line to contain ': ' separator, got: %s", line)
+		}
+	}
+}
+
+func TestGenerateYAML_LogEvent_BasicTelemetry(t *testing.T) {
+	telemetry := &schema.Telemetry{
+		SchemaKey:         "user.login",
+		Brief:             "User login event",
+		TelemetryType:     schema.TelemetryTypeLog,
+		LogEventName:      "user.login",
+		LogSeverityNumber: 9,
+		LogSeverityText:   "INFO",
+		LogBody:           "User logged in successfully",
+		Attributes: []schema.Attribute{
+			{
+				Name:             "user.id",
+				Type:             schema.AttributeTypeStr,
+				Source:           schema.AttributeSourceLogRecord,
+				RequirementLevel: schema.RequirementLevelRequired,
+				Brief:            "User identifier",
+			},
+			{
+				Name:   "service.name",
+				Type:   schema.AttributeTypeStr,
+				Source: schema.AttributeSourceResource, // Should be filtered out
+			},
+		},
+	}
+
+	yaml, err := GenerateYAML(telemetry, nil)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Verify the basic structure for log events
+	expectedLines := []string{
+		"groups:",
+		"  - id: event.user.login",
+		"    type: event",
+		"    name: user.login",
+		"    brief: \"User login event\"",
+		"    stability: stable",
+		"    attributes:",
+		"      - id: user.id",
+		"        type: string",
+		"        requirement_level: required",
+		"        stability: stable",
+		"        brief: \"User identifier\"",
+		"      - id: log.severity.number",
+		"        type: int",
+		"        requirement_level: recommended",
+		"        stability: stable",
+		"        brief: \"Log severity number\"",
+		"      - id: log.severity.text",
+		"        type: string",
+		"        requirement_level: recommended",
+		"        stability: stable",
+		"        brief: \"Log severity text\"",
+	}
+
+	for _, expectedLine := range expectedLines {
+		if !strings.Contains(yaml, expectedLine) {
+			t.Errorf("Expected YAML to contain '%s', but it didn't.\nActual YAML:\n%s", expectedLine, yaml)
+		}
+	}
+
+	// Verify that resource attributes are filtered out
+	if strings.Contains(yaml, "service.name") {
+		t.Error("YAML should not contain resource attributes")
+	}
+}
+
+func TestGenerateYAML_LogEvent_NoEventName(t *testing.T) {
+	telemetry := &schema.Telemetry{
+		SchemaKey:     "error.occurred",
+		Brief:         "Error event",
+		TelemetryType: schema.TelemetryTypeLog,
+		// LogEventName is empty, should use SchemaKey
+		LogSeverityNumber: 17,
+		LogSeverityText:   "ERROR",
+		Attributes: []schema.Attribute{
+			{
+				Name:   "error.type",
+				Type:   schema.AttributeTypeStr,
+				Source: schema.AttributeSourceLogRecord,
+			},
+		},
+	}
+
+	yaml, err := GenerateYAML(telemetry, nil)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Should use SchemaKey when LogEventName is empty (no 'name' property should be included)
+	expectedLines := []string{
+		"  - id: event.error.occurred",
+		"    type: event",
+		"    brief:",
+	}
+
+	for _, expectedLine := range expectedLines {
+		if !strings.Contains(yaml, expectedLine) {
+			t.Errorf("Expected YAML to contain '%s', but it didn't.\nActual YAML:\n%s", expectedLine, yaml)
+		}
+	}
+}
+
+func TestGenerateYAML_LogEvent_NoLogRecordAttributes(t *testing.T) {
+	telemetry := &schema.Telemetry{
+		SchemaKey:     "simple.event",
+		TelemetryType: schema.TelemetryTypeLog,
+		LogEventName:  "simple.event",
+		Attributes: []schema.Attribute{
+			{
+				Name:   "service.name",
+				Type:   schema.AttributeTypeStr,
+				Source: schema.AttributeSourceResource, // Not LogRecord
+			},
+		},
+	}
+
+	yaml, err := GenerateYAML(telemetry, nil)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Should still contain log severity attributes even if no LogRecord attributes
+	expectedLines := []string{
+		"groups:",
+		"  - id: event.simple.event",
+		"    type: event",
+		"    name: simple.event",
+		"    attributes:",
+		"      - id: log.severity.number",
+		"      - id: log.severity.text",
+	}
+
+	for _, expectedLine := range expectedLines {
+		if !strings.Contains(yaml, expectedLine) {
+			t.Errorf("Expected YAML to contain '%s', but it didn't.\nActual YAML:\n%s", expectedLine, yaml)
+		}
+	}
+
+	// Should not contain body property since LogBody is empty
+	if strings.Contains(yaml, "body:") {
+		t.Error("YAML should not contain body property when LogBody is empty")
+	}
+}
+
+func TestGenerateYAML_LogEvent_WithTelemetrySchema(t *testing.T) {
+	telemetry := &schema.Telemetry{
+		SchemaKey:     "test.event",
+		TelemetryType: schema.TelemetryTypeLog,
+		LogEventName:  "test.event",
+		Brief:         "Test event",
+		Attributes:    []schema.Attribute{}, // Empty in telemetry
+	}
+
+	telemetrySchema := &schema.TelemetrySchema{
+		Attributes: []schema.Attribute{
+			{
+				Name:   "custom.attribute",
+				Type:   schema.AttributeTypeStr,
+				Source: schema.AttributeSourceLogRecord,
+				Brief:  "Custom log attribute",
+			},
+		},
+	}
+
+	yaml, err := GenerateYAML(telemetry, telemetrySchema)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Should use attributes from telemetrySchema when available
+	if !strings.Contains(yaml, "custom.attribute") {
+		t.Error("YAML should contain attributes from telemetrySchema")
+	}
+	if !strings.Contains(yaml, "Custom log attribute") {
+		t.Error("YAML should contain attribute brief from telemetrySchema")
+	}
+}
+
+func TestGenerateMultiMetricYAML_MixedTelemetries(t *testing.T) {
+	telemetries := []schema.Telemetry{
+		{
+			SchemaID:      "metric1_schema_id",
+			SchemaKey:     "http.server.duration",
+			Brief:         "HTTP server request duration",
+			MetricType:    schema.MetricTypeHistogram,
+			MetricUnit:    "ms",
+			TelemetryType: schema.TelemetryTypeMetric,
+			Attributes: []schema.Attribute{
+				{
+					Name:   "http.method",
+					Type:   schema.AttributeTypeStr,
+					Source: schema.AttributeSourceDataPoint,
+				},
+			},
+		},
+		{
+			SchemaID:          "log1_schema_id",
+			SchemaKey:         "user.login",
+			Brief:             "User login event",
+			TelemetryType:     schema.TelemetryTypeLog,
+			LogEventName:      "user.login",
+			LogSeverityNumber: 9,
+			LogSeverityText:   "INFO",
+			Attributes: []schema.Attribute{
+				{
+					Name:   "user.id",
+					Type:   schema.AttributeTypeStr,
+					Source: schema.AttributeSourceLogRecord,
+				},
+			},
+		},
+	}
+
+	schemas := map[string]*schema.TelemetrySchema{}
+
+	yaml, err := GenerateMultiMetricYAML(telemetries, schemas)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Should contain ONLY the metric, not the log event
+	expectedLines := []string{
+		"groups:",
+		"  - id: metric.http.server.duration",
+		"    type: metric",
+		"    instrument: histogram",
+		"      - id: http.method",
+	}
+
+	for _, expectedLine := range expectedLines {
+		if !strings.Contains(yaml, expectedLine) {
+			t.Errorf("Expected YAML to contain '%s', but it didn't.\nActual YAML:\n%s", expectedLine, yaml)
+		}
+	}
+
+	// Should NOT contain log-related content
+	unexpectedLines := []string{
+		"  - id: event.user.login",
+		"    type: event",
+		"    name: user.login",
+		"      - id: user.id",
+		"      - id: log.severity.number",
+	}
+
+	for _, unexpectedLine := range unexpectedLines {
+		if strings.Contains(yaml, unexpectedLine) {
+			t.Errorf("Expected YAML to NOT contain '%s', but it did.\nActual YAML:\n%s", unexpectedLine, yaml)
+		}
+	}
+}
+
+func TestGenerateMultiLogYAML_EmptyTelemetries(t *testing.T) {
+	var telemetries []schema.Telemetry
+	schemas := map[string]*schema.TelemetrySchema{}
+
+	yaml, err := GenerateMultiLogYAML(telemetries, schemas)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := ""
+	if yaml != expected {
+		t.Errorf("Expected '%s', got '%s'", expected, yaml)
+	}
+}
+
+func TestGenerateMultiLogYAML_SingleLog(t *testing.T) {
+	telemetries := []schema.Telemetry{
+		{
+			SchemaID:          "log1_schema_id",
+			SchemaKey:         "user.login",
+			Brief:             "User login event",
+			TelemetryType:     schema.TelemetryTypeLog,
+			LogEventName:      "user.login",
+			LogSeverityNumber: 9,
+			LogSeverityText:   "INFO",
+			LogBody:           "User logged in successfully",
+			Attributes: []schema.Attribute{
+				{
+					Name:   "user.id",
+					Type:   schema.AttributeTypeStr,
+					Source: schema.AttributeSourceLogRecord,
+					Brief:  "User identifier",
+				},
+			},
+		},
+	}
+
+	schemas := map[string]*schema.TelemetrySchema{}
+
+	yaml, err := GenerateMultiLogYAML(telemetries, schemas)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expectedLines := []string{
+		"groups:",
+		"  - id: event.user.login",
+		"    type: event",
+		"    name: user.login",
+		"    brief: \"User login event\"",
+		"      - id: user.id",
+		"        type: string",
+		"        brief: \"User identifier\"",
+		"      - id: log.severity.number",
+		"        type: int",
+		"        brief: \"Log severity number\"",
+		"      - id: log.severity.text",
+		"        type: string",
+		"        brief: \"Log severity text\"",
+	}
+
+	for _, expectedLine := range expectedLines {
+		if !strings.Contains(yaml, expectedLine) {
+			t.Errorf("Expected YAML to contain '%s', but it didn't.\nActual YAML:\n%s", expectedLine, yaml)
+		}
+	}
+}
+
+func TestGenerateMultiLogYAML_MixedTelemetries(t *testing.T) {
+	telemetries := []schema.Telemetry{
+		{
+			SchemaID:      "metric1_schema_id",
+			SchemaKey:     "http.server.duration",
+			Brief:         "HTTP server request duration",
+			MetricType:    schema.MetricTypeHistogram,
+			MetricUnit:    "ms",
+			TelemetryType: schema.TelemetryTypeMetric,
+			Attributes: []schema.Attribute{
+				{
+					Name:   "http.method",
+					Type:   schema.AttributeTypeStr,
+					Source: schema.AttributeSourceDataPoint,
+				},
+			},
+		},
+		{
+			SchemaID:          "log1_schema_id",
+			SchemaKey:         "user.login",
+			Brief:             "User login event",
+			TelemetryType:     schema.TelemetryTypeLog,
+			LogEventName:      "user.login",
+			LogSeverityNumber: 9,
+			LogSeverityText:   "INFO",
+			Attributes: []schema.Attribute{
+				{
+					Name:   "user.id",
+					Type:   schema.AttributeTypeStr,
+					Source: schema.AttributeSourceLogRecord,
+				},
+			},
+		},
+	}
+
+	schemas := map[string]*schema.TelemetrySchema{}
+
+	yaml, err := GenerateMultiLogYAML(telemetries, schemas)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Should contain ONLY the log event, not the metric
+	expectedLines := []string{
+		"groups:",
+		"  - id: event.user.login",
+		"    type: event",
+		"    name: user.login",
+		"      - id: user.id",
+		"      - id: log.severity.number",
+	}
+
+	for _, expectedLine := range expectedLines {
+		if !strings.Contains(yaml, expectedLine) {
+			t.Errorf("Expected YAML to contain '%s', but it didn't.\nActual YAML:\n%s", expectedLine, yaml)
+		}
+	}
+
+	// Should NOT contain metric-related content
+	unexpectedLines := []string{
+		"  - id: metric.http.server.duration",
+		"    type: metric",
+		"    instrument: histogram",
+		"      - id: http.method",
+	}
+
+	for _, unexpectedLine := range unexpectedLines {
+		if strings.Contains(yaml, unexpectedLine) {
+			t.Errorf("Expected YAML to NOT contain '%s', but it did.\nActual YAML:\n%s", unexpectedLine, yaml)
+		}
+	}
+}
+
+func TestGenerateMultiLogYAML_MultipleLogs(t *testing.T) {
+	telemetries := []schema.Telemetry{
+		{
+			SchemaID:          "log1_schema_id",
+			SchemaKey:         "user.login",
+			Brief:             "User login event",
+			TelemetryType:     schema.TelemetryTypeLog,
+			LogEventName:      "user.login",
+			LogSeverityNumber: 9,
+			LogSeverityText:   "INFO",
+			Attributes: []schema.Attribute{
+				{
+					Name:   "user.id",
+					Type:   schema.AttributeTypeStr,
+					Source: schema.AttributeSourceLogRecord,
+				},
+			},
+		},
+		{
+			SchemaID:          "log2_schema_id",
+			SchemaKey:         "user.logout",
+			Brief:             "User logout event",
+			TelemetryType:     schema.TelemetryTypeLog,
+			LogEventName:      "user.logout",
+			LogSeverityNumber: 9,
+			LogSeverityText:   "INFO",
+			Attributes: []schema.Attribute{
+				{
+					Name:   "session.id",
+					Type:   schema.AttributeTypeStr,
+					Source: schema.AttributeSourceLogRecord,
+				},
+			},
+		},
+	}
+
+	schemas := map[string]*schema.TelemetrySchema{}
+
+	yaml, err := GenerateMultiLogYAML(telemetries, schemas)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expectedLines := []string{
+		"groups:",
+		"  - id: event.user.login",
+		"    type: event",
+		"    name: user.login",
+		"      - id: user.id",
+		"  - id: event.user.logout",
+		"    type: event",
+		"    name: user.logout",
+		"      - id: session.id",
+	}
+
+	for _, expectedLine := range expectedLines {
+		if !strings.Contains(yaml, expectedLine) {
+			t.Errorf("Expected YAML to contain '%s', but it didn't.\nActual YAML:\n%s", expectedLine, yaml)
 		}
 	}
 }

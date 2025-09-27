@@ -43,7 +43,7 @@ export function TelemetryOverviewPanel({
         <div className="p-5 border-r">
           <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
             <BarChart2 className="h-4 w-4 text-green-500" />
-            Metrics & Structure
+            {telemetry.telemetryType} & Structure
           </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">

@@ -228,43 +228,79 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 			return
 		}
 
-		// Check if producer exists but has no metrics
+		// Check if producer exists but has no telemetries
 		if len(telemetries) == 0 {
-			// According to our specification: return 204 for producers with no metrics
-			// We can't distinguish between "producer doesn't exist" and "producer has no metrics"
-			// from the current repository implementation, so we treat empty results as "no metrics"
+			// According to our specification: return 204 for producers with no telemetries
+			// We can't distinguish between "producer doesn't exist" and "producer has no telemetries"
+			// from the current repository implementation, so we treat empty results as "no telemetries"
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
-		// Generate multi-metric YAML
-		yaml, err := weaver.GenerateMultiMetricYAML(telemetries, nil)
+		// Generate separate YAML files for metrics and logs
+		metricsYAML, err := weaver.GenerateMultiMetricYAML(telemetries, nil)
 		if err != nil {
-			slog.Error("failed to generate multi-metric YAML", "producer", producerNameVersion, "error", err)
-			http.Error(w, "failed to generate YAML", http.StatusInternalServerError)
+			slog.Error("failed to generate metrics YAML", "producer", producerNameVersion, "error", err)
+			http.Error(w, "failed to generate metrics YAML", http.StatusInternalServerError)
+			return
+		}
+
+		logsYAML, err := weaver.GenerateMultiLogYAML(telemetries, nil)
+		if err != nil {
+			slog.Error("failed to generate logs YAML", "producer", producerNameVersion, "error", err)
+			http.Error(w, "failed to generate logs YAML", http.StatusInternalServerError)
+			return
+		}
+
+		// Check if we have any content to include in the ZIP
+		hasMetrics := metricsYAML != ""
+		hasLogs := logsYAML != ""
+
+		if !hasMetrics && !hasLogs {
+			// No telemetries of any type found
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
 		// Generate registry manifest
 		manifest := weaver.GenerateRegistryManifest(producerName, producerVersion)
 
-		// Create a ZIP file containing both the YAML schema and registry manifest
+		// Create a ZIP file containing the YAML schemas and registry manifest
 		var buf bytes.Buffer
 		zipWriter := zip.NewWriter(&buf)
 
-		// Create the schema YAML file inside the ZIP
-		yamlFileName := producerNameVersion + ".yaml"
-		yamlFile, err := zipWriter.Create(yamlFileName)
-		if err != nil {
-			http.Error(w, "failed to create zip file", http.StatusInternalServerError)
-			return
+		// Create the metrics YAML file inside the ZIP (only if we have metrics)
+		if hasMetrics {
+			metricsFileName := producerNameVersion + "-metrics.yaml"
+			metricsFile, err := zipWriter.Create(metricsFileName)
+			if err != nil {
+				http.Error(w, "failed to create metrics file in zip", http.StatusInternalServerError)
+				return
+			}
+
+			// Write the metrics YAML content to the file inside the ZIP
+			_, err = metricsFile.Write([]byte(metricsYAML))
+			if err != nil {
+				http.Error(w, "failed to write metrics yaml to zip", http.StatusInternalServerError)
+				return
+			}
 		}
 
-		// Write the YAML content to the schema file inside the ZIP
-		_, err = yamlFile.Write([]byte(yaml))
-		if err != nil {
-			http.Error(w, "failed to write yaml to zip", http.StatusInternalServerError)
-			return
+		// Create the logs/events YAML file inside the ZIP (only if we have logs)
+		if hasLogs {
+			eventsFileName := producerNameVersion + "-events.yaml"
+			eventsFile, err := zipWriter.Create(eventsFileName)
+			if err != nil {
+				http.Error(w, "failed to create events file in zip", http.StatusInternalServerError)
+				return
+			}
+
+			// Write the logs YAML content to the file inside the ZIP
+			_, err = eventsFile.Write([]byte(logsYAML))
+			if err != nil {
+				http.Error(w, "failed to write events yaml to zip", http.StatusInternalServerError)
+				return
+			}
 		}
 
 		// Create the registry manifest file inside the ZIP

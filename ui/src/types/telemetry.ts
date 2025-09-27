@@ -2,7 +2,7 @@ export enum TelemetryType {
   Metric = 'Metric',
   Log = 'Log',
   Trace = 'Trace',
-  Event = 'Event',
+  Profile = 'Profile',
 }
 
 export enum Status {
@@ -27,9 +27,20 @@ export interface Telemetry {
   schemaKey: string
   schemaUrl?: string
   telemetryType: TelemetryType
+  // Metric fields
   metricUnit: string
   metricType: string
   metricTemporality: string
+  // Log fields
+  logSeverityNumber: number
+  logSeverityText: string
+  logBody: string
+  logFlags: number
+  logTraceID: string
+  logSpanID: string
+  logEventName: string
+  logDroppedAttributesCount: number
+  // Common fields
   brief?: string
   note?: string
   protocol: string
@@ -44,6 +55,7 @@ export interface Attribute {
   name: string
   type: string
   source: string
+  brief?: string
 }
 
 export interface TelemetryHistory {
