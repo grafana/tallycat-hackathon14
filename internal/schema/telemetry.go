@@ -30,11 +30,22 @@ const (
 	MetricTemporalityUnspecified MetricTemporality = "Unspecified"
 )
 
+type SpanKind string
+
+const (
+	SpanKindClient   SpanKind = "Client"
+	SpanKindServer   SpanKind = "Server"
+	SpanKindProducer SpanKind = "Producer"
+	SpanKindConsumer SpanKind = "Consumer"
+	SpanKindInternal SpanKind = "Internal"
+)
+
 type TelemetryType string
 
 const (
 	TelemetryTypeMetric TelemetryType = "Metric"
 	TelemetryTypeLog    TelemetryType = "Log"
+	TelemetryTypeTrace  TelemetryType = "Trace"
 )
 
 type Telemetry struct {
@@ -57,6 +68,11 @@ type Telemetry struct {
 	LogSpanID                 string `json:"logSpanID"`
 	LogEventName              string `json:"logEventName"`
 	LogDroppedAttributesCount int    `json:"logDroppedAttributesCount"`
+	// Span fields
+	SpanKind    SpanKind `json:"spanKind"`
+	SpanName    string   `json:"spanName"`
+	SpanID      string   `json:"spanID"`
+	SpanTraceID string   `json:"traceID"`
 
 	Attributes []Attribute       `json:"attributes"`
 	Note       string            `json:"note,omitempty"`

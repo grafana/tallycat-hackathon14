@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/pdata/ptrace"
 )
 
 // generateMetricSchemaID creates a deterministic schema ID based on telemetry characteristics.
@@ -192,6 +193,28 @@ func generateLogSchemaID(telemetry Telemetry) string {
 	return fmt.Sprintf("%x", h.Sum64())
 }
 
+func generateTraceSchemaID(telemetry Telemetry) string {
+	attributeNames := make([]string, 0, len(telemetry.Attributes))
+	for _, attr := range telemetry.Attributes {
+		if attr.Source == AttributeSourceSpan {
+			attributeNames = append(attributeNames, attr.Name)
+		}
+	}
+	sort.Strings(attributeNames)
+
+	parts := []string{
+		telemetry.SchemaKey,
+		string(telemetry.SpanKind),
+		telemetry.SpanName,
+		telemetry.SpanTraceID,
+		strings.Join(attributeNames, ","),
+	}
+
+	h := xxhash.New()
+	h.Write([]byte(strings.Join(parts, "|")))
+	return fmt.Sprintf("%x", h.Sum64())
+}
+
 func ExtractFromLogs(logs plog.Logs) []Telemetry {
 	telemetries := map[string]Telemetry{}
 
@@ -288,6 +311,85 @@ func ExtractFromLogs(logs plog.Logs) []Telemetry {
 				})
 
 				telemetry.SchemaID = generateLogSchemaID(telemetry)
+				if existing, ok := telemetries[telemetry.SchemaID]; ok {
+					existing.SeenCount++
+				} else {
+					telemetries[telemetry.SchemaID] = telemetry
+				}
+			}
+		}
+	}
+
+	result := make([]Telemetry, 0, len(telemetries))
+	for _, telemetry := range telemetries {
+		result = append(result, telemetry)
+	}
+
+	return result
+}
+
+func ExtractFromTraces(traces ptrace.Traces) []Telemetry {
+	telemetries := map[string]Telemetry{}
+
+	for i := range traces.ResourceSpans().Len() {
+		resourceSpan := traces.ResourceSpans().At(i)
+		resourceAttributes := resourceSpan.Resource().Attributes()
+
+		for k := range resourceSpan.ScopeSpans().Len() {
+			scopeSpan := resourceSpan.ScopeSpans().At(k)
+			scopeAttributes := scopeSpan.Scope().Attributes()
+
+			for l := range scopeSpan.Spans().Len() {
+				span := scopeSpan.Spans().At(l)
+				spanAttributes := span.Attributes()
+
+				telemetry := Telemetry{
+					SchemaURL:     scopeSpan.SchemaUrl(),
+					TelemetryType: TelemetryTypeTrace,
+					SchemaKey:     span.Name(),
+					SpanKind:      SpanKind(span.Kind().String()),
+					SpanName:      span.Name(),
+					SpanTraceID:   span.TraceID().String(),
+				}
+
+				producer := &Producer{
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
+				}
+
+				resourceAttributes.Range(func(key string, value pcommon.Value) bool {
+					switch key {
+					case "service.name":
+						producer.Name = value.Str()
+					case "service.namespace":
+						producer.Namespace = value.Str()
+					case "service.version":
+						producer.Version = value.Str()
+					case "service.instance.id":
+						producer.InstanceID = value.Str()
+					}
+					return true
+				})
+
+				scopeAttributes.Range(func(key string, value pcommon.Value) bool {
+					telemetry.Attributes = append(telemetry.Attributes, Attribute{
+						Name:   key,
+						Type:   AttributeType(value.Type().String()),
+						Source: AttributeSourceScope,
+					})
+					return true
+				})
+
+				spanAttributes.Range(func(key string, value pcommon.Value) bool {
+					telemetry.Attributes = append(telemetry.Attributes, Attribute{
+						Name:   key,
+						Type:   AttributeType(value.Type().String()),
+						Source: AttributeSourceSpan,
+					})
+					return true
+				})
+
+				telemetry.SchemaID = generateTraceSchemaID(telemetry)
 				if existing, ok := telemetries[telemetry.SchemaID]; ok {
 					existing.SeenCount++
 				} else {

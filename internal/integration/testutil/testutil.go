@@ -12,9 +12,13 @@ import (
 	"github.com/tallycat/tallycat/internal/repository/duckdb"
 	"github.com/tallycat/tallycat/internal/repository/duckdb/migrator"
 	"go.opentelemetry.io/collector/pdata/pcommon"
+	"go.opentelemetry.io/collector/pdata/ptrace"
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	metricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
+	tracespb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
+	resourcepb "go.opentelemetry.io/proto/otlp/resource/v1"
+	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -75,6 +79,7 @@ type TestServer struct {
 	server        *grpc.Server
 	LogsClient    collectorlogspb.LogsServiceClient
 	MetricsClient metricspb.MetricsServiceClient
+	TracesClient  tracespb.TraceServiceClient
 	conn          *grpc.ClientConn
 }
 
@@ -83,8 +88,10 @@ func NewTestServer(t *testing.T, db *TestDB) *TestServer {
 	server := grpc.NewServer()
 	logsServer := grpcserver.NewLogsServiceServer(db.repo)
 	metricsServer := grpcserver.NewMetricsServiceServer(db.repo)
+	tracesServer := grpcserver.NewTracesServiceServer(db.repo)
 	collectorlogspb.RegisterLogsServiceServer(server, logsServer)
 	metricspb.RegisterMetricsServiceServer(server, metricsServer)
+	tracespb.RegisterTraceServiceServer(server, tracesServer)
 
 	lis, err := net.Listen("tcp", "localhost:0")
 	require.NoError(t, err)
@@ -99,11 +106,13 @@ func NewTestServer(t *testing.T, db *TestDB) *TestServer {
 
 	logsClient := collectorlogspb.NewLogsServiceClient(conn)
 	metricsClient := metricspb.NewMetricsServiceClient(conn)
+	tracesClient := tracespb.NewTraceServiceClient(conn)
 
 	return &TestServer{
 		server:        server,
 		LogsClient:    logsClient,
 		MetricsClient: metricsClient,
+		TracesClient:  tracesClient,
 		conn:          conn,
 	}
 }
@@ -162,4 +171,99 @@ func convertValue(v pcommon.Value) *commonpb.AnyValue {
 			},
 		}
 	}
+}
+
+// ConvertPtraceToRequest converts ptrace.Traces to tracespb.ExportTraceServiceRequest
+func ConvertPtraceToRequest(traces ptrace.Traces) *tracespb.ExportTraceServiceRequest {
+	req := &tracespb.ExportTraceServiceRequest{
+		ResourceSpans: make([]*tracepb.ResourceSpans, 0, traces.ResourceSpans().Len()),
+	}
+
+	for i := 0; i < traces.ResourceSpans().Len(); i++ {
+		rs := traces.ResourceSpans().At(i)
+		resourceSpan := &tracepb.ResourceSpans{
+			SchemaUrl: rs.SchemaUrl(),
+			Resource: &resourcepb.Resource{
+				Attributes: convertAttributes(rs.Resource().Attributes()),
+			},
+			ScopeSpans: make([]*tracepb.ScopeSpans, 0, rs.ScopeSpans().Len()),
+		}
+
+		for j := 0; j < rs.ScopeSpans().Len(); j++ {
+			ss := rs.ScopeSpans().At(j)
+			scopeSpan := &tracepb.ScopeSpans{
+				SchemaUrl: ss.SchemaUrl(),
+				Scope: &commonpb.InstrumentationScope{
+					Name:       ss.Scope().Name(),
+					Version:    ss.Scope().Version(),
+					Attributes: convertAttributes(ss.Scope().Attributes()),
+				},
+				Spans: make([]*tracepb.Span, 0, ss.Spans().Len()),
+			}
+
+			for k := 0; k < ss.Spans().Len(); k++ {
+				span := ss.Spans().At(k)
+				traceID := span.TraceID()
+				spanID := span.SpanID()
+				parentSpanID := span.ParentSpanID()
+				pbSpan := &tracepb.Span{
+					TraceId:                traceID[:],
+					SpanId:                 spanID[:],
+					ParentSpanId:           parentSpanID[:],
+					Name:                   span.Name(),
+					Kind:                   tracepb.Span_SpanKind(span.Kind()),
+					StartTimeUnixNano:      uint64(span.StartTimestamp()),
+					EndTimeUnixNano:        uint64(span.EndTimestamp()),
+					Attributes:             convertAttributes(span.Attributes()),
+					DroppedAttributesCount: span.DroppedAttributesCount(),
+					DroppedEventsCount:     span.DroppedEventsCount(),
+					DroppedLinksCount:      span.DroppedLinksCount(),
+					Flags:                  uint32(span.Flags()),
+				}
+
+				// Convert events
+				pbSpan.Events = make([]*tracepb.Span_Event, 0, span.Events().Len())
+				for l := 0; l < span.Events().Len(); l++ {
+					event := span.Events().At(l)
+					pbEvent := &tracepb.Span_Event{
+						TimeUnixNano:           uint64(event.Timestamp()),
+						Name:                   event.Name(),
+						Attributes:             convertAttributes(event.Attributes()),
+						DroppedAttributesCount: event.DroppedAttributesCount(),
+					}
+					pbSpan.Events = append(pbSpan.Events, pbEvent)
+				}
+
+				// Convert links
+				pbSpan.Links = make([]*tracepb.Span_Link, 0, span.Links().Len())
+				for l := 0; l < span.Links().Len(); l++ {
+					link := span.Links().At(l)
+					linkTraceID := link.TraceID()
+					linkSpanID := link.SpanID()
+					pbLink := &tracepb.Span_Link{
+						TraceId:                linkTraceID[:],
+						SpanId:                 linkSpanID[:],
+						Attributes:             convertAttributes(link.Attributes()),
+						DroppedAttributesCount: link.DroppedAttributesCount(),
+						Flags:                  uint32(link.Flags()),
+					}
+					pbSpan.Links = append(pbSpan.Links, pbLink)
+				}
+
+				// Convert status
+				pbSpan.Status = &tracepb.Status{
+					Code:    tracepb.Status_StatusCode(span.Status().Code()),
+					Message: span.Status().Message(),
+				}
+
+				scopeSpan.Spans = append(scopeSpan.Spans, pbSpan)
+			}
+
+			resourceSpan.ScopeSpans = append(resourceSpan.ScopeSpans, scopeSpan)
+		}
+
+		req.ResourceSpans = append(req.ResourceSpans, resourceSpan)
+	}
+
+	return req
 }

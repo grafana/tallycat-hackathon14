@@ -1,0 +1,102 @@
+resourceSpans:
+  - schemaUrl: https://opentelemetry.io/schemas/1.9.0
+    resource:
+      attributes:
+        - key: service.name
+          value:
+            stringValue: test-service
+        - key: service.version
+          value:
+            stringValue: "1.0.0"
+        - key: deployment.environment.name
+          value:
+            stringValue: "production"
+    scopeSpans:
+      - schemaUrl: https://opentelemetry.io/schemas/1.9.0
+        scope:
+          name: test-instrumentation
+          version: "1.0.0"
+          attributes:
+            - key: instrumentation.provider
+              value:
+                stringValue: "test"
+        spans:
+          - traceId: "1234567890ABCDEF1234567890ABCDEF"
+            spanId: "1234567890ABCDEF"
+            parentSpanId: ""
+            name: "database-operation"
+            kind: 1
+            startTimeUnixNano: 1234567890000000000
+            endTimeUnixNano: 1234567891000000000
+            attributes:
+              - key: operation.type
+                value:
+                  stringValue: "database"
+              - key: db.system
+                value:
+                  stringValue: "postgresql"
+            droppedAttributesCount: 0
+            events: []
+            droppedEventsCount: 0
+            links: []
+            droppedLinksCount: 0
+            status:
+              code: 1
+              message: ""
+  - schemaUrl: https://opentelemetry.io/schemas/1.10.0
+    resource:
+      attributes:
+        - key: service.name
+          value:
+            stringValue: api-service
+        - key: service.version
+          value:
+            stringValue: "2.0.0"
+        - key: deployment.environment.name
+          value:
+            stringValue: "staging"
+    scopeSpans:
+      - schemaUrl: https://opentelemetry.io/schemas/1.10.0
+        scope:
+          name: api-instrumentation
+          version: "2.0.0"
+          attributes:
+            - key: instrumentation.provider
+              value:
+                stringValue: "opentelemetry"
+        spans:
+          - traceId: "ABCDEF1234567890ABCDEF1234567890"
+            spanId: "ABCDEF1234567890"
+            parentSpanId: ""
+            name: "http-request"
+            kind: 3
+            startTimeUnixNano: 1234567892000000000
+            endTimeUnixNano: 1234567893000000000
+            attributes:
+              - key: http.method
+                value:
+                  stringValue: "POST"
+              - key: http.url
+                value:
+                  stringValue: "https://api.example.com/orders"
+              - key: http.status_code
+                value:
+                  intValue: 201
+              - key: user.region
+                value:
+                  stringValue: "eu-west-1"
+            droppedAttributesCount: 0
+            events:
+              - timeUnixNano: 1234567892500000000
+                name: "request.validated"
+                attributes:
+                  - key: validation.result
+                    value:
+                      stringValue: "success"
+                droppedAttributesCount: 0
+            droppedEventsCount: 0
+            links: []
+            droppedLinksCount: 0
+            status:
+              code: 1
+              message: ""

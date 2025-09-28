@@ -29,6 +29,7 @@ const (
 
 	AttributeSourceDataPoint AttributeSource = "DataPoint"
 	AttributeSourceLogRecord AttributeSource = "LogRecord"
+	AttributeSourceSpan      AttributeSource = "Span"
 )
 
 type Attribute struct {
