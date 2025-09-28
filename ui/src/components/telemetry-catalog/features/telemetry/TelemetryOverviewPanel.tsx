@@ -90,7 +90,7 @@ export function TelemetryOverviewPanel({
               </>
             )}
 
-            {/* {telemetry.telemetryType === "trace" && telemetry.spanKind && (
+            {telemetry.telemetryType === "Span" && telemetry.spanKind && (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Activity className="h-3.5 w-3.5 text-muted-foreground" />
@@ -98,7 +98,7 @@ export function TelemetryOverviewPanel({
                 </div>
                 <span className="text-sm">{telemetry.spanKind}</span>
               </div>
-            )} */}
+            )}
           </div>
         </div>
 

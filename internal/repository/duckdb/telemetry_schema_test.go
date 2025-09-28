@@ -46,6 +46,11 @@ func setupTestDB(t *testing.T) *TelemetrySchemaRepository {
 			log_span_id TEXT,
 			log_event_name TEXT,
 			log_dropped_attributes_count INTEGER,
+			-- Span fields
+			span_kind TEXT,
+			span_name TEXT,
+			span_id TEXT,
+			span_trace_id TEXT,
 			-- Common fields
 			note TEXT,
 			protocol TEXT,
@@ -114,6 +119,11 @@ func TestListTelemetriesByProducer_ProducerWithMetrics(t *testing.T) {
 			LogSpanID:                 "",
 			LogEventName:              "",
 			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "",
+			SpanName:    "",
+			SpanID:      "",
+			SpanTraceID: "",
 			// Common fields
 			Protocol:  schema.TelemetryProtocolOTLP,
 			SeenCount: 10,
@@ -145,6 +155,11 @@ func TestListTelemetriesByProducer_ProducerWithMetrics(t *testing.T) {
 			LogSpanID:                 "",
 			LogEventName:              "",
 			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "",
+			SpanName:    "",
+			SpanID:      "",
+			SpanTraceID: "",
 			// Common fields
 			Protocol:  schema.TelemetryProtocolOTLP,
 			SeenCount: 5,
@@ -176,6 +191,11 @@ func TestListTelemetriesByProducer_ProducerWithMetrics(t *testing.T) {
 			LogSpanID:                 "",
 			LogEventName:              "",
 			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "",
+			SpanName:    "",
+			SpanID:      "",
+			SpanTraceID: "",
 			// Common fields
 			Protocol:  schema.TelemetryProtocolOTLP,
 			SeenCount: 3,
@@ -235,6 +255,11 @@ func TestListTelemetriesByProducer_ProducerWithNoMetrics(t *testing.T) {
 			LogSpanID:                 "",
 			LogEventName:              "",
 			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "",
+			SpanName:    "",
+			SpanID:      "",
+			SpanTraceID: "",
 			// Common fields
 			Protocol:  schema.TelemetryProtocolOTLP,
 			SeenCount: 1,
@@ -285,6 +310,11 @@ func TestListTelemetriesByProducer_ProducerWithLogRecords(t *testing.T) {
 			LogSpanID:                 "1234567890ABCDEF",
 			LogEventName:              "Reading CPU usage",
 			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "",
+			SpanName:    "",
+			SpanID:      "",
+			SpanTraceID: "",
 			// Common fields
 			Protocol:  schema.TelemetryProtocolOTLP,
 			SeenCount: 10,
@@ -317,6 +347,11 @@ func TestListTelemetriesByProducer_ProducerWithLogRecords(t *testing.T) {
 			LogSpanID:                 "1234567890ABCDEF",
 			LogEventName:              "Reading Total Memory",
 			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "",
+			SpanName:    "",
+			SpanID:      "",
+			SpanTraceID: "",
 			// Common fields
 			Protocol:  schema.TelemetryProtocolOTLP,
 			SeenCount: 5,
@@ -349,6 +384,11 @@ func TestListTelemetriesByProducer_ProducerWithLogRecords(t *testing.T) {
 			LogSpanID:                 "1234567890ABCDEF",
 			LogEventName:              "HTTP server requested",
 			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "",
+			SpanName:    "",
+			SpanID:      "",
+			SpanTraceID: "",
 			// Common fields
 			Protocol:  schema.TelemetryProtocolOTLP,
 			SeenCount: 3,
@@ -409,6 +449,11 @@ func TestListTelemetriesByProducer_ProducerWithNoLogRecords(t *testing.T) {
 			LogSpanID:                 "1234567890ABCDEF",
 			LogEventName:              "Reading CPU usage",
 			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "",
+			SpanName:    "",
+			SpanID:      "",
+			SpanTraceID: "",
 			// Common fields
 			Protocol:  schema.TelemetryProtocolOTLP,
 			SeenCount: 10,
@@ -432,6 +477,200 @@ func TestListTelemetriesByProducer_ProducerWithNoLogRecords(t *testing.T) {
 
 	// Test: Get metrics for my-service v1.0.0
 	telemetries, err := repo.ListTelemetriesByProducer(ctx, "my-service", "2.0.0")
+
+	require.NoError(t, err)
+	require.Empty(t, telemetries)
+}
+
+func TestListTelemetriesByProducer_ProducerWithTraces(t *testing.T) {
+	repo := setupTestDB(t)
+	ctx := context.Background()
+
+	// Insert test data
+	testTelemetries := []schema.Telemetry{
+		{
+			SchemaID:      "trace1_schema_id",
+			SchemaKey:     "database-operation",
+			TelemetryType: schema.TelemetryTypeSpan,
+			// Metric fields
+			MetricType: schema.MetricTypeEmpty,
+			MetricUnit: "",
+			Brief:      "",
+			// Log fields
+			LogSeverityNumber:         0,
+			LogSeverityText:           "",
+			LogBody:                   "",
+			LogFlags:                  0,
+			LogTraceID:                "",
+			LogSpanID:                 "",
+			LogEventName:              "",
+			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "Server",
+			SpanName:    "database-operation",
+			SpanID:      "1234567890ABCDEF",
+			SpanTraceID: "1234567890ABCDEF1234567890ABCDEF",
+			// Common fields
+			Protocol:  schema.TelemetryProtocolOTLP,
+			SeenCount: 10,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Producers: map[string]*schema.Producer{
+				"producer1": {
+					Name:      "my-service",
+					Version:   "1.0.0",
+					Namespace: "default",
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
+				},
+			},
+		},
+		{
+			SchemaID:      "trace2_schema_id",
+			SchemaKey:     "http-request",
+			TelemetryType: schema.TelemetryTypeSpan,
+			// Metric fields
+			MetricType: schema.MetricTypeEmpty,
+			MetricUnit: "",
+			Brief:      "",
+			// Log fields
+			LogSeverityNumber:         0,
+			LogSeverityText:           "",
+			LogBody:                   "",
+			LogFlags:                  0,
+			LogTraceID:                "",
+			LogSpanID:                 "",
+			LogEventName:              "",
+			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "Client",
+			SpanName:    "http-request",
+			SpanID:      "1234567890ABCDEF",
+			SpanTraceID: "1234567890ABCDEF1234567890ABCDEF",
+			// Common fields
+			Protocol:  schema.TelemetryProtocolOTLP,
+			SeenCount: 5,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Producers: map[string]*schema.Producer{
+				"producer1": {
+					Name:      "my-service",
+					Version:   "1.0.0",
+					Namespace: "default",
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
+				},
+			},
+		},
+		{
+			SchemaID:      "trace3_schema_id",
+			SchemaKey:     "Random operation",
+			TelemetryType: schema.TelemetryTypeSpan,
+			// Metric fields
+			MetricType: schema.MetricTypeEmpty,
+			MetricUnit: "",
+			Brief:      "",
+			// Log fields
+			LogSeverityNumber:         0,
+			LogSeverityText:           "",
+			LogBody:                   "",
+			LogFlags:                  0,
+			LogTraceID:                "",
+			LogSpanID:                 "",
+			LogEventName:              "",
+			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "Server",
+			SpanName:    "Random operation",
+			SpanID:      "1234567890ABCDEF",
+			SpanTraceID: "1234567890ABCDEF1234567890ABCDEF",
+			// Common fields
+			Protocol:  schema.TelemetryProtocolOTLP,
+			SeenCount: 3,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Producers: map[string]*schema.Producer{
+				"producer2": {
+					Name:      "other-service",
+					Version:   "2.0.0",
+					Namespace: "default",
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
+				},
+			},
+		},
+	}
+
+	// Register test telemetries
+	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
+	require.NoError(t, err)
+
+	// Test: Get metrics for my-service v1.0.0
+	telemetries, err := repo.ListTelemetriesByProducer(ctx, "my-service", "1.0.0")
+
+	require.NoError(t, err)
+	require.Len(t, telemetries, 2)
+
+	// Verify we got the right metrics
+	schemaKeys := make([]string, len(telemetries))
+	for i, t := range telemetries {
+		schemaKeys[i] = t.SchemaKey
+	}
+	require.Contains(t, schemaKeys, "database-operation")
+	require.Contains(t, schemaKeys, "http-request")
+	require.NotContains(t, schemaKeys, "Random operation")
+}
+
+func TestListTelemetriesByProducer_ProducerWithNoTraces(t *testing.T) {
+	repo := setupTestDB(t)
+	ctx := context.Background()
+
+	// Insert test data
+	testTelemetries := []schema.Telemetry{
+		{
+			SchemaID:      "trace1_schema_id",
+			SchemaKey:     "database-operation",
+			TelemetryType: schema.TelemetryTypeSpan,
+			// Metric fields
+			MetricType: schema.MetricTypeEmpty,
+			MetricUnit: "",
+			Brief:      "",
+			// Log fields
+			LogSeverityNumber:         0,
+			LogSeverityText:           "",
+			LogBody:                   "",
+			LogFlags:                  0,
+			LogTraceID:                "",
+			LogSpanID:                 "",
+			LogEventName:              "",
+			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "Server",
+			SpanName:    "database-operation",
+			SpanID:      "1234567890ABCDEF",
+			SpanTraceID: "1234567890ABCDEF1234567890ABCDEF",
+			// Common fields
+			Protocol:  schema.TelemetryProtocolOTLP,
+			SeenCount: 10,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Producers: map[string]*schema.Producer{
+				"producer1": {
+					Name:      "my-service",
+					Version:   "1.0.0",
+					Namespace: "default",
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
+				},
+			},
+		},
+	}
+
+	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
+	require.NoError(t, err)
+
+	// Test: Get telemetries for nonexistent-service v1.0.0
+	telemetries, err := repo.ListTelemetriesByProducer(ctx, "nonexistent-service", "1.0.0")
 
 	require.NoError(t, err)
 	require.Empty(t, telemetries)

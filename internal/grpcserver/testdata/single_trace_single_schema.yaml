@@ -1,0 +1,55 @@
+resourceSpans:
+  - schemaUrl: https://opentelemetry.io/schemas/1.9.0
+    resource:
+      attributes:
+        - key: service.name
+          value:
+            stringValue: test-service
+        - key: service.version
+          value:
+            stringValue: "1.0.0"
+        - key: deployment.environment.name
+          value:
+            stringValue: "production"
+    scopeSpans:
+      - schemaUrl: https://opentelemetry.io/schemas/1.9.0
+        scope:
+          name: test-instrumentation
+          version: "1.0.0"
+          attributes:
+            - key: instrumentation.provider
+              value:
+                stringValue: "test"
+        spans:
+          - traceId: "1234567890ABCDEF1234567890ABCDEF"
+            spanId: "1234567890ABCDEF"
+            parentSpanId: ""
+            name: "test-operation"
+            kind: 1
+            startTimeUnixNano: 1234567890000000000
+            endTimeUnixNano: 1234567891000000000
+            attributes:
+              - key: operation.type
+                value:
+                  stringValue: "database"
+              - key: db.system
+                value:
+                  stringValue: "postgresql"
+              - key: db.name
+                value:
+                  stringValue: "testdb"
+            droppedAttributesCount: 0
+            events:
+              - timeUnixNano: 1234567890500000000
+                name: "query.start"
+                attributes:
+                  - key: query
+                    value:
+                      stringValue: "SELECT * FROM users"
+                droppedAttributesCount: 0
+            droppedEventsCount: 0
+            links: []
+            droppedLinksCount: 0
+            status:
+              code: 1
+              message: ""

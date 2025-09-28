@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Server, Database, BarChart3, ChevronDown, Search } from 'lucide-react'
+import { Server, Database, BarChart3, ChevronDown, Search, Activity, FileText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import {
@@ -18,13 +18,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import type { Attribute } from '@/types/telemetry'
+import type { Attribute, Telemetry } from '@/types/telemetry'
+import { TelemetryType } from '@/types/telemetry'
 
 interface AttributesViewProps {
   attributes: Attribute[]
+  telemetry: Telemetry
 }
 
-export function AttributesView({ attributes }: AttributesViewProps) {
+export function AttributesView({ attributes, telemetry }: AttributesViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedSections, setExpandedSections] = useState({
     resource: false,
@@ -48,9 +50,68 @@ export function AttributesView({ attributes }: AttributesViewProps) {
   const scopeAttributes = filteredAttributes.filter(
     (attr) => attr.source === 'Scope'
   )
-  const dataPointAttributes = filteredAttributes.filter(
-    (attr) => attr.source === 'DataPoint' || attr.source === 'LogRecord'
-  )
+  
+  // Get data attributes based on telemetry type
+  const getDataAttributes = () => {
+    switch (telemetry.telemetryType) {
+      case TelemetryType.Metric:
+        return filteredAttributes.filter((attr) => attr.source === 'DataPoint')
+      case TelemetryType.Log:
+        return filteredAttributes.filter((attr) => attr.source === 'LogRecord')
+      case TelemetryType.Span:
+        return filteredAttributes.filter((attr) => attr.source === 'Span')
+      default:
+        return filteredAttributes.filter(
+          (attr) => attr.source === 'DataPoint' || attr.source === 'LogRecord' || attr.source === 'Span'
+        )
+    }
+  }
+  
+  const dataAttributes = getDataAttributes()
+
+  // Get data section configuration based on telemetry type
+  const getDataSectionConfig = () => {
+    switch (telemetry.telemetryType) {
+      case TelemetryType.Metric:
+        return {
+          title: 'Data Point',
+          description: 'Contains the data point attributes for this schema',
+          icon: BarChart3,
+          bgColor: 'bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/10 dark:hover:bg-purple-950/20',
+          iconBg: 'bg-purple-100 dark:bg-purple-900/30',
+          iconColor: 'text-purple-500'
+        }
+      case TelemetryType.Log:
+        return {
+          title: 'Log Record',
+          description: 'Contains the log record attributes for this schema',
+          icon: FileText,
+          bgColor: 'bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/10 dark:hover:bg-orange-950/20',
+          iconBg: 'bg-orange-100 dark:bg-orange-900/30',
+          iconColor: 'text-orange-500'
+        }
+      case TelemetryType.Span:
+        return {
+          title: 'Span',
+          description: 'Contains the span attributes for this schema',
+          icon: Activity,
+          bgColor: 'bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/10 dark:hover:bg-purple-950/20',
+          iconBg: 'bg-purple-100 dark:bg-purple-900/30',
+          iconColor: 'text-purple-500'
+        }
+      default:
+        return {
+          title: 'Data Point',
+          description: 'Contains the data point attributes for this schema',
+          icon: BarChart3,
+          bgColor: 'bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/10 dark:hover:bg-purple-950/20',
+          iconBg: 'bg-purple-100 dark:bg-purple-900/30',
+          iconColor: 'text-purple-500'
+        }
+    }
+  }
+
+  const dataSectionConfig = getDataSectionConfig()
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({
@@ -201,21 +262,21 @@ export function AttributesView({ attributes }: AttributesViewProps) {
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Data Point Section */}
+        {/* Data Section - Dynamic based on telemetry type */}
         <Collapsible
           open={expandedSections.data}
           onOpenChange={() => toggleSection('data')}
           className="border rounded-lg overflow-hidden"
         >
-          <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/10 dark:hover:bg-purple-950/20 text-left">
+          <CollapsibleTrigger className={`flex items-center justify-between w-full p-4 ${dataSectionConfig.bgColor} text-left`}>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-purple-100 dark:bg-purple-900/30">
-                <BarChart3 className="h-5 w-5 text-purple-500" />
+              <div className={`flex h-10 w-10 items-center justify-center rounded-md ${dataSectionConfig.iconBg}`}>
+                <dataSectionConfig.icon className={`h-5 w-5 ${dataSectionConfig.iconColor}`} />
               </div>
               <div>
-                <h4 className="font-medium">Data Point</h4>
+                <h4 className="font-medium">{dataSectionConfig.title}</h4>
                 <p className="text-sm text-muted-foreground">
-                  Contains the actual data points for this schema
+                  {dataSectionConfig.description}
                 </p>
               </div>
             </div>
@@ -227,7 +288,7 @@ export function AttributesView({ attributes }: AttributesViewProps) {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="p-4 border-t">
-              {renderAttributesTable(dataPointAttributes)}
+              {renderAttributesTable(dataAttributes)}
             </div>
           </CollapsibleContent>
         </Collapsible>

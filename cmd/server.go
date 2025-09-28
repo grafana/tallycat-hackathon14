@@ -19,6 +19,7 @@ import (
 	"github.com/tallycat/tallycat/internal/repository/duckdb/migrator"
 	logspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	metricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
+	tracespb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -88,6 +89,9 @@ and processes log data according to the OpenTelemetry protocol.`,
 
 		metricsService := grpcserver.NewMetricsServiceServer(schemaRepo)
 		srv.RegisterService(&metricspb.MetricsService_ServiceDesc, metricsService)
+
+		tracesService := grpcserver.NewTracesServiceServer(schemaRepo)
+		srv.RegisterService(&tracespb.TraceService_ServiceDesc, tracesService)
 
 		httpSrv := httpserver.New(httpAddr, schemaRepo, historyRepo)
 

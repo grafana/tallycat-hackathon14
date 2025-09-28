@@ -17,7 +17,7 @@ import { TelemetryCard } from '@/components/telemetry/telemetry-card'
 import { DataTable } from '@/components/ui/data-table'
 import type { ViewMode, Telemetry } from '@/types/telemetry'
 import type { ColumnDef } from '@tanstack/react-table'
-import { DataTypeIcon } from '@/components/telemetry/telemetry-icons'
+import { DataTypeIcon, getDataType } from '@/components/telemetry/telemetry-icons'
 import { getTelemetryTypeBgColor } from '@/utils/telemetry'
 import { formatDate, DateFormat } from '@/lib/utils'
 import { Link } from '@tanstack/react-router'
@@ -40,7 +40,7 @@ const columns: ColumnDef<Telemetry>[] = [
               item.telemetryType,
             )}`}
           >
-            <DataTypeIcon dataType={item.metricType} />
+            <DataTypeIcon dataType={getDataType(item)} />
           </div>
           <div>
             <Link
@@ -73,10 +73,11 @@ const columns: ColumnDef<Telemetry>[] = [
     header: 'Data Type',
     cell: ({ row }) => {
       const item = row.original
+      const dataType = getDataType(item)
       return (
         <div className="flex items-center gap-1.5">
-          <DataTypeIcon dataType={item.metricType} />
-          <span className="text-sm">{item.metricType}</span>
+          <DataTypeIcon dataType={dataType} />
+          <span className="text-sm">{dataType}</span>
         </div>
       )
     },
@@ -424,7 +425,7 @@ export const SchemaCatalog = () => {
             <TabsTrigger value="all">All Telemetry</TabsTrigger>
             <TabsTrigger value="metric">Metrics</TabsTrigger>
             <TabsTrigger value="log">Logs</TabsTrigger>
-            <TabsTrigger value="trace">Traces</TabsTrigger>
+            <TabsTrigger value="span">Spans</TabsTrigger>
             <TabsTrigger value="profile">Profiles</TabsTrigger>
           </TabsList>
         </Tabs>

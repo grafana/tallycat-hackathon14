@@ -1,4 +1,4 @@
-import { ChevronDown, Clock, Tag } from 'lucide-react'
+import { ChevronDown, Clock } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import {
   Card,
@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { Telemetry } from '@/types/telemetry'
-import { DataTypeIcon } from './telemetry-icons'
+import { DataTypeIcon, getDataType } from './telemetry-icons'
 import { getTelemetryTypeBgColor, getStatusBadge } from '@/utils/telemetry'
 import { formatDate, DateFormat } from '@/lib/utils'
 
@@ -27,6 +27,7 @@ interface TelemetryCardProps {
 
 export const TelemetryCard = ({ item }: TelemetryCardProps) => {
   const statusBadge = getStatusBadge(undefined)
+  const dataType = getDataType(item)
 
   return (
     <Card className="overflow-hidden">
@@ -35,7 +36,7 @@ export const TelemetryCard = ({ item }: TelemetryCardProps) => {
           <div
             className={`flex h-8 w-8 items-center justify-center rounded-md ${getTelemetryTypeBgColor(item.telemetryType)}`}
           >
-            <DataTypeIcon dataType={item.metricType} />
+            <DataTypeIcon dataType={dataType} />
           </div>
           <CardTitle className="text-base">
             <Link
@@ -66,9 +67,9 @@ export const TelemetryCard = ({ item }: TelemetryCardProps) => {
         <div className="flex items-center justify-between py-1">
           <span className="text-sm text-muted-foreground">Type</span>
           <div className="flex items-center gap-1.5">
-            <DataTypeIcon dataType={item.metricType} />
+            <DataTypeIcon dataType={dataType} />
             <Badge variant="outline" className="capitalize">
-              {item.metricType}
+              {dataType}
             </Badge>
           </div>
         </div>

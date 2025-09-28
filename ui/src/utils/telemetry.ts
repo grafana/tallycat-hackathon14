@@ -6,7 +6,7 @@ export const getTelemetryTypeBgColor = (type: TelemetryType) => {
       return 'bg-blue-500/10'
     case TelemetryType.Log:
       return 'bg-green-500/10'
-    case TelemetryType.Trace:
+    case TelemetryType.Span:
       return 'bg-purple-500/10'
     default:
       return 'bg-gray-500/10'

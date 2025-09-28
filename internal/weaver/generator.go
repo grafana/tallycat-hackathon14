@@ -29,6 +29,8 @@ func GenerateYAML(telemetry *schema.Telemetry, telemetrySchema *schema.Telemetry
 		return generateLogEventYAML(telemetry, telemetrySchema)
 	case schema.TelemetryTypeMetric:
 		return generateMetricYAML(telemetry, telemetrySchema)
+	case schema.TelemetryTypeSpan:
+		return generateSpanYAML(telemetry, telemetrySchema)
 	default:
 		// Default to metric for backwards compatibility
 		return generateMetricYAML(telemetry, telemetrySchema)
@@ -138,6 +140,53 @@ func generateLogEventYAML(telemetry *schema.Telemetry, telemetrySchema *schema.T
 	return strings.Join(yamlLines, "\n"), nil
 }
 
+// generateSpanYAML generates YAML for span telemetries following SpanSemanticConvention
+func generateSpanYAML(telemetry *schema.Telemetry, telemetrySchema *schema.TelemetrySchema) (string, error) {
+	// Build the YAML structure
+	var yamlLines []string
+
+	// Start with the groups section
+	yamlLines = append(yamlLines, "groups:")
+	yamlLines = append(yamlLines, fmt.Sprintf("  - id: span.%s", telemetry.SchemaKey))
+	yamlLines = append(yamlLines, "    type: span")
+	yamlLines = append(yamlLines, fmt.Sprintf("    brief: %s", quoteYAMLString(telemetry.Brief)))
+	yamlLines = append(yamlLines, "    stability: stable")
+
+	// Add span_kind (required for SpanSemanticConvention)
+	spanKind := convertSpanKindToWeaver(telemetry.SpanKind)
+	yamlLines = append(yamlLines, fmt.Sprintf("    span_kind: %s", spanKind))
+
+	// Collect span attributes
+	var spanAttributes []schema.Attribute
+	var attributesToUse []schema.Attribute
+
+	// Determine which attributes to use
+	if telemetrySchema != nil && len(telemetrySchema.Attributes) > 0 {
+		attributesToUse = telemetrySchema.Attributes
+	} else {
+		attributesToUse = telemetry.Attributes
+	}
+
+	// Filter for Span source attributes (span-level attributes)
+	for _, attr := range attributesToUse {
+		if attr.Source == schema.AttributeSourceSpan {
+			spanAttributes = append(spanAttributes, attr)
+		}
+	}
+
+	// Only add attributes section if there are span attributes
+	if len(spanAttributes) > 0 {
+		yamlLines = append(yamlLines, "    attributes:")
+
+		// Format each attribute
+		for _, attr := range spanAttributes {
+			yamlLines = append(yamlLines, formatAttribute(attr)...)
+		}
+	}
+
+	return strings.Join(yamlLines, "\n"), nil
+}
+
 // generateLogSpecificAttributes creates standard log attributes from telemetry fields
 func generateLogSpecificAttributes(telemetry *schema.Telemetry) []schema.Attribute {
 	var attributes []schema.Attribute
@@ -215,6 +264,20 @@ func GenerateMultiLogYAML(telemetries []schema.Telemetry, schemas map[string]*sc
 	}
 
 	return generateMultiTelemetryYAML(logTelemetries, schemas)
+}
+
+// GenerateMultiSpanYAML generates a Weaver format YAML string from multiple span telemetry schema data
+// Only processes telemetries with TelemetryType = TelemetryTypeSpan
+func GenerateMultiSpanYAML(telemetries []schema.Telemetry, schemas map[string]*schema.TelemetrySchema) (string, error) {
+	// Filter for spans only
+	var spanTelemetries []schema.Telemetry
+	for _, telemetry := range telemetries {
+		if telemetry.TelemetryType == schema.TelemetryTypeSpan {
+			spanTelemetries = append(spanTelemetries, telemetry)
+		}
+	}
+
+	return generateMultiTelemetryYAML(spanTelemetries, schemas)
 }
 
 // generateMultiTelemetryYAML is a helper function that generates YAML from a list of telemetries
@@ -312,5 +375,23 @@ func convertAttributeType(attrType schema.AttributeType) string {
 		return "string" // Default to string for empty/unknown types
 	default:
 		return "string" // Default fallback
+	}
+}
+
+// convertSpanKindToWeaver converts internal span kinds to Weaver-compatible span_kind values
+func convertSpanKindToWeaver(spanKind schema.SpanKind) string {
+	switch spanKind {
+	case schema.SpanKindClient:
+		return "client"
+	case schema.SpanKindServer:
+		return "server"
+	case schema.SpanKindProducer:
+		return "producer"
+	case schema.SpanKindConsumer:
+		return "consumer"
+	case schema.SpanKindInternal:
+		return "internal"
+	default:
+		return "internal" // Default to internal for unknown span kinds
 	}
 }

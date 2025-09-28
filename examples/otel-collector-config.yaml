@@ -1,4 +1,12 @@
 receivers:
+  # OTLP receiver for traces, metrics, and logs
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4318
+      http:
+        endpoint: 0.0.0.0:4319
+
   # Generate synthetic logs for testing
   filelog:
     include: ["examples/test-logs/*.log"]
@@ -11,6 +19,7 @@ receivers:
         id: extract_timestamp_parser
         parse_from: attributes.timestamp
         layout: '%Y-%m-%d %H:%M:%S'
+  
   prometheus:
     config:
       scrape_configs:
@@ -28,8 +37,12 @@ processors:
   resource:
     attributes:
       - key: service.name
+        action: delete
+      - key: service.name
         value: "otelcontribcol"
         action: insert
+      - key: service.version
+        action: delete
       - key: service.version
         value: "0.134.0-dev"
         action: insert
@@ -49,6 +62,18 @@ processors:
           - set(log.event_name, log.attributes["service"]) where log.event_name == nil and log.attributes["service"] != nil
           - set(log.event_name, "application_log") where log.event_name == nil
 
+  # Transform traces to add additional attributes for testing
+  transform/traces:
+    trace_statements:
+      - context: span
+        statements:
+          - set(attributes["trace.source"], "otelcontribcol")
+          - set(attributes["environment"], "development")
+          # Add some test attributes based on span name
+          - set(attributes["operation.category"], "database") where name == "SELECT users"
+          - set(attributes["operation.category"], "http") where name == "GET /api/users"
+          - set(attributes["operation.category"], "cache") where name == "redis.get"
+
 exporters:
   otlp:
     endpoint: localhost:4317
@@ -58,6 +83,11 @@ exporters:
 
 service:
   pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [resource, transform/traces, batch]
+      exporters: [otlp]
+    
     metrics:
       receivers: [prometheus]
       processors: [resource, batch]

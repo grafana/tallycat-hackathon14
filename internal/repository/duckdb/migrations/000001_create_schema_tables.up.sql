@@ -19,6 +19,11 @@ CREATE TABLE IF NOT EXISTS telemetry_schemas (
     log_span_id TEXT,
     log_event_name TEXT,
     log_dropped_attributes_count INTEGER,
+    -- Span fields
+    span_kind TEXT,
+    span_name TEXT,
+    span_id TEXT,
+    span_trace_id TEXT,
     -- Common fields
     note TEXT,
     protocol TEXT,

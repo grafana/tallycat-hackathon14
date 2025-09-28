@@ -1,7 +1,7 @@
 export enum TelemetryType {
   Metric = 'Metric',
   Log = 'Log',
-  Trace = 'Trace',
+  Span = 'Span',
   Profile = 'Profile',
 }
 
@@ -40,6 +40,11 @@ export interface Telemetry {
   logSpanID: string
   logEventName: string
   logDroppedAttributesCount: number
+  // Trace fields
+  spanKind: string
+  spanName: string
+  spanID: string
+  traceID: string
   // Common fields
   brief?: string
   note?: string
