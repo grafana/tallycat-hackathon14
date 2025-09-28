@@ -148,12 +148,57 @@ export function WeaverDefinition({ telemetry, schema }: WeaverDefinitionProps) {
     return yamlLines.join('\n')
   }
 
+  // Convert span kind to Weaver-compatible span_kind values
+  const convertSpanKindToWeaver = (spanKind: string): string => {
+    switch (spanKind) {
+      case 'client':
+        return 'client'
+      case 'server':
+        return 'server'
+      case 'producer':
+        return 'producer'
+      case 'consumer':
+        return 'consumer'
+      case 'internal':
+        return 'internal'
+      default:
+        return 'internal' // Default to internal for unknown span kinds
+    }
+  }
+
+  const generateSpanYaml = (): string => {
+    const yamlLines = [
+      'groups:',
+      `  - id: span.${telemetry.schemaKey}`,
+      '    type: span',
+      `    brief: "${telemetry.brief || ''}"`,
+      '    stability: stable',
+      `    span_kind: ${convertSpanKindToWeaver(telemetry.spanKind || 'internal')}`,
+    ]
+
+    // Filter for Span attributes
+    const spanAttributes = schema.attributes.filter(
+      (attribute) => attribute.source === 'Span'
+    )
+
+    if (spanAttributes.length > 0) {
+      yamlLines.push('    attributes:')
+      spanAttributes.forEach((attribute) => {
+        yamlLines.push(formatAttribute(attribute))
+      })
+    }
+
+    return yamlLines.join('\n')
+  }
+
   const generateWeaverYaml = (): string => {
     switch (telemetry.telemetryType) {
       case TelemetryType.Log:
         return generateLogEventYaml()
       case TelemetryType.Metric:
         return generateMetricYaml()
+      case TelemetryType.Span:
+        return generateSpanYaml()
       default:
         // Default to metric for backwards compatibility
         return generateMetricYaml()
@@ -166,6 +211,8 @@ export function WeaverDefinition({ telemetry, schema }: WeaverDefinitionProps) {
         return telemetry.logEventName || telemetry.schemaKey
       case TelemetryType.Metric:
         return telemetry.schemaKey
+      case TelemetryType.Span:
+        return telemetry.schemaKey
       default:
         return telemetry.schemaKey
     }
@@ -177,6 +224,8 @@ export function WeaverDefinition({ telemetry, schema }: WeaverDefinitionProps) {
         return 'log event'
       case TelemetryType.Metric:
         return 'metric'
+      case TelemetryType.Span:
+        return 'span'
       default:
         return 'telemetry'
     }

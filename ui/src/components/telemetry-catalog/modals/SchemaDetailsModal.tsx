@@ -89,7 +89,7 @@ export function SchemaDetailsModal({
               </TabsList>
 
               <TabsContent value="schema" className="mt-4">
-                <AttributesView attributes={viewingSchema.attributes} />
+                <AttributesView attributes={viewingSchema.attributes} telemetry={telemetry} />
               </TabsContent>
 
               <TabsContent value="producers" className="mt-4 space-y-4">
