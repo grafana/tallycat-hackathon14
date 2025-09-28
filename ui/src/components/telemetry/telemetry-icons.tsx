@@ -6,8 +6,28 @@ import {
   FileText,
   Activity,
   Code,
+  Server,
+  Smartphone,
+  ArrowUp,
+  ArrowDown,
+  Zap,
+  TreePine,
 } from 'lucide-react'
-import { TelemetryType } from '@/types/telemetry'
+import { TelemetryType, type Telemetry } from '@/types/telemetry'
+
+// Helper function to get the correct data type based on telemetry type
+export const getDataType = (telemetry: Telemetry): string => {
+  switch (telemetry.telemetryType) {
+    case TelemetryType.Metric:
+      return telemetry.metricType || ''
+    case TelemetryType.Trace:
+      return telemetry.spanKind || ''
+    case TelemetryType.Log:
+      return 'log'
+    default:
+      return ''
+  }
+}
 
 export const DataTypeIcon = ({ dataType }: { dataType: string }) => {
   if (!dataType) {
@@ -31,6 +51,19 @@ export const DataTypeIcon = ({ dataType }: { dataType: string }) => {
       return <FileText className="h-4 w-4 text-green-400" />
     case 'span':
       return <Activity className="h-4 w-4 text-purple-400" />
+    // Span kinds for traces
+    case 'server':
+      return <Server className="h-4 w-4 text-purple-400" />
+    case 'client':
+      return <Smartphone className="h-4 w-4 text-purple-400" />
+    case 'producer':
+      return <ArrowUp className="h-4 w-4 text-purple-400" />
+    case 'consumer':
+      return <ArrowDown className="h-4 w-4 text-purple-400" />
+    case 'internal':
+      return <Zap className="h-4 w-4 text-purple-400" />
+    case 'log':
+      return <TreePine className="h-4 w-4 text-green-400" />
     default:
       return <Code className="h-4 w-4 text-gray-400" />
   }
