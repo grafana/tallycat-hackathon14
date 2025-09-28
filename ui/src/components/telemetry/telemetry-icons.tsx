@@ -11,7 +11,7 @@ import {
   ArrowUp,
   ArrowDown,
   Zap,
-  TreePine,
+  Logs,
 } from 'lucide-react'
 import { TelemetryType, type Telemetry } from '@/types/telemetry'
 
@@ -20,7 +20,7 @@ export const getDataType = (telemetry: Telemetry): string => {
   switch (telemetry.telemetryType) {
     case TelemetryType.Metric:
       return telemetry.metricType || ''
-    case TelemetryType.Trace:
+    case TelemetryType.Span:
       return telemetry.spanKind || ''
     case TelemetryType.Log:
       return 'log'
@@ -63,7 +63,7 @@ export const DataTypeIcon = ({ dataType }: { dataType: string }) => {
     case 'internal':
       return <Zap className="h-4 w-4 text-purple-400" />
     case 'log':
-      return <TreePine className="h-4 w-4 text-green-400" />
+      return <Logs className="h-4 w-4 text-green-400" />
     default:
       return <Code className="h-4 w-4 text-gray-400" />
   }
@@ -75,7 +75,7 @@ export const TelemetryTypeIcon = ({ type }: { type: TelemetryType }) => {
       return <BarChart3 className="h-5 w-5 text-blue-500" />
     case TelemetryType.Log:
       return <FileText className="h-5 w-5 text-green-500" />
-    case TelemetryType.Trace:
+    case TelemetryType.Span:
       return <Activity className="h-5 w-5 text-purple-500" />
     default:
       return <Code className="h-5 w-5 text-gray-500" />

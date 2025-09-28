@@ -1,7 +1,7 @@
 export enum TelemetryType {
   Metric = 'Metric',
   Log = 'Log',
-  Trace = 'Trace',
+  Span = 'Span',
   Profile = 'Profile',
 }
 

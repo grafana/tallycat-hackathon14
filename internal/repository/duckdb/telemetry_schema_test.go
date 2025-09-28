@@ -491,7 +491,7 @@ func TestListTelemetriesByProducer_ProducerWithTraces(t *testing.T) {
 		{
 			SchemaID:      "trace1_schema_id",
 			SchemaKey:     "database-operation",
-			TelemetryType: schema.TelemetryTypeTrace,
+			TelemetryType: schema.TelemetryTypeSpan,
 			// Metric fields
 			MetricType: schema.MetricTypeEmpty,
 			MetricUnit: "",
@@ -528,7 +528,7 @@ func TestListTelemetriesByProducer_ProducerWithTraces(t *testing.T) {
 		{
 			SchemaID:      "trace2_schema_id",
 			SchemaKey:     "http-request",
-			TelemetryType: schema.TelemetryTypeTrace,
+			TelemetryType: schema.TelemetryTypeSpan,
 			// Metric fields
 			MetricType: schema.MetricTypeEmpty,
 			MetricUnit: "",
@@ -565,7 +565,7 @@ func TestListTelemetriesByProducer_ProducerWithTraces(t *testing.T) {
 		{
 			SchemaID:      "trace3_schema_id",
 			SchemaKey:     "Random operation",
-			TelemetryType: schema.TelemetryTypeTrace,
+			TelemetryType: schema.TelemetryTypeSpan,
 			// Metric fields
 			MetricType: schema.MetricTypeEmpty,
 			MetricUnit: "",
@@ -630,7 +630,7 @@ func TestListTelemetriesByProducer_ProducerWithNoTraces(t *testing.T) {
 		{
 			SchemaID:      "trace1_schema_id",
 			SchemaKey:     "database-operation",
-			TelemetryType: schema.TelemetryTypeTrace,
+			TelemetryType: schema.TelemetryTypeSpan,
 			// Metric fields
 			MetricType: schema.MetricTypeEmpty,
 			MetricUnit: "",

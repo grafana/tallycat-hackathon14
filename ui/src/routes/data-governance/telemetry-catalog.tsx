@@ -425,7 +425,7 @@ export const SchemaCatalog = () => {
             <TabsTrigger value="all">All Telemetry</TabsTrigger>
             <TabsTrigger value="metric">Metrics</TabsTrigger>
             <TabsTrigger value="log">Logs</TabsTrigger>
-            <TabsTrigger value="trace">Traces</TabsTrigger>
+            <TabsTrigger value="span">Spans</TabsTrigger>
             <TabsTrigger value="profile">Profiles</TabsTrigger>
           </TabsList>
         </Tabs>

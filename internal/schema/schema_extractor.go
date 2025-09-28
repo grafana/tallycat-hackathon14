@@ -345,7 +345,7 @@ func ExtractFromTraces(traces ptrace.Traces) []Telemetry {
 
 				telemetry := Telemetry{
 					SchemaURL:     scopeSpan.SchemaUrl(),
-					TelemetryType: TelemetryTypeTrace,
+					TelemetryType: TelemetryTypeSpan,
 					SchemaKey:     span.Name(),
 					SpanKind:      SpanKind(span.Kind().String()),
 					SpanName:      span.Name(),

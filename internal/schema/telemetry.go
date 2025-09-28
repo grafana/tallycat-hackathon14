@@ -45,7 +45,7 @@ type TelemetryType string
 const (
 	TelemetryTypeMetric TelemetryType = "Metric"
 	TelemetryTypeLog    TelemetryType = "Log"
-	TelemetryTypeTrace  TelemetryType = "Trace"
+	TelemetryTypeSpan   TelemetryType = "Span"
 )
 
 type Telemetry struct {
