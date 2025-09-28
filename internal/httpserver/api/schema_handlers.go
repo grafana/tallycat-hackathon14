@@ -237,7 +237,7 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 			return
 		}
 
-		// Generate separate YAML files for metrics and logs
+		// Generate separate YAML files for metrics, logs, and spans
 		metricsYAML, err := weaver.GenerateMultiMetricYAML(telemetries, nil)
 		if err != nil {
 			slog.Error("failed to generate metrics YAML", "producer", producerNameVersion, "error", err)
@@ -252,11 +252,19 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 			return
 		}
 
+		spansYAML, err := weaver.GenerateMultiSpanYAML(telemetries, nil)
+		if err != nil {
+			slog.Error("failed to generate spans YAML", "producer", producerNameVersion, "error", err)
+			http.Error(w, "failed to generate spans YAML", http.StatusInternalServerError)
+			return
+		}
+
 		// Check if we have any content to include in the ZIP
 		hasMetrics := metricsYAML != ""
 		hasLogs := logsYAML != ""
+		hasSpans := spansYAML != ""
 
-		if !hasMetrics && !hasLogs {
+		if !hasMetrics && !hasLogs && !hasSpans {
 			// No telemetries of any type found
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -299,6 +307,23 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 			_, err = eventsFile.Write([]byte(logsYAML))
 			if err != nil {
 				http.Error(w, "failed to write events yaml to zip", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		// Create the spans YAML file inside the ZIP (only if we have spans)
+		if hasSpans {
+			spansFileName := producerNameVersion + "-spans.yaml"
+			spansFile, err := zipWriter.Create(spansFileName)
+			if err != nil {
+				http.Error(w, "failed to create spans file in zip", http.StatusInternalServerError)
+				return
+			}
+
+			// Write the spans YAML content to the file inside the ZIP
+			_, err = spansFile.Write([]byte(spansYAML))
+			if err != nil {
+				http.Error(w, "failed to write spans yaml to zip", http.StatusInternalServerError)
 				return
 			}
 		}
