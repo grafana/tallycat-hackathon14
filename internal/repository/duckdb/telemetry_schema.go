@@ -134,10 +134,17 @@ func (r *TelemetrySchemaRepository) RegisterTelemetrySchemas(ctx context.Context
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
+	attributeCount := 0
+	if len(schemas) > 0 {
+		for _, schema := range schemas {
+			attributeCount += len(schema.Attributes)
+		}
+	}
+
 	slog.Debug(
 		"successfully registered telemetry schemas",
 		"schema_count", len(schemas),
-		"attribute_count", len(schemas)*len(schemas[0].Attributes),
+		"attribute_count", attributeCount,
 	)
 	return nil
 }
