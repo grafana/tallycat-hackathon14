@@ -350,6 +350,12 @@ func ExtractFromTraces(traces ptrace.Traces) []Telemetry {
 					SpanKind:      SpanKind(span.Kind().String()),
 					SpanName:      span.Name(),
 					SpanTraceID:   span.TraceID().String(),
+					Attributes:    make([]Attribute, 0, resourceAttributes.Len()+scopeAttributes.Len()+spanAttributes.Len()),
+					Protocol:      TelemetryProtocolOTLP,
+					SeenCount:     1,
+					CreatedAt:     time.Now(),
+					UpdatedAt:     time.Now(),
+					Producers:     make(map[string]*Producer),
 				}
 
 				producer := &Producer{
@@ -368,8 +374,19 @@ func ExtractFromTraces(traces ptrace.Traces) []Telemetry {
 					case "service.instance.id":
 						producer.InstanceID = value.Str()
 					}
+
+					telemetry.Attributes = append(telemetry.Attributes, Attribute{
+						Name:   key,
+						Type:   AttributeType(value.Type().String()),
+						Source: AttributeSourceResource,
+					})
 					return true
 				})
+
+				// Add producer if it has a name
+				if producer.Name != "" {
+					telemetry.Producers[producer.ProducerID()] = producer
+				}
 
 				scopeAttributes.Range(func(key string, value pcommon.Value) bool {
 					telemetry.Attributes = append(telemetry.Attributes, Attribute{
