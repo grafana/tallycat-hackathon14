@@ -35,8 +35,9 @@ func (r *TelemetrySchemaRepository) RegisterTelemetrySchemas(ctx context.Context
 			schema_id, schema_key, schema_version, schema_url, signal_type, 
 			metric_type, temporality, unit, brief, 
 			log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
+			span_kind, span_name, span_id, span_trace_id,
 			note, protocol, seen_count, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (schema_id) DO UPDATE SET
 			seen_count = telemetry_schemas.seen_count + excluded.seen_count,
 			updated_at = excluded.updated_at
@@ -90,6 +91,10 @@ func (r *TelemetrySchemaRepository) RegisterTelemetrySchemas(ctx context.Context
 			schema.LogSpanID,
 			schema.LogEventName,
 			schema.LogDroppedAttributesCount,
+			schema.SpanKind,
+			schema.SpanName,
+			schema.SpanID,
+			schema.SpanTraceID,
 			schema.Note,
 			schema.Protocol,
 			schema.SeenCount,
@@ -206,6 +211,11 @@ func (r *TelemetrySchemaRepository) ListTelemetries(ctx context.Context, params 
 				t.log_span_id,
 				t.log_event_name,
 				t.log_dropped_attributes_count,
+				-- Span fields
+				t.span_kind,
+				t.span_name,
+				t.span_id,
+				t.span_trace_id,
 				-- Common fields
 				t.note,
 				t.protocol,
@@ -224,6 +234,7 @@ func (r *TelemetrySchemaRepository) ListTelemetries(ctx context.Context, params 
 			schema_id, schema_version, schema_url, signal_type, schema_key, 
 			unit, metric_type, temporality, brief,
 			log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
+			span_kind, span_name, span_id, span_trace_id,
 			note, protocol, seen_count,
 			created_at, updated_at, version_count
 		FROM latest_schemas
@@ -268,6 +279,10 @@ func (r *TelemetrySchemaRepository) ListTelemetries(ctx context.Context, params 
 			&schema.LogSpanID,
 			&schema.LogEventName,
 			&schema.LogDroppedAttributesCount,
+			&schema.SpanKind,
+			&schema.SpanName,
+			&schema.SpanID,
+			&schema.SpanTraceID,
 			&schema.Note,
 			&schema.Protocol,
 			&schema.SeenCount,
@@ -310,6 +325,11 @@ func (r *TelemetrySchemaRepository) GetTelemetry(ctx context.Context, schemaKey 
 						t.log_span_id,
 						t.log_event_name,
 						t.log_dropped_attributes_count,
+						-- Span fields
+						t.span_kind,
+						t.span_name,
+						t.span_id,
+						t.span_trace_id,
 						-- Common fields
 						t.note,
 						t.protocol,
@@ -344,6 +364,11 @@ func (r *TelemetrySchemaRepository) GetTelemetry(ctx context.Context, schemaKey 
 			log_span_id,
 			log_event_name,
 			log_dropped_attributes_count,
+			-- Span fields
+			span_kind,
+			span_name,
+			span_id,
+			span_trace_id,
 			-- Common fields
 			note,
 			protocol,
@@ -381,6 +406,10 @@ func (r *TelemetrySchemaRepository) GetTelemetry(ctx context.Context, schemaKey 
 		&s.LogSpanID,
 		&s.LogEventName,
 		&s.LogDroppedAttributesCount,
+		&s.SpanKind,
+		&s.SpanName,
+		&s.SpanID,
+		&s.SpanTraceID,
 		&s.Note,
 		&s.Protocol,
 		&s.SeenCount,
@@ -724,6 +753,11 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 					t.log_span_id,
 					t.log_event_name,
 					t.log_dropped_attributes_count,
+					-- Span fields
+					t.span_kind,
+					t.span_name,
+					t.span_id,
+					t.span_trace_id,
 					-- Common fields
 					t.note,
 					t.protocol,
@@ -742,6 +776,7 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 				schema_id, schema_version, schema_url, signal_type, schema_key,
 				unit, metric_type, temporality, brief,
 				log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
+				span_kind, span_name, span_id, span_trace_id,
 				note, protocol, seen_count,
 				created_at, updated_at
 			FROM latest_schemas
@@ -771,6 +806,11 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 					t.log_span_id,
 					t.log_event_name,
 					t.log_dropped_attributes_count,
+					-- Span fields
+					t.span_kind,
+					t.span_name,
+					t.span_id,
+					t.span_trace_id,
 					-- Common fields
 					t.note,
 					t.protocol,
@@ -789,6 +829,7 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 				schema_id, schema_version, schema_url, signal_type, schema_key,
 				unit, metric_type, temporality, brief,
 				log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
+				span_kind, span_name, span_id, span_trace_id,
 				note, protocol, seen_count,
 				created_at, updated_at
 			FROM latest_schemas
@@ -831,6 +872,10 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 			&t.LogSpanID,
 			&t.LogEventName,
 			&t.LogDroppedAttributesCount,
+			&t.SpanKind,
+			&t.SpanName,
+			&t.SpanID,
+			&t.SpanTraceID,
 			&t.Note,
 			&t.Protocol,
 			&t.SeenCount,
