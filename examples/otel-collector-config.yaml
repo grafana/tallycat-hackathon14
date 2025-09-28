@@ -37,8 +37,12 @@ processors:
   resource:
     attributes:
       - key: service.name
+        action: delete
+      - key: service.name
         value: "otelcontribcol"
         action: insert
+      - key: service.version
+        action: delete
       - key: service.version
         value: "0.134.0-dev"
         action: insert
