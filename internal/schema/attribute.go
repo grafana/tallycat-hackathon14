@@ -24,8 +24,8 @@ const (
 type AttributeSource string
 
 const (
-	AttributeSourceResource  AttributeSource = "Resource"
-	AttributeSourceScope     AttributeSource = "Scope"
+	AttributeSourceResource AttributeSource = "Resource"
+	AttributeSourceScope    AttributeSource = "Scope"
 
 	AttributeSourceDataPoint AttributeSource = "DataPoint"
 	AttributeSourceLogRecord AttributeSource = "LogRecord"

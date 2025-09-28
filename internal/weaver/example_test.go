@@ -52,16 +52,19 @@ func ExampleGenerateYAML() {
 	//   - id: metric.http.server.duration
 	//     type: metric
 	//     metric_name: http.server.duration
-	//     brief: Measures the duration of HTTP server requests
+	//     brief: "Measures the duration of HTTP server requests"
+	//     stability: stable
 	//     instrument: histogram
-	//     unit: ms
+	//     unit: "ms"
 	//     attributes:
 	//       - id: http.method
 	//         type: string
 	//         requirement_level: required
-	//         brief: HTTP request method
+	//         stability: stable
+	//         brief: "HTTP request method"
 	//       - id: http.status_code
 	//         type: int
 	//         requirement_level: recommended
-	//         brief: HTTP response status code
+	//         stability: stable
+	//         brief: "HTTP response status code"
 }

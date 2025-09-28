@@ -378,7 +378,7 @@ func TestProducerWeaverSchemaExport_ZipContents(t *testing.T) {
 	}
 
 	expectedFiles := []string{
-		"test-service---1.0.0.yaml",
+		"test-service---1.0.0-metrics.yaml",
 		"registry_manifest.yaml",
 	}
 
