@@ -9,10 +9,10 @@ type SchemaAssignment struct {
 }
 
 type TelemetrySchema struct {
-	SchemaId      string      `json:"schemaId"`
-	Version       string      `json:"version"`
-	ProducerCount int         `json:"producerCount"`
-	LastSeen      *time.Time  `json:"lastSeen,omitempty"`
-	Producers     []Producer  `json:"producers"`
-	Attributes    []Attribute `json:"attributes"`
+	SchemaId    string             `json:"schemaId"`
+	Version     string             `json:"version"`
+	EntityCount int                `json:"entityCount"`
+	LastSeen    *time.Time         `json:"lastSeen,omitempty"`
+	Entities    map[string]*Entity `json:"entities"`
+	Attributes  []Attribute        `json:"attributes"`
 }
