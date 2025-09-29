@@ -239,7 +239,7 @@ func TestListTelemetriesByEntity_EntityWithMetrics(t *testing.T) {
 					ID:   "entity3",
 					Type: "k8s",
 					Attributes: map[string]interface{}{
-						"k8s.pod.name":      "my-pod",
+						"k8s.pod.name":       "my-pod",
 						"k8s.namespace.name": "default",
 					},
 					FirstSeen: time.Now(),
@@ -459,7 +459,7 @@ func TestListTelemetriesByEntity_EntityWithLogRecords(t *testing.T) {
 					ID:   "entity3",
 					Type: "k8s",
 					Attributes: map[string]interface{}{
-						"k8s.pod.name":      "other-pod",
+						"k8s.pod.name":       "other-pod",
 						"k8s.namespace.name": "other-namespace",
 					},
 					FirstSeen: time.Now(),
@@ -681,7 +681,7 @@ func TestListTelemetriesByEntity_EntityWithTraces(t *testing.T) {
 					ID:   "entity3",
 					Type: "k8s",
 					Attributes: map[string]interface{}{
-						"k8s.pod.name":      "other-pod",
+						"k8s.pod.name":       "other-pod",
 						"k8s.namespace.name": "other-namespace",
 					},
 					FirstSeen: time.Now(),
@@ -902,7 +902,7 @@ func TestListTelemetriesByEntity_EntityWithProfiles(t *testing.T) {
 					ID:   "entity3",
 					Type: "k8s",
 					Attributes: map[string]interface{}{
-						"k8s.pod.name":      "other-pod",
+						"k8s.pod.name":       "other-pod",
 						"k8s.namespace.name": "other-namespace",
 					},
 					FirstSeen: time.Now(),
