@@ -91,6 +91,7 @@ func registerAPIRoutes(r chi.Router, srv *Server) {
 		})
 		r.Route("/producers", func(r chi.Router) {
 			r.Get("/{producerNameVersion}/weaver-schema.zip", api.HandleProducerWeaverSchemaExport(srv.schemaRepo))
+			r.Get("/{producerNameVersion}/{type}", api.HandleProducerSchemaExport(srv.schemaRepo))
 		})
 	})
 }
