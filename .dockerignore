@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+README.md
+CONTRIBUTING.md
+docs/
+
+# Development files
+.vscode
+.cursor
+renovate.json
+
+# Database files (will be created in container)
+*.db
+
+# Node.js
+ui/node_modules
+ui/dist
+ui/.vite
+
+# Go
+vendor/
+
+# IDE
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Example configs (not needed for build)
+examples/
