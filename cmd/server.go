@@ -19,8 +19,8 @@ import (
 	"github.com/tallycat/tallycat/internal/repository/duckdb/migrator"
 	logspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	metricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
-	tracespb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	profilespb "go.opentelemetry.io/proto/otlp/collector/profiles/v1development"
+	tracespb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )

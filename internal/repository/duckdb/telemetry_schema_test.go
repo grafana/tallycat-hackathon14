@@ -715,7 +715,6 @@ func TestListTelemetriesByProducer_ProducerWithNoTraces(t *testing.T) {
 	require.Empty(t, telemetries)
 }
 
-
 func TestListTelemetriesByProducer_ProducerWithProfiles(t *testing.T) {
 	repo := setupTestDB(t)
 	ctx := context.Background()
@@ -863,7 +862,6 @@ func TestListTelemetriesByProducer_ProducerWithProfiles(t *testing.T) {
 	require.Contains(t, schemaKeys, "memory.usage")
 	require.NotContains(t, schemaKeys, "objects_alloc")
 }
-
 
 func TestListTelemetriesByProducer_ProducerWithNoProfiles(t *testing.T) {
 	repo := setupTestDB(t)
