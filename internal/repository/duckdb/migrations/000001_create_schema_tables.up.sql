@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS telemetry_schemas (
     span_name TEXT,
     span_id TEXT,
     span_trace_id TEXT,
+    -- Profile fields
+    profile_sample_aggregation_temporality TEXT,
+    profile_sample_unit TEXT,
     -- Common fields
     note TEXT,
     protocol TEXT,

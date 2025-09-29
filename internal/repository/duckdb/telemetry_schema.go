@@ -36,8 +36,9 @@ func (r *TelemetrySchemaRepository) RegisterTelemetrySchemas(ctx context.Context
 			metric_type, temporality, unit, brief, 
 			log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
 			span_kind, span_name, span_id, span_trace_id,
+			profile_sample_aggregation_temporality, profile_sample_unit,
 			note, protocol, seen_count, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (schema_id) DO UPDATE SET
 			seen_count = telemetry_schemas.seen_count + excluded.seen_count,
 			updated_at = excluded.updated_at
@@ -95,6 +96,8 @@ func (r *TelemetrySchemaRepository) RegisterTelemetrySchemas(ctx context.Context
 			schema.SpanName,
 			schema.SpanID,
 			schema.SpanTraceID,
+			schema.ProfileSampleAggregationTemporality,
+			schema.ProfileSampleUnit,
 			schema.Note,
 			schema.Protocol,
 			schema.SeenCount,
@@ -216,6 +219,9 @@ func (r *TelemetrySchemaRepository) ListTelemetries(ctx context.Context, params 
 				t.span_name,
 				t.span_id,
 				t.span_trace_id,
+				-- Profile fields
+				t.profile_sample_aggregation_temporality,
+				t.profile_sample_unit,
 				-- Common fields
 				t.note,
 				t.protocol,
@@ -235,6 +241,7 @@ func (r *TelemetrySchemaRepository) ListTelemetries(ctx context.Context, params 
 			unit, metric_type, temporality, brief,
 			log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
 			span_kind, span_name, span_id, span_trace_id,
+			profile_sample_aggregation_temporality, profile_sample_unit,
 			note, protocol, seen_count,
 			created_at, updated_at, version_count
 		FROM latest_schemas
@@ -283,6 +290,8 @@ func (r *TelemetrySchemaRepository) ListTelemetries(ctx context.Context, params 
 			&schema.SpanName,
 			&schema.SpanID,
 			&schema.SpanTraceID,
+			&schema.ProfileSampleAggregationTemporality,
+			&schema.ProfileSampleUnit,
 			&schema.Note,
 			&schema.Protocol,
 			&schema.SeenCount,
@@ -330,6 +339,9 @@ func (r *TelemetrySchemaRepository) GetTelemetry(ctx context.Context, schemaKey 
 						t.span_name,
 						t.span_id,
 						t.span_trace_id,
+						-- Profile fields
+						t.profile_sample_aggregation_temporality,
+						t.profile_sample_unit,
 						-- Common fields
 						t.note,
 						t.protocol,
@@ -369,6 +381,9 @@ func (r *TelemetrySchemaRepository) GetTelemetry(ctx context.Context, schemaKey 
 			span_name,
 			span_id,
 			span_trace_id,
+			-- Profile fields
+			profile_sample_aggregation_temporality,
+			profile_sample_unit,
 			-- Common fields
 			note,
 			protocol,
@@ -410,6 +425,8 @@ func (r *TelemetrySchemaRepository) GetTelemetry(ctx context.Context, schemaKey 
 		&s.SpanName,
 		&s.SpanID,
 		&s.SpanTraceID,
+		&s.ProfileSampleAggregationTemporality,
+		&s.ProfileSampleUnit,
 		&s.Note,
 		&s.Protocol,
 		&s.SeenCount,
@@ -758,6 +775,9 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 					t.span_name,
 					t.span_id,
 					t.span_trace_id,
+					-- Profile fields
+					t.profile_sample_aggregation_temporality,
+					t.profile_sample_unit,
 					-- Common fields
 					t.note,
 					t.protocol,
@@ -777,6 +797,7 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 				unit, metric_type, temporality, brief,
 				log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
 				span_kind, span_name, span_id, span_trace_id,
+				profile_sample_aggregation_temporality, profile_sample_unit,
 				note, protocol, seen_count,
 				created_at, updated_at
 			FROM latest_schemas
@@ -811,6 +832,9 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 					t.span_name,
 					t.span_id,
 					t.span_trace_id,
+					-- Profile fields
+					t.profile_sample_aggregation_temporality,
+					t.profile_sample_unit,
 					-- Common fields
 					t.note,
 					t.protocol,
@@ -830,6 +854,7 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 				unit, metric_type, temporality, brief,
 				log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
 				span_kind, span_name, span_id, span_trace_id,
+				profile_sample_aggregation_temporality, profile_sample_unit,
 				note, protocol, seen_count,
 				created_at, updated_at
 			FROM latest_schemas
@@ -876,6 +901,8 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 			&t.SpanName,
 			&t.SpanID,
 			&t.SpanTraceID,
+			&t.ProfileSampleAggregationTemporality,
+			&t.ProfileSampleUnit,
 			&t.Note,
 			&t.Protocol,
 			&t.SeenCount,
