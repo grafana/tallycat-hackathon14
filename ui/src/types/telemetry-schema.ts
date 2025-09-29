@@ -3,7 +3,7 @@ import type {
   Attribute,
   Status,
   Telemetry,
-  TelemetryProducer,
+  TelemetryEntity,
 } from './telemetry'
 
 // Extend Telemetry to include schema-specific fields
@@ -12,7 +12,7 @@ export interface TelemetrySchema {
   version: string | null
   status: Status
   lastSeen: string
-  producers: TelemetryProducer[]
+  entities: Record<string, TelemetryEntity>
   attributes: Attribute[]
 }
 
@@ -24,7 +24,7 @@ export interface TelemetrySchemaGrid {
   schemaId: string
   status: Status
   version: string | null
-  producerCount: number
+  entityCount: number
   lastSeen: string
 }
 

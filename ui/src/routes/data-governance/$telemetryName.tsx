@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { useTelemetryDetails } from '@/hooks'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
-import { TelemetryProducersPanel } from '@/components/telemetry/telemetry-sources-panel'
+import { TelemetryEntitiesPanel } from '@/components/telemetry/telemetry-sources-panel'
 import { VersionAssignmentView } from '@/components/telemetry-catalog/VersionAssignment'
 import { TelemetryOverviewPanel } from '@/components/telemetry-catalog/features/telemetry/TelemetryOverviewPanel'
 import { SchemaHistoryView } from '@/components/telemetry-catalog/features/history/SchemaHistoryView'
@@ -23,10 +23,10 @@ export const TelemetryDetails = () => {
     isLoading,
     error,
   } = useTelemetryDetails({ telemetryName })
-  const [isProducersPanelOpen, setIsProducersPanelOpen] = useState(false)
+  const [isEntitiesPanelOpen, setIsEntitiesPanelOpen] = useState(false)
 
   const handleViewAllSources = () => {
-    setIsProducersPanelOpen(true)
+    setIsEntitiesPanelOpen(true)
   }
 
   if (isLoading) {
@@ -116,7 +116,7 @@ export const TelemetryDetails = () => {
               onClick={handleViewAllSources}
             >
               <Server className="h-3.5 w-3.5" />
-              {Object.keys(telemetry.producers).length} Producers
+              {Object.keys(telemetry.entities).length} Entities
             </Button>
 
             {/* View Validation Button */}
@@ -168,10 +168,10 @@ export const TelemetryDetails = () => {
         </TabsContent>
       </Tabs>
 
-      <TelemetryProducersPanel
+      <TelemetryEntitiesPanel
         schemaData={telemetry}
-        isOpen={isProducersPanelOpen}
-        onClose={() => setIsProducersPanelOpen(false)}
+        isOpen={isEntitiesPanelOpen}
+        onClose={() => setIsEntitiesPanelOpen(false)}
       />
     </div>
   )

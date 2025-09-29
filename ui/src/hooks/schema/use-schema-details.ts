@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
-import type { TelemetrySchema } from '@/types/telemetry-schema'
 
 interface UseSchemaDetailsOptions {
   schemaKey: string

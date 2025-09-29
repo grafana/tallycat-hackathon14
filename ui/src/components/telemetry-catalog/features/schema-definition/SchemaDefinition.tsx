@@ -122,7 +122,7 @@ export function SchemaDefinitionView({
         return 'Metric Data'
       case 'Log':
         return 'Log Record'
-      case 'Trace':
+      case 'Span':
         return 'Span'
       default:
         return 'Data'
@@ -136,7 +136,7 @@ export function SchemaDefinitionView({
         return <BarChart3 className="h-5 w-5 text-purple-500" />
       case 'Log':
         return <BarChart3 className="h-5 w-5 text-purple-500" />
-      case 'Trace':
+      case 'Span':
         return <BarChart3 className="h-5 w-5 text-purple-500" />
       default:
         return null
