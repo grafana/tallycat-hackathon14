@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -356,6 +357,57 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 
 		// Write the ZIP file content to the response
 		w.Write(buf.Bytes())
+	}
+}
+
+func HandleProducerSchemaExport(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		producerNameVersion := chi.URLParam(r, "producerNameVersion")
+		telemetryType := chi.URLParam(r, "type")
+
+		// Parse producer name and version from the URL parameter
+		producerName, producerVersion, err := parseProducerNameVersion(producerNameVersion)
+		if err != nil {
+			http.Error(w, "invalid producer format, expected name---version or name---", http.StatusBadRequest)
+			return
+		}
+
+		// Get all telemetries for this producer
+		telemetries, err := schemaRepo.ListTelemetriesByProducer(ctx, producerName, producerVersion)
+		if err != nil {
+			slog.Error("failed to get telemetries for producer", "producer", producerNameVersion, "error", err)
+			http.Error(w, "failed to get telemetries for producer", http.StatusInternalServerError)
+			return
+		}
+
+		// Check if producer exists but has no telemetries
+		if len(telemetries) == 0 {
+			// According to our specification: return 204 for producers with no telemetries
+			// We can't distinguish between "producer doesn't exist" and "producer has no telemetries"
+			// from the current repository implementation, so we treat empty results as "no telemetries"
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		outBuff := &bytes.Buffer{}
+		var genYaml func(telemetries []schema.Telemetry, schemas map[string]*schema.TelemetrySchema) (string, error)
+		switch telemetryType {
+		case "metrics":
+			genYaml = weaver.GenerateMultiMetricYAML
+		case "logs":
+			genYaml = weaver.GenerateMultiLogYAML
+		case "spans":
+			genYaml = weaver.GenerateMultiSpanYAML
+		}
+		metricsYAML, err := genYaml(telemetries, nil)
+		if err != nil {
+			slog.Error("failed to generate schema YAML", "producer", producerNameVersion, "error", err)
+			http.Error(w, "failed to generate metrics YAML", http.StatusInternalServerError)
+			return
+		}
+		outBuff.WriteString(metricsYAML)
+		io.Copy(w, outBuff)
 	}
 }
 
