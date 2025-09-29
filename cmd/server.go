@@ -20,6 +20,7 @@ import (
 	logspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	metricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	tracespb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	profilespb "go.opentelemetry.io/proto/otlp/collector/profiles/v1development"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -92,6 +93,9 @@ and processes log data according to the OpenTelemetry protocol.`,
 
 		tracesService := grpcserver.NewTracesServiceServer(schemaRepo)
 		srv.RegisterService(&tracespb.TraceService_ServiceDesc, tracesService)
+
+		profilesService := grpcserver.NewProfilesServiceServer(schemaRepo)
+		srv.RegisterService(&profilespb.ProfilesService_ServiceDesc, profilesService)
 
 		httpSrv := httpserver.New(httpAddr, schemaRepo, historyRepo)
 

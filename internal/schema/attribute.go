@@ -30,6 +30,7 @@ const (
 	AttributeSourceDataPoint AttributeSource = "DataPoint"
 	AttributeSourceLogRecord AttributeSource = "LogRecord"
 	AttributeSourceSpan      AttributeSource = "Span"
+	AttributeSourceProfile   AttributeSource = "Profile"
 )
 
 type Attribute struct {

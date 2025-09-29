@@ -11,7 +11,9 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/pdata/pprofile"
 	"go.opentelemetry.io/collector/pdata/ptrace"
+	profilepb "go.opentelemetry.io/proto/otlp/profiles/v1development"
 )
 
 // generateMetricSchemaID creates a deterministic schema ID based on telemetry characteristics.
@@ -416,6 +418,145 @@ func ExtractFromTraces(traces ptrace.Traces) []Telemetry {
 		}
 	}
 
+	result := make([]Telemetry, 0, len(telemetries))
+	for _, telemetry := range telemetries {
+		result = append(result, telemetry)
+	}
+
+	return result
+}
+
+func generateProfileSchemaID(telemetry Telemetry) string {
+	attributeNames := make([]string, 0, len(telemetry.Attributes))
+	for _, attr := range telemetry.Attributes {
+		if attr.Source == AttributeSourceProfile {
+			attributeNames = append(attributeNames, attr.Name)
+		}
+	}
+	sort.Strings(attributeNames)
+
+	parts := []string{
+		telemetry.SchemaKey,
+		telemetry.ProfileSampleAggregationTemporality,
+		telemetry.ProfileSampleUnit,
+		strings.Join(attributeNames, ","),
+	}
+
+	h := xxhash.New()
+	h.Write([]byte(strings.Join(parts, "|")))
+	return fmt.Sprintf("%x", h.Sum64())
+}
+
+func ExtractFromProfiles(profiles pprofile.Profiles, dictionary *profilepb.ProfilesDictionary) []Telemetry {
+	telemetries := map[string]Telemetry{}
+
+	for i := range profiles.ResourceProfiles().Len() {
+		resourceProfile := profiles.ResourceProfiles().At(i)
+		resourceAttributes := resourceProfile.Resource().Attributes()
+
+		for k := range resourceProfile.ScopeProfiles().Len() {
+			scopeProfile := resourceProfile.ScopeProfiles().At(k)
+			scopeAttributes := scopeProfile.Scope().Attributes()
+
+			for l := range scopeProfile.Profiles().Len() {
+				profile := scopeProfile.Profiles().At(l)
+
+				profileAttributes := pcommon.NewMap()
+				if dictionary != nil && dictionary.AttributeTable != nil {
+					for _, attrIndex := range profile.AttributeIndices().All() {
+						if int(attrIndex) < len(dictionary.AttributeTable) {
+							attr := dictionary.AttributeTable[attrIndex]
+							profileAttributes.PutStr(attr.Key, attr.Value.GetStringValue())
+						}
+					}
+				}
+
+				for _, s := range profile.SampleType().All() {
+					// One OTLP Profile message can have multiple profile types. We'll store one telemetry for each profile type.
+					var profileType, profileAggregationTemporality, profileUnit string
+					if dictionary != nil && dictionary.StringTable != nil {
+						if int(s.TypeStrindex()) < len(dictionary.StringTable) {
+							profileType = dictionary.StringTable[s.TypeStrindex()]
+						}
+						if int(s.AggregationTemporality()) < len(dictionary.StringTable) {
+							profileAggregationTemporality = dictionary.StringTable[s.AggregationTemporality()]
+						}
+						if int(s.UnitStrindex()) < len(dictionary.StringTable) {
+							profileUnit = dictionary.StringTable[s.UnitStrindex()]
+						}
+					}
+					telemetry := Telemetry{
+						SchemaURL:                           scopeProfile.SchemaUrl(),
+						TelemetryType:                       TelemetryTypeProfile,
+						SchemaKey:                           profileType,
+						ProfileSampleAggregationTemporality: profileAggregationTemporality,
+						ProfileSampleUnit:                   profileUnit,
+						Attributes:                          make([]Attribute, 0, resourceAttributes.Len()+scopeAttributes.Len()+profileAttributes.Len()),
+						Protocol:                            TelemetryProtocolOTLP,
+						SeenCount:                           1,
+						CreatedAt:                           time.Now(),
+						UpdatedAt:                           time.Now(),
+						Producers:                           make(map[string]*Producer),
+					}
+
+					producer := &Producer{
+						FirstSeen: time.Now(),
+						LastSeen:  time.Now(),
+					}
+
+					resourceAttributes.Range(func(key string, value pcommon.Value) bool {
+						switch key {
+						case "service.name":
+							producer.Name = value.Str()
+						case "service.namespace":
+							producer.Namespace = value.Str()
+						case "service.version":
+							producer.Version = value.Str()
+						case "service.instance.id":
+							producer.InstanceID = value.Str()
+						}
+
+						telemetry.Attributes = append(telemetry.Attributes, Attribute{
+							Name:   key,
+							Type:   AttributeType(value.Type().String()),
+							Source: AttributeSourceResource,
+						})
+						return true
+					})
+
+					// Add producer if it has a name
+					if producer.Name != "" {
+						telemetry.Producers[producer.ProducerID()] = producer
+					}
+
+					scopeAttributes.Range(func(key string, value pcommon.Value) bool {
+						telemetry.Attributes = append(telemetry.Attributes, Attribute{
+							Name:   key,
+							Type:   AttributeType(value.Type().String()),
+							Source: AttributeSourceScope,
+						})
+						return true
+					})
+
+					profileAttributes.Range(func(key string, value pcommon.Value) bool {
+						telemetry.Attributes = append(telemetry.Attributes, Attribute{
+							Name:   key,
+							Type:   AttributeType(value.Type().String()),
+							Source: AttributeSourceSpan,
+						})
+						return true
+					})
+
+					telemetry.SchemaID = generateProfileSchemaID(telemetry)
+					if existing, ok := telemetries[telemetry.SchemaID]; ok {
+						existing.SeenCount++
+					} else {
+						telemetries[telemetry.SchemaID] = telemetry
+					}
+				}
+			}
+		}
+	}
 	result := make([]Telemetry, 0, len(telemetries))
 	for _, telemetry := range telemetries {
 		result = append(result, telemetry)

@@ -1,0 +1,48 @@
+resourceProfiles:
+  - schemaUrl: https://opentelemetry.io/schemas/1.9.0
+    resource:
+      attributes:
+        - key: service.name
+          value:
+            stringValue: test-service
+        - key: service.version
+          value:
+            stringValue: "1.0.0"
+        - key: deployment.environment.name
+          value:
+            stringValue: "production"
+    scopeProfiles:
+      - schemaUrl: https://opentelemetry.io/schemas/1.9.0
+        scope:
+          name: test-profiler
+          version: "1.0.0"
+          attributes:
+            - key: instrumentation.provider
+              value:
+                stringValue: "test"
+        profiles:
+          - attributeIndices: [0, 1, 2]
+            sampleType:
+              - typeStrindex: 1
+                unitStrindex: 2
+                aggregationTemporality: 1
+              - typeStrindex: 3
+                unitStrindex: 4
+                aggregationTemporality: 2
+dictionary:
+  stringTable:
+    - ""
+    - "alloc_objects"
+    - "count"
+    - "alloc_space"
+    - "bytes"
+  attributeTable:
+    - key: cpu
+      value:
+        stringValue: "0"
+    - key: mode
+      value:
+        stringValue: "user"
+    - key: state
+      value:
+        stringValue: "idle"

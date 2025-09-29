@@ -15,6 +15,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/ptrace"
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	metricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
+	profilespb "go.opentelemetry.io/proto/otlp/collector/profiles/v1development"
 	tracespb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	resourcepb "go.opentelemetry.io/proto/otlp/resource/v1"
@@ -76,11 +77,12 @@ func (db *TestDB) CleanupTestDB(t *testing.T) {
 
 // TestServer represents a test gRPC server
 type TestServer struct {
-	server        *grpc.Server
-	LogsClient    collectorlogspb.LogsServiceClient
-	MetricsClient metricspb.MetricsServiceClient
-	TracesClient  tracespb.TraceServiceClient
-	conn          *grpc.ClientConn
+	server         *grpc.Server
+	LogsClient     collectorlogspb.LogsServiceClient
+	MetricsClient  metricspb.MetricsServiceClient
+	ProfilesClient profilespb.ProfilesServiceClient
+	TracesClient   tracespb.TraceServiceClient
+	conn           *grpc.ClientConn
 }
 
 // NewTestServer creates a new test gRPC server
@@ -88,9 +90,11 @@ func NewTestServer(t *testing.T, db *TestDB) *TestServer {
 	server := grpc.NewServer()
 	logsServer := grpcserver.NewLogsServiceServer(db.repo)
 	metricsServer := grpcserver.NewMetricsServiceServer(db.repo)
+	profilesServer := grpcserver.NewProfilesServiceServer(db.repo)
 	tracesServer := grpcserver.NewTracesServiceServer(db.repo)
 	collectorlogspb.RegisterLogsServiceServer(server, logsServer)
 	metricspb.RegisterMetricsServiceServer(server, metricsServer)
+	profilespb.RegisterProfilesServiceServer(server, profilesServer)
 	tracespb.RegisterTraceServiceServer(server, tracesServer)
 
 	lis, err := net.Listen("tcp", "localhost:0")
@@ -106,14 +110,16 @@ func NewTestServer(t *testing.T, db *TestDB) *TestServer {
 
 	logsClient := collectorlogspb.NewLogsServiceClient(conn)
 	metricsClient := metricspb.NewMetricsServiceClient(conn)
+	profilesClient := profilespb.NewProfilesServiceClient(conn)
 	tracesClient := tracespb.NewTraceServiceClient(conn)
 
 	return &TestServer{
-		server:        server,
-		LogsClient:    logsClient,
-		MetricsClient: metricsClient,
-		TracesClient:  tracesClient,
-		conn:          conn,
+		server:         server,
+		LogsClient:     logsClient,
+		MetricsClient:  metricsClient,
+		ProfilesClient: profilesClient,
+		TracesClient:   tracesClient,
+		conn:           conn,
 	}
 }
 
