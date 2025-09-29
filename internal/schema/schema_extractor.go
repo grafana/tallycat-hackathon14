@@ -97,26 +97,16 @@ func ExtractFromMetrics(metrics pmetric.Metrics) []Telemetry {
 					SeenCount:         1,
 					CreatedAt:         time.Now(),
 					UpdatedAt:         time.Now(),
-					Producers:         make(map[string]*Producer),
+					Entities:          make(map[string]*Entity),
 				}
 
-				producer := &Producer{
-					FirstSeen: time.Now(),
-					LastSeen:  time.Now(),
+				// Extract entities from resource attributes
+				entities := DetectEntities(resourceAttributes)
+				for _, entity := range entities {
+					telemetry.Entities[entity.ID] = &entity
 				}
 
 				resourceAttributes.Range(func(key string, value pcommon.Value) bool {
-					switch key {
-					case "service.name":
-						producer.Name = value.Str()
-					case "service.namespace":
-						producer.Namespace = value.Str()
-					case "service.version":
-						producer.Version = value.Str()
-					case "service.instance.id":
-						producer.InstanceID = value.Str()
-					}
-
 					telemetry.Attributes = append(telemetry.Attributes, Attribute{
 						Name:   key,
 						Type:   AttributeType(value.Type().String()),
@@ -124,11 +114,6 @@ func ExtractFromMetrics(metrics pmetric.Metrics) []Telemetry {
 					})
 					return true
 				})
-
-				// Add producer if it has a name
-				if producer.Name != "" {
-					telemetry.Producers[producer.ProducerID()] = producer
-				}
 
 				scopeAttributes.Range(func(key string, value pcommon.Value) bool {
 					telemetry.Attributes = append(telemetry.Attributes, Attribute{
@@ -261,26 +246,16 @@ func ExtractFromLogs(logs plog.Logs) []Telemetry {
 					SeenCount:                 1,
 					CreatedAt:                 time.Now(),
 					UpdatedAt:                 time.Now(),
-					Producers:                 make(map[string]*Producer),
+					Entities:                  make(map[string]*Entity),
 				}
 
-				producer := &Producer{
-					FirstSeen: time.Now(),
-					LastSeen:  time.Now(),
+				// Extract entities from resource attributes
+				entities := DetectEntities(resourceAttributes)
+				for _, entity := range entities {
+					telemetry.Entities[entity.ID] = &entity
 				}
 
 				resourceAttributes.Range(func(key string, value pcommon.Value) bool {
-					switch key {
-					case "service.name":
-						producer.Name = value.Str()
-					case "service.namespace":
-						producer.Namespace = value.Str()
-					case "service.version":
-						producer.Version = value.Str()
-					case "service.instance.id":
-						producer.InstanceID = value.Str()
-					}
-
 					telemetry.Attributes = append(telemetry.Attributes, Attribute{
 						Name:   key,
 						Type:   AttributeType(value.Type().String()),
@@ -288,11 +263,6 @@ func ExtractFromLogs(logs plog.Logs) []Telemetry {
 					})
 					return true
 				})
-
-				// Add producer if it has a name
-				if producer.Name != "" {
-					telemetry.Producers[producer.ProducerID()] = producer
-				}
 
 				scopeAttributes.Range(func(key string, value pcommon.Value) bool {
 					telemetry.Attributes = append(telemetry.Attributes, Attribute{
@@ -357,26 +327,16 @@ func ExtractFromTraces(traces ptrace.Traces) []Telemetry {
 					SeenCount:     1,
 					CreatedAt:     time.Now(),
 					UpdatedAt:     time.Now(),
-					Producers:     make(map[string]*Producer),
+					Entities:      make(map[string]*Entity),
 				}
 
-				producer := &Producer{
-					FirstSeen: time.Now(),
-					LastSeen:  time.Now(),
+				// Extract entities from resource attributes
+				entities := DetectEntities(resourceAttributes)
+				for _, entity := range entities {
+					telemetry.Entities[entity.ID] = &entity
 				}
 
 				resourceAttributes.Range(func(key string, value pcommon.Value) bool {
-					switch key {
-					case "service.name":
-						producer.Name = value.Str()
-					case "service.namespace":
-						producer.Namespace = value.Str()
-					case "service.version":
-						producer.Version = value.Str()
-					case "service.instance.id":
-						producer.InstanceID = value.Str()
-					}
-
 					telemetry.Attributes = append(telemetry.Attributes, Attribute{
 						Name:   key,
 						Type:   AttributeType(value.Type().String()),
@@ -384,11 +344,6 @@ func ExtractFromTraces(traces ptrace.Traces) []Telemetry {
 					})
 					return true
 				})
-
-				// Add producer if it has a name
-				if producer.Name != "" {
-					telemetry.Producers[producer.ProducerID()] = producer
-				}
 
 				scopeAttributes.Range(func(key string, value pcommon.Value) bool {
 					telemetry.Attributes = append(telemetry.Attributes, Attribute{
@@ -499,26 +454,16 @@ func ExtractFromProfiles(profiles pprofile.Profiles, dictionary *profilepb.Profi
 						SeenCount:                           1,
 						CreatedAt:                           time.Now(),
 						UpdatedAt:                           time.Now(),
-						Producers:                           make(map[string]*Producer),
+						Entities:                            make(map[string]*Entity),
 					}
 
-					producer := &Producer{
-						FirstSeen: time.Now(),
-						LastSeen:  time.Now(),
+					// Extract entities from resource attributes
+					entities := DetectEntities(resourceAttributes)
+					for _, entity := range entities {
+						telemetry.Entities[entity.ID] = &entity
 					}
 
 					resourceAttributes.Range(func(key string, value pcommon.Value) bool {
-						switch key {
-						case "service.name":
-							producer.Name = value.Str()
-						case "service.namespace":
-							producer.Namespace = value.Str()
-						case "service.version":
-							producer.Version = value.Str()
-						case "service.instance.id":
-							producer.InstanceID = value.Str()
-						}
-
 						telemetry.Attributes = append(telemetry.Attributes, Attribute{
 							Name:   key,
 							Type:   AttributeType(value.Type().String()),
@@ -526,11 +471,6 @@ func ExtractFromProfiles(profiles pprofile.Profiles, dictionary *profilepb.Profi
 						})
 						return true
 					})
-
-					// Add producer if it has a name
-					if producer.Name != "" {
-						telemetry.Producers[producer.ProducerID()] = producer
-					}
 
 					scopeAttributes.Range(func(key string, value pcommon.Value) bool {
 						telemetry.Attributes = append(telemetry.Attributes, Attribute{

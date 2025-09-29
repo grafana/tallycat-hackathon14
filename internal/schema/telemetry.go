@@ -84,8 +84,8 @@ type Telemetry struct {
 	SeenCount  int               `json:"seenCount"`
 	CreatedAt  time.Time         `json:"createdAt"`
 	UpdatedAt  time.Time         `json:"updatedAt"`
-	// Producers maps producer keys to their information
-	Producers map[string]*Producer `json:"producers"`
+	// Entities maps entity IDs to their information
+	Entities map[string]*Entity `json:"entities"`
 }
 
 type TelemetryHistory struct {
