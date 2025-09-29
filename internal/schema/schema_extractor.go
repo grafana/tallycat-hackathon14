@@ -462,11 +462,14 @@ func ExtractFromProfiles(profiles pprofile.Profiles, dictionary *profilepb.Profi
 				profile := scopeProfile.Profiles().At(l)
 
 				profileAttributes := pcommon.NewMap()
-				if dictionary != nil && dictionary.AttributeTable != nil {
+				if dictionary != nil && dictionary.AttributeTable != nil && dictionary.StringTable != nil {
 					for _, attrIndex := range profile.AttributeIndices().All() {
 						if int(attrIndex) < len(dictionary.AttributeTable) {
 							attr := dictionary.AttributeTable[attrIndex]
-							profileAttributes.PutStr(attr.Key, attr.Value.GetStringValue())
+							if int(attr.KeyStrindex) < len(dictionary.StringTable) {
+								key := dictionary.StringTable[attr.KeyStrindex]
+								profileAttributes.PutStr(key, attr.Value.GetStringValue())
+							}
 						}
 					}
 				}

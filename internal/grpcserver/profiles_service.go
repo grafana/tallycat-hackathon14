@@ -23,6 +23,16 @@ func NewProfilesServiceServer(schemaRepo repository.TelemetrySchemaRepository) *
 }
 
 func (s *ProfilesServiceServer) Export(ctx context.Context, req *profilespb.ExportProfilesServiceRequest) (*profilespb.ExportProfilesServiceResponse, error) {
+	slog.Info("Received profiles export request",
+		"resource_profiles_count", len(req.ResourceProfiles),
+		"has_dictionary", req.Dictionary != nil)
+
+	if req.Dictionary != nil {
+		slog.Info("Dictionary details",
+			"string_table_size", len(req.Dictionary.StringTable),
+			"attribute_table_size", len(req.Dictionary.AttributeTable))
+	}
+
 	profiles := pprofile.NewProfiles()
 	rps := profiles.ResourceProfiles()
 	rps.EnsureCapacity(len(req.ResourceProfiles))
@@ -63,11 +73,11 @@ func (s *ProfilesServiceServer) Export(ctx context.Context, req *profilespb.Expo
 				profile := ps.AppendEmpty()
 				profile.AttributeIndices().Append(p.AttributeIndices...)
 
-				for _, sType := range p.SampleType {
+				if p.SampleType != nil {
 					sampleType := profile.SampleType().AppendEmpty()
-					sampleType.SetAggregationTemporality(pprofile.AggregationTemporality(sType.AggregationTemporality))
-					sampleType.SetTypeStrindex(int32(sType.TypeStrindex))
-					sampleType.SetUnitStrindex(int32(sType.UnitStrindex))
+					sampleType.SetAggregationTemporality(pprofile.AggregationTemporality(p.SampleType.AggregationTemporality))
+					sampleType.SetTypeStrindex(int32(p.SampleType.TypeStrindex))
+					sampleType.SetUnitStrindex(int32(p.SampleType.UnitStrindex))
 				}
 
 			}
@@ -75,12 +85,23 @@ func (s *ProfilesServiceServer) Export(ctx context.Context, req *profilespb.Expo
 	}
 
 	// Extract schemas from the converted profiles
+	slog.Info("Extracting schemas from profiles")
 	schemas := schema.ExtractFromProfiles(profiles, req.Dictionary)
+	slog.Info("Schema extraction completed", "schemas_count", len(schemas))
+
+	for i, schema := range schemas {
+		slog.Info("Extracted schema",
+			"index", i,
+			"schema_key", schema.SchemaKey,
+			"telemetry_type", schema.TelemetryType,
+			"attributes_count", len(schema.Attributes))
+	}
 
 	if err := s.schemaRepo.RegisterTelemetrySchemas(ctx, schemas); err != nil {
 		slog.Error("failed to register schemas", "error", err)
 		return nil, err
 	}
 
+	slog.Info("Successfully registered telemetry schemas", "count", len(schemas))
 	return &profilespb.ExportProfilesServiceResponse{}, nil
 }

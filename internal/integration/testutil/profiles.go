@@ -39,28 +39,26 @@ func ConvertProfileToRequest(pd pprofile.Profiles) *profilespb.ExportProfilesSer
 
 			for k := 0; k < sp.Profiles().Len(); k++ {
 				p := sp.Profiles().At(k)
-				profile := &profilepb.Profile{
-					AttributeIndices: make([]int32, 0, p.AttributeIndices().Len()),
-					SampleType:       make([]*profilepb.ValueType, 0, p.SampleType().Len()),
-				}
 
-				// Convert attribute indices
-				for l := 0; l < p.AttributeIndices().Len(); l++ {
-					profile.AttributeIndices = append(profile.AttributeIndices, int32(p.AttributeIndices().At(l)))
-				}
-
-				// Convert sample types
 				for l := 0; l < p.SampleType().Len(); l++ {
 					st := p.SampleType().At(l)
-					valueType := &profilepb.ValueType{
-						TypeStrindex:           int32(st.TypeStrindex()),
-						UnitStrindex:           int32(st.UnitStrindex()),
-						AggregationTemporality: profilepb.AggregationTemporality(st.AggregationTemporality()),
-					}
-					profile.SampleType = append(profile.SampleType, valueType)
-				}
 
-				scopeProfiles.Profiles = append(scopeProfiles.Profiles, profile)
+					profile := &profilepb.Profile{
+						AttributeIndices: make([]int32, 0, p.AttributeIndices().Len()),
+						SampleType: &profilepb.ValueType{
+							TypeStrindex:           int32(st.TypeStrindex()),
+							UnitStrindex:           int32(st.UnitStrindex()),
+							AggregationTemporality: profilepb.AggregationTemporality(st.AggregationTemporality()),
+						},
+					}
+
+					// Convert attribute indices
+					for m := 0; m < p.AttributeIndices().Len(); m++ {
+						profile.AttributeIndices = append(profile.AttributeIndices, int32(p.AttributeIndices().At(m)))
+					}
+
+					scopeProfiles.Profiles = append(scopeProfiles.Profiles, profile)
+				}
 			}
 
 			resourceProfiles.ScopeProfiles = append(resourceProfiles.ScopeProfiles, scopeProfiles)
