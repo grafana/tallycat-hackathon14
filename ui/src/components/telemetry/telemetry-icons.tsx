@@ -12,8 +12,28 @@ import {
   ArrowDown,
   Zap,
   Logs,
+  Cpu,
+  MemoryStick,
+  Lock,
+  AlertTriangle,
+  Database,
+  Target,
 } from 'lucide-react'
 import { TelemetryType, type Telemetry } from '@/types/telemetry'
+
+// Helper function to get the profile type from schema key
+const getProfileType = (schemaKey: string): string => {
+  const lowerKey = schemaKey.toLowerCase()
+  
+  // Check for common profile types in the schema key
+  if (lowerKey.includes('cpu')) return 'cpu'
+  if (lowerKey.includes('memory') || lowerKey.includes('heap')) return 'memory'
+  if (lowerKey.includes('alloc')) return 'allocs'
+  if (lowerKey.includes('lock')) return 'locks'
+  if (lowerKey.includes('exception') || lowerKey.includes('error')) return 'exceptions'
+  
+  return 'profile' // default profile type
+}
 
 // Helper function to get the correct data type based on telemetry type
 export const getDataType = (telemetry: Telemetry): string => {
@@ -24,6 +44,8 @@ export const getDataType = (telemetry: Telemetry): string => {
       return telemetry.spanKind || ''
     case TelemetryType.Log:
       return 'log'
+    case TelemetryType.Profile:
+      return getProfileType(telemetry.schemaKey)
     default:
       return ''
   }
@@ -64,6 +86,19 @@ export const DataTypeIcon = ({ dataType }: { dataType: string }) => {
       return <Zap className="h-4 w-4 text-purple-400" />
     case 'log':
       return <Logs className="h-4 w-4 text-green-400" />
+    // Profile types
+    case 'cpu':
+      return <Cpu className="h-4 w-4 text-orange-400" />
+    case 'memory':
+      return <MemoryStick className="h-4 w-4 text-orange-400" />
+    case 'locks':
+      return <Lock className="h-4 w-4 text-orange-400" />
+    case 'exceptions':
+      return <AlertTriangle className="h-4 w-4 text-orange-400" />
+    case 'allocs':
+      return <Database className="h-4 w-4 text-orange-400" />
+    case 'profile':
+      return <Target className="h-4 w-4 text-orange-400" />
     default:
       return <Code className="h-4 w-4 text-gray-400" />
   }
@@ -77,6 +112,8 @@ export const TelemetryTypeIcon = ({ type }: { type: TelemetryType }) => {
       return <FileText className="h-5 w-5 text-green-500" />
     case TelemetryType.Span:
       return <Activity className="h-5 w-5 text-purple-500" />
+    case TelemetryType.Profile:
+      return <Target className="h-5 w-5 text-orange-500" />
     default:
       return <Code className="h-5 w-5 text-gray-500" />
   }

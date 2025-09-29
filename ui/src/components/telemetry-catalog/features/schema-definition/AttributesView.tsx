@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Server, Database, BarChart3, ChevronDown, Search, Activity, FileText } from 'lucide-react'
+import { Server, Database, BarChart3, ChevronDown, Search, Activity, FileText, Target } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import {
@@ -98,6 +98,15 @@ export function AttributesView({ attributes, telemetry }: AttributesViewProps) {
           bgColor: 'bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/10 dark:hover:bg-purple-950/20',
           iconBg: 'bg-purple-100 dark:bg-purple-900/30',
           iconColor: 'text-purple-500'
+        }
+      case TelemetryType.Profile:
+        return {
+          title: 'Profile',
+          description: 'Contains the profile attributes for this schema',
+          icon: Target,
+          bgColor: 'bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/10 dark:hover:bg-orange-950/20',
+          iconBg: 'bg-orange-100 dark:bg-orange-900/30',
+          iconColor: 'text-orange-500'
         }
       default:
         return {
