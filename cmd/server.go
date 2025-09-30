@@ -5,8 +5,10 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -98,14 +100,20 @@ and processes log data according to the OpenTelemetry protocol.`,
 		g, _ := errgroup.WithContext(ctx)
 
 		g.Go(func() error {
-			return srv.Start()
+			if err := srv.Start(); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+				return err
+			}
+			return nil
 		})
 
 		g.Go(func() error {
-			return httpSrv.Start()
+			if err := httpSrv.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				return err
+			}
+			return nil
 		})
 
-		g.Go(func() error {
+		func() {
 			sigChan := make(chan os.Signal, 1)
 			signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 
@@ -115,17 +123,13 @@ and processes log data according to the OpenTelemetry protocol.`,
 					slog.Info("Received shutdown signal", "signal", sig)
 					pool.Close()
 					cancel()
+					return
 				case syscall.SIGHUP:
 					slog.Info("Received reload signal", "signal", sig)
 					// TODO: Implement configuration reload
 				}
 			}
-			return nil
-		})
-
-		if err := g.Wait(); err != nil {
-			return err
-		}
+		}()
 
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer shutdownCancel()
@@ -136,6 +140,10 @@ and processes log data according to the OpenTelemetry protocol.`,
 			srv.Stop()
 			httpSrv.Shutdown(shutdownCtx)
 		}()
+
+		if err := g.Wait(); err != nil {
+			return err
+		}
 
 		select {
 		case <-shutdownDone:
