@@ -43,9 +43,10 @@ const (
 type TelemetryType string
 
 const (
-	TelemetryTypeMetric TelemetryType = "Metric"
-	TelemetryTypeLog    TelemetryType = "Log"
-	TelemetryTypeSpan   TelemetryType = "Span"
+	TelemetryTypeMetric  TelemetryType = "Metric"
+	TelemetryTypeLog     TelemetryType = "Log"
+	TelemetryTypeSpan    TelemetryType = "Span"
+	TelemetryTypeProfile TelemetryType = "Profile"
 )
 
 type Telemetry struct {
@@ -73,6 +74,9 @@ type Telemetry struct {
 	SpanName    string   `json:"spanName"`
 	SpanID      string   `json:"spanID"`
 	SpanTraceID string   `json:"traceID"`
+	// Profile fields
+	ProfileSampleAggregationTemporality string `json:"profileSampleAggregationTemporality"`
+	ProfileSampleUnit                   string `json:"profileSampleUnit"`
 
 	Attributes []Attribute       `json:"attributes"`
 	Note       string            `json:"note,omitempty"`

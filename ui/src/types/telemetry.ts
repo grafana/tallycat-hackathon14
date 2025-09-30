@@ -45,6 +45,9 @@ export interface Telemetry {
   spanName: string
   spanID: string
   traceID: string
+  // Profile fields
+  profileSampleAggregationTemporality: string
+  profileSampleUnit: string
   // Common fields
   brief?: string
   note?: string
