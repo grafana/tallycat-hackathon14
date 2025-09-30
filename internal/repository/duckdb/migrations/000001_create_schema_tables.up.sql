@@ -44,15 +44,28 @@ CREATE TABLE IF NOT EXISTS schema_attributes (
     FOREIGN KEY (schema_id) REFERENCES telemetry_schemas(schema_id)
 );
 
-CREATE TABLE IF NOT EXISTS schema_producers (
-    schema_id TEXT,
-    producer_id TEXT,
+-- Create telemetry_entities table
+CREATE TABLE IF NOT EXISTS telemetry_entities (
+    entity_id TEXT PRIMARY KEY,
+    entity_type TEXT NOT NULL,
+    first_seen TIMESTAMP NOT NULL,
+    last_seen TIMESTAMP NOT NULL
+);
+
+-- Create entity_attributes table
+CREATE TABLE IF NOT EXISTS entity_attributes (
+    entity_id TEXT,
     name TEXT,
-    namespace TEXT,
-    version TEXT,
-    instance_id TEXT,
-    first_seen TIMESTAMP,
-    last_seen TIMESTAMP,
+    value TEXT,
+    type TEXT,
+    FOREIGN KEY (entity_id) REFERENCES telemetry_entities(entity_id)
+);
+
+-- Create schema_entities table (many-to-many relationship)
+CREATE TABLE IF NOT EXISTS schema_entities (
+    schema_id TEXT,
+    entity_id TEXT,
     FOREIGN KEY (schema_id) REFERENCES telemetry_schemas(schema_id),
-    PRIMARY KEY (schema_id, producer_id)
+    FOREIGN KEY (entity_id) REFERENCES telemetry_entities(entity_id),
+    PRIMARY KEY (schema_id, entity_id)
 );

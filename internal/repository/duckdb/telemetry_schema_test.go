@@ -70,17 +70,30 @@ func setupTestDB(t *testing.T) *TelemetrySchemaRepository {
 			FOREIGN KEY (schema_id) REFERENCES telemetry_schemas(schema_id)
 		);
 
-		CREATE TABLE IF NOT EXISTS schema_producers (
-			schema_id TEXT,
-			producer_id TEXT,
+		-- Create telemetry_entities table
+		CREATE TABLE IF NOT EXISTS telemetry_entities (
+			entity_id TEXT PRIMARY KEY,
+			entity_type TEXT NOT NULL,
+			first_seen TIMESTAMP NOT NULL,
+			last_seen TIMESTAMP NOT NULL
+		);
+
+		-- Create entity_attributes table
+		CREATE TABLE IF NOT EXISTS entity_attributes (
+			entity_id TEXT,
 			name TEXT,
-			namespace TEXT,
-			version TEXT,
-			instance_id TEXT,
-			first_seen TIMESTAMP,
-			last_seen TIMESTAMP,
+			value TEXT,
+			type TEXT,
+			FOREIGN KEY (entity_id) REFERENCES telemetry_entities(entity_id)
+		);
+
+		-- Create schema_entities table (many-to-many relationship)
+		CREATE TABLE IF NOT EXISTS schema_entities (
+			schema_id TEXT,
+			entity_id TEXT,
 			FOREIGN KEY (schema_id) REFERENCES telemetry_schemas(schema_id),
-			PRIMARY KEY (schema_id, producer_id)
+			FOREIGN KEY (entity_id) REFERENCES telemetry_entities(entity_id),
+			PRIMARY KEY (schema_id, entity_id)
 		);
 	`)
 	require.NoError(t, err)
@@ -90,17 +103,17 @@ func setupTestDB(t *testing.T) *TelemetrySchemaRepository {
 	}
 }
 
-func TestListTelemetriesByProducer_ProducerNotFound(t *testing.T) {
+func TestListTelemetriesByEntity_EntityNotFound(t *testing.T) {
 	repo := setupTestDB(t)
 	ctx := context.Background()
 
-	telemetries, err := repo.ListTelemetriesByProducer(ctx, "non-existent-service", "1.0.0")
+	telemetries, err := repo.ListTelemetriesByEntity(ctx, "service")
 
 	require.NoError(t, err)
 	require.Empty(t, telemetries)
 }
 
-func TestListTelemetriesByProducer_ProducerWithMetrics(t *testing.T) {
+func TestListTelemetriesByEntity_EntityWithMetrics(t *testing.T) {
 	repo := setupTestDB(t)
 	ctx := context.Background()
 
@@ -135,11 +148,15 @@ func TestListTelemetriesByProducer_ProducerWithMetrics(t *testing.T) {
 			SeenCount: 10,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "my-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -174,11 +191,15 @@ func TestListTelemetriesByProducer_ProducerWithMetrics(t *testing.T) {
 			SeenCount: 5,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity2": {
+					ID:   "entity2",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "other-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "other-namespace",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -213,11 +234,14 @@ func TestListTelemetriesByProducer_ProducerWithMetrics(t *testing.T) {
 			SeenCount: 3,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer2": {
-					Name:      "other-service",
-					Version:   "2.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity3": {
+					ID:   "entity3",
+					Type: "k8s",
+					Attributes: map[string]interface{}{
+						"k8s.pod.name":       "my-pod",
+						"k8s.namespace.name": "default",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -229,13 +253,13 @@ func TestListTelemetriesByProducer_ProducerWithMetrics(t *testing.T) {
 	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
 	require.NoError(t, err)
 
-	// Test: Get metrics for my-service v1.0.0
-	telemetries, err := repo.ListTelemetriesByProducer(ctx, "my-service", "1.0.0")
+	// Test: Get metrics for service entity
+	telemetries, err := repo.ListTelemetriesByEntity(ctx, "service")
 
 	require.NoError(t, err)
 	require.Len(t, telemetries, 2)
 
-	// Verify we got the right metrics
+	// Verify we got the right metrics for service entity
 	schemaKeys := make([]string, len(telemetries))
 	for i, t := range telemetries {
 		schemaKeys[i] = t.SchemaKey
@@ -245,7 +269,7 @@ func TestListTelemetriesByProducer_ProducerWithMetrics(t *testing.T) {
 	require.NotContains(t, schemaKeys, "cpu.usage")
 }
 
-func TestListTelemetriesByProducer_ProducerWithNoMetrics(t *testing.T) {
+func TestListTelemetriesByEntity_EntityWithNoMetrics(t *testing.T) {
 	repo := setupTestDB(t)
 	ctx := context.Background()
 
@@ -280,11 +304,15 @@ func TestListTelemetriesByProducer_ProducerWithNoMetrics(t *testing.T) {
 			SeenCount: 1,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "other-service",
-					Version:   "2.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "other-service",
+						"service.version":   "2.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -295,14 +323,14 @@ func TestListTelemetriesByProducer_ProducerWithNoMetrics(t *testing.T) {
 	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
 	require.NoError(t, err)
 
-	// Test: Look for a producer that has no metrics
-	telemetries, err := repo.ListTelemetriesByProducer(ctx, "my-service", "1.0.0")
+	// Test: Look for a entity that has no metrics
+	telemetries, err := repo.ListTelemetriesByEntity(ctx, "k8s")
 
 	require.NoError(t, err)
 	require.Empty(t, telemetries)
 }
 
-func TestListTelemetriesByProducer_ProducerWithLogRecords(t *testing.T) {
+func TestListTelemetriesByEntity_EntityWithLogRecords(t *testing.T) {
 	repo := setupTestDB(t)
 	ctx := context.Background()
 
@@ -338,11 +366,15 @@ func TestListTelemetriesByProducer_ProducerWithLogRecords(t *testing.T) {
 			SeenCount: 10,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "my-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -378,11 +410,15 @@ func TestListTelemetriesByProducer_ProducerWithLogRecords(t *testing.T) {
 			SeenCount: 5,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity2": {
+					ID:   "entity2",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "other-service",
+						"service.version":   "2.0.0",
+						"service.namespace": "other-namespace",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -418,11 +454,14 @@ func TestListTelemetriesByProducer_ProducerWithLogRecords(t *testing.T) {
 			SeenCount: 3,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer2": {
-					Name:      "other-service",
-					Version:   "2.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity3": {
+					ID:   "entity3",
+					Type: "k8s",
+					Attributes: map[string]interface{}{
+						"k8s.pod.name":       "other-pod",
+						"k8s.namespace.name": "other-namespace",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -434,13 +473,13 @@ func TestListTelemetriesByProducer_ProducerWithLogRecords(t *testing.T) {
 	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
 	require.NoError(t, err)
 
-	// Test: Get metrics for my-service v1.0.0
-	telemetries, err := repo.ListTelemetriesByProducer(ctx, "my-service", "1.0.0")
+	// Test: Get logs for service entity
+	telemetries, err := repo.ListTelemetriesByEntity(ctx, "service")
 
 	require.NoError(t, err)
 	require.Len(t, telemetries, 2)
 
-	// Verify we got the right metrics
+	// Verify we got the right logs
 	schemaKeys := make([]string, len(telemetries))
 	for i, t := range telemetries {
 		schemaKeys[i] = t.SchemaKey
@@ -450,7 +489,7 @@ func TestListTelemetriesByProducer_ProducerWithLogRecords(t *testing.T) {
 	require.NotContains(t, schemaKeys, "HTTP server requested")
 }
 
-func TestListTelemetriesByProducer_ProducerWithNoLogRecords(t *testing.T) {
+func TestListTelemetriesByEntity_EntityWithNoLogRecords(t *testing.T) {
 	repo := setupTestDB(t)
 	ctx := context.Background()
 
@@ -486,11 +525,15 @@ func TestListTelemetriesByProducer_ProducerWithNoLogRecords(t *testing.T) {
 			SeenCount: 10,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "my-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -502,14 +545,14 @@ func TestListTelemetriesByProducer_ProducerWithNoLogRecords(t *testing.T) {
 	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
 	require.NoError(t, err)
 
-	// Test: Get metrics for my-service v1.0.0
-	telemetries, err := repo.ListTelemetriesByProducer(ctx, "my-service", "2.0.0")
+	// Test: Get logs for service entity
+	telemetries, err := repo.ListTelemetriesByEntity(ctx, "k8s")
 
 	require.NoError(t, err)
 	require.Empty(t, telemetries)
 }
 
-func TestListTelemetriesByProducer_ProducerWithTraces(t *testing.T) {
+func TestListTelemetriesByEntity_EntityWithTraces(t *testing.T) {
 	repo := setupTestDB(t)
 	ctx := context.Background()
 
@@ -545,11 +588,15 @@ func TestListTelemetriesByProducer_ProducerWithTraces(t *testing.T) {
 			SeenCount: 10,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "my-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -585,11 +632,15 @@ func TestListTelemetriesByProducer_ProducerWithTraces(t *testing.T) {
 			SeenCount: 5,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity2": {
+					ID:   "entity2",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "other-service",
+						"service.version":   "2.0.0",
+						"service.namespace": "other-namespace",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -625,11 +676,14 @@ func TestListTelemetriesByProducer_ProducerWithTraces(t *testing.T) {
 			SeenCount: 3,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer2": {
-					Name:      "other-service",
-					Version:   "2.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity3": {
+					ID:   "entity3",
+					Type: "k8s",
+					Attributes: map[string]interface{}{
+						"k8s.pod.name":       "other-pod",
+						"k8s.namespace.name": "other-namespace",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -641,13 +695,13 @@ func TestListTelemetriesByProducer_ProducerWithTraces(t *testing.T) {
 	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
 	require.NoError(t, err)
 
-	// Test: Get metrics for my-service v1.0.0
-	telemetries, err := repo.ListTelemetriesByProducer(ctx, "my-service", "1.0.0")
+	// Test: Get spans for service entity
+	telemetries, err := repo.ListTelemetriesByEntity(ctx, "service")
 
 	require.NoError(t, err)
 	require.Len(t, telemetries, 2)
 
-	// Verify we got the right metrics
+	// Verify we got the right spans for service entity
 	schemaKeys := make([]string, len(telemetries))
 	for i, t := range telemetries {
 		schemaKeys[i] = t.SchemaKey
@@ -657,7 +711,7 @@ func TestListTelemetriesByProducer_ProducerWithTraces(t *testing.T) {
 	require.NotContains(t, schemaKeys, "Random operation")
 }
 
-func TestListTelemetriesByProducer_ProducerWithNoTraces(t *testing.T) {
+func TestListTelemetriesByEntity_EntityWithNoTraces(t *testing.T) {
 	repo := setupTestDB(t)
 	ctx := context.Background()
 
@@ -693,11 +747,15 @@ func TestListTelemetriesByProducer_ProducerWithNoTraces(t *testing.T) {
 			SeenCount: 10,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "my-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -708,14 +766,14 @@ func TestListTelemetriesByProducer_ProducerWithNoTraces(t *testing.T) {
 	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
 	require.NoError(t, err)
 
-	// Test: Get telemetries for nonexistent-service v1.0.0
-	telemetries, err := repo.ListTelemetriesByProducer(ctx, "nonexistent-service", "1.0.0")
+	// Test: Get telemetries for nonexistent entity
+	telemetries, err := repo.ListTelemetriesByEntity(ctx, "k8s")
 
 	require.NoError(t, err)
 	require.Empty(t, telemetries)
 }
 
-func TestListTelemetriesByProducer_ProducerWithProfiles(t *testing.T) {
+func TestListTelemetriesByEntity_EntityWithProfiles(t *testing.T) {
 	repo := setupTestDB(t)
 	ctx := context.Background()
 
@@ -751,11 +809,15 @@ func TestListTelemetriesByProducer_ProducerWithProfiles(t *testing.T) {
 			SeenCount: 10,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "my-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -791,11 +853,15 @@ func TestListTelemetriesByProducer_ProducerWithProfiles(t *testing.T) {
 			SeenCount: 5,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity2": {
+					ID:   "entity2",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "other-service",
+						"service.version":   "2.0.0",
+						"service.namespace": "other-namespace",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -831,11 +897,14 @@ func TestListTelemetriesByProducer_ProducerWithProfiles(t *testing.T) {
 			SeenCount: 3,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer2": {
-					Name:      "other-service",
-					Version:   "2.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity3": {
+					ID:   "entity3",
+					Type: "k8s",
+					Attributes: map[string]interface{}{
+						"k8s.pod.name":       "other-pod",
+						"k8s.namespace.name": "other-namespace",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -847,13 +916,13 @@ func TestListTelemetriesByProducer_ProducerWithProfiles(t *testing.T) {
 	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
 	require.NoError(t, err)
 
-	// Test: Get metrics for my-service v1.0.0
-	telemetries, err := repo.ListTelemetriesByProducer(ctx, "my-service", "1.0.0")
+	// Test: Get profiles for service entity
+	telemetries, err := repo.ListTelemetriesByEntity(ctx, "service")
 
 	require.NoError(t, err)
 	require.Len(t, telemetries, 2)
 
-	// Verify we got the right metrics
+	// Verify we got the right profiles
 	schemaKeys := make([]string, len(telemetries))
 	for i, t := range telemetries {
 		schemaKeys[i] = t.SchemaKey
@@ -863,7 +932,7 @@ func TestListTelemetriesByProducer_ProducerWithProfiles(t *testing.T) {
 	require.NotContains(t, schemaKeys, "objects_alloc")
 }
 
-func TestListTelemetriesByProducer_ProducerWithNoProfiles(t *testing.T) {
+func TestListTelemetriesByEntity_EntityWithNoProfiles(t *testing.T) {
 	repo := setupTestDB(t)
 	ctx := context.Background()
 
@@ -899,11 +968,15 @@ func TestListTelemetriesByProducer_ProducerWithNoProfiles(t *testing.T) {
 			SeenCount: 10,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "my-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: time.Now(),
 					LastSeen:  time.Now(),
 				},
@@ -914,14 +987,14 @@ func TestListTelemetriesByProducer_ProducerWithNoProfiles(t *testing.T) {
 	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
 	require.NoError(t, err)
 
-	// Test: Get telemetries for nonexistent-service v1.0.0
-	telemetries, err := repo.ListTelemetriesByProducer(ctx, "nonexistent-service", "1.0.0")
+	// Test: Get telemetries for nonexistent entity
+	telemetries, err := repo.ListTelemetriesByEntity(ctx, "k8s")
 
 	require.NoError(t, err)
 	require.Empty(t, telemetries)
 }
 
-func TestListTelemetriesByProducer_LatestSchemaVersionOnly(t *testing.T) {
+func TestListTelemetriesByEntity_LatestSchemaVersionOnly(t *testing.T) {
 	repo := setupTestDB(t)
 	ctx := context.Background()
 
@@ -940,11 +1013,15 @@ func TestListTelemetriesByProducer_LatestSchemaVersionOnly(t *testing.T) {
 			SeenCount:     10,
 			CreatedAt:     now.Add(-2 * time.Hour), // Older
 			UpdatedAt:     now.Add(-2 * time.Hour),
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "my-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: now.Add(-2 * time.Hour),
 					LastSeen:  now,
 				},
@@ -961,11 +1038,15 @@ func TestListTelemetriesByProducer_LatestSchemaVersionOnly(t *testing.T) {
 			SeenCount:     15,
 			CreatedAt:     now.Add(-1 * time.Hour), // Newer
 			UpdatedAt:     now.Add(-1 * time.Hour),
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "my-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: now.Add(-2 * time.Hour),
 					LastSeen:  now,
 				},
@@ -977,7 +1058,7 @@ func TestListTelemetriesByProducer_LatestSchemaVersionOnly(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test: Should return only the latest version
-	telemetries, err := repo.ListTelemetriesByProducer(ctx, "my-service", "1.0.0")
+	telemetries, err := repo.ListTelemetriesByEntity(ctx, "service")
 
 	require.NoError(t, err)
 	require.Len(t, telemetries, 1)

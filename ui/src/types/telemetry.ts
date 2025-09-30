@@ -14,10 +14,10 @@ export enum Status {
 
 export type ViewMode = 'grid' | 'list'
 
-export interface TelemetryProducer {
-  name: string
-  namespace: string
-  version?: string
+export interface TelemetryEntity {
+  id: string
+  type: string
+  attributes: Record<string, any>
   firstSeen: string
   lastSeen: string
 }
@@ -56,7 +56,7 @@ export interface Telemetry {
   createdAt: string
   updatedAt: string
   attributes: Attribute[]
-  producers: Record<string, TelemetryProducer>
+  entities: Record<string, TelemetryEntity>
 }
 
 export interface Attribute {

@@ -37,7 +37,7 @@ import {
 } from './table'
 import { Settings2 } from 'lucide-react'
 
-export interface DataTableProps<TData, TValue> {
+export interface DataTableProps<TData> {
   columns: any
   data: TData[]
   searchKey?: string
@@ -54,7 +54,7 @@ export interface DataTableProps<TData, TValue> {
   summaryText?: string
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData>({
   columns,
   data,
   searchKey,
@@ -68,7 +68,7 @@ export function DataTable<TData, TValue>({
   onPageChange,
   onPageSizeChange,
   summaryText,
-}: DataTableProps<TData, TValue>) {
+}: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})

@@ -209,23 +209,16 @@ func HandleWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepository) h
 	}
 }
 
-func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+func HandleEntityWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		producerNameVersion := chi.URLParam(r, "producerNameVersion")
+		entityType := chi.URLParam(r, "entityType")
 
-		// Parse producer name and version from the URL parameter
-		producerName, producerVersion, err := parseProducerNameVersion(producerNameVersion)
+		// Get all telemetries for this entity type
+		telemetries, err := schemaRepo.ListTelemetriesByEntity(ctx, entityType)
 		if err != nil {
-			http.Error(w, "invalid producer format, expected name---version or name---", http.StatusBadRequest)
-			return
-		}
-
-		// Get all telemetries for this producer
-		telemetries, err := schemaRepo.ListTelemetriesByProducer(ctx, producerName, producerVersion)
-		if err != nil {
-			slog.Error("failed to get telemetries for producer", "producer", producerNameVersion, "error", err)
-			http.Error(w, "failed to get telemetries for producer", http.StatusInternalServerError)
+			slog.Error("failed to get telemetries for entity", "entityType", entityType, "error", err)
+			http.Error(w, "failed to get telemetries for entity", http.StatusInternalServerError)
 			return
 		}
 
@@ -241,21 +234,21 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 		// Generate separate YAML files for metrics, logs, and spans
 		metricsYAML, err := weaver.GenerateMultiMetricYAML(telemetries, nil)
 		if err != nil {
-			slog.Error("failed to generate metrics YAML", "producer", producerNameVersion, "error", err)
+			slog.Error("failed to generate metrics YAML", "entityType", entityType, "error", err)
 			http.Error(w, "failed to generate metrics YAML", http.StatusInternalServerError)
 			return
 		}
 
 		logsYAML, err := weaver.GenerateMultiLogYAML(telemetries, nil)
 		if err != nil {
-			slog.Error("failed to generate logs YAML", "producer", producerNameVersion, "error", err)
+			slog.Error("failed to generate logs YAML", "entityType", entityType, "error", err)
 			http.Error(w, "failed to generate logs YAML", http.StatusInternalServerError)
 			return
 		}
 
 		spansYAML, err := weaver.GenerateMultiSpanYAML(telemetries, nil)
 		if err != nil {
-			slog.Error("failed to generate spans YAML", "producer", producerNameVersion, "error", err)
+			slog.Error("failed to generate spans YAML", "entityType", entityType, "error", err)
 			http.Error(w, "failed to generate spans YAML", http.StatusInternalServerError)
 			return
 		}
@@ -272,7 +265,7 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 		}
 
 		// Generate registry manifest
-		manifest := weaver.GenerateRegistryManifest(producerName, producerVersion)
+		manifest := weaver.GenerateRegistryManifest(entityType, "")
 
 		// Create a ZIP file containing the YAML schemas and registry manifest
 		var buf bytes.Buffer
@@ -280,7 +273,7 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 
 		// Create the metrics YAML file inside the ZIP (only if we have metrics)
 		if hasMetrics {
-			metricsFileName := producerNameVersion + "-metrics.yaml"
+			metricsFileName := entityType + "-metrics.yaml"
 			metricsFile, err := zipWriter.Create(metricsFileName)
 			if err != nil {
 				http.Error(w, "failed to create metrics file in zip", http.StatusInternalServerError)
@@ -297,7 +290,7 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 
 		// Create the logs/events YAML file inside the ZIP (only if we have logs)
 		if hasLogs {
-			eventsFileName := producerNameVersion + "-events.yaml"
+			eventsFileName := entityType + "-events.yaml"
 			eventsFile, err := zipWriter.Create(eventsFileName)
 			if err != nil {
 				http.Error(w, "failed to create events file in zip", http.StatusInternalServerError)
@@ -314,7 +307,7 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 
 		// Create the spans YAML file inside the ZIP (only if we have spans)
 		if hasSpans {
-			spansFileName := producerNameVersion + "-spans.yaml"
+			spansFileName := entityType + "-spans.yaml"
 			spansFile, err := zipWriter.Create(spansFileName)
 			if err != nil {
 				http.Error(w, "failed to create spans file in zip", http.StatusInternalServerError)
@@ -352,7 +345,7 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 
 		// Set the appropriate headers for ZIP file download
 		w.Header().Set("Content-Type", "application/zip")
-		w.Header().Set("Content-Disposition", "attachment; filename="+producerNameVersion+".zip")
+		w.Header().Set("Content-Disposition", "attachment; filename="+entityType+".zip")
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", buf.Len()))
 
 		// Write the ZIP file content to the response
@@ -360,24 +353,17 @@ func HandleProducerWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepos
 	}
 }
 
-func HandleProducerSchemaExport(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+func HandleEntitySchemaExport(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		producerNameVersion := chi.URLParam(r, "producerNameVersion")
+		entityType := chi.URLParam(r, "entityType")
 		telemetryType := chi.URLParam(r, "type")
 
-		// Parse producer name and version from the URL parameter
-		producerName, producerVersion, err := parseProducerNameVersion(producerNameVersion)
+		// Get all telemetries for this entity type
+		telemetries, err := schemaRepo.ListTelemetriesByEntity(ctx, entityType)
 		if err != nil {
-			http.Error(w, "invalid producer format, expected name---version or name---", http.StatusBadRequest)
-			return
-		}
-
-		// Get all telemetries for this producer
-		telemetries, err := schemaRepo.ListTelemetriesByProducer(ctx, producerName, producerVersion)
-		if err != nil {
-			slog.Error("failed to get telemetries for producer", "producer", producerNameVersion, "error", err)
-			http.Error(w, "failed to get telemetries for producer", http.StatusInternalServerError)
+			slog.Error("failed to get telemetries for entity", "entityType", entityType, "error", err)
+			http.Error(w, "failed to get telemetries for entity", http.StatusInternalServerError)
 			return
 		}
 
@@ -402,7 +388,7 @@ func HandleProducerSchemaExport(schemaRepo repository.TelemetrySchemaRepository)
 		}
 		metricsYAML, err := genYaml(telemetries, nil)
 		if err != nil {
-			slog.Error("failed to generate schema YAML", "producer", producerNameVersion, "error", err)
+			slog.Error("failed to generate schema YAML", "entityType", entityType, "error", err)
 			http.Error(w, "failed to generate metrics YAML", http.StatusInternalServerError)
 			return
 		}

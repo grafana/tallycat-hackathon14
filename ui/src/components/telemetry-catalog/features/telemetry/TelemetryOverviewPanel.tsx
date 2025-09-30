@@ -131,23 +131,23 @@ export function TelemetryOverviewPanel({
           </div>
         </div>
 
-        {/* Data Producers Column - Renamed from "Sources" */}
+        {/* Entities Column - Renamed from "Sources" */}
         <div className="p-5">
           <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
             <Database className="h-4 w-4 text-indigo-500" />
-            Data Producers
+            Entities
           </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <Database className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-sm">Producers</span>
+                <span className="text-sm">Entities</span>
               </div>
               <span className="text-sm font-medium">
-                {Object.keys(telemetry.producers).length}
-                {Object.keys(telemetry.producers).length > 1
-                  ? ' Producers'
-                  : ' Producer'}
+                {Object.keys(telemetry.entities).length}
+                {Object.keys(telemetry.entities).length > 1
+                  ? ' Entities'
+                  : ' Entity'}
               </span>
             </div>
 
@@ -168,7 +168,7 @@ export function TelemetryOverviewPanel({
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{sourceHealthCounts.healthy} healthy producers</p>
+                      <p>{sourceHealthCounts.healthy} healthy entities</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -182,7 +182,7 @@ export function TelemetryOverviewPanel({
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{sourceHealthCounts.warning} producers with warnings</p>
+                      <p>{sourceHealthCounts.warning} entities with warnings</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -196,7 +196,7 @@ export function TelemetryOverviewPanel({
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{sourceHealthCounts.critical} critical producers</p>
+                      <p>{sourceHealthCounts.critical} critical entities</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -216,7 +216,7 @@ export function TelemetryOverviewPanel({
 
             <div className="pt-1">
               <Button variant="ghost" size="sm" className="w-full justify-between" onClick={onViewAllSources}>
-                <span>View all producers</span>
+                <span>View all entities</span>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div> */}

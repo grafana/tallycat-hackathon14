@@ -69,15 +69,15 @@ const createTableColumns = (
     },
   },
   {
-    accessorKey: 'producers',
-    header: 'Producers',
+    accessorKey: 'entities',
+    header: 'Entities',
     cell: ({ row }) => {
       const schema = row.original
       return (
         <div className="flex items-center gap-2">
           <Database className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-foreground">
-            {schema.producers.length}
+            {Object.keys(schema.entities).length}
           </span>
         </div>
       )

@@ -19,7 +19,7 @@ import { AttributesView } from '@/components/telemetry-catalog/features/schema-d
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { TelemetrySchema } from '@/types/telemetry-schema'
 import type { Telemetry } from '@/types/telemetry'
-import { TelemetryProducersTable } from '@/components/telemetry/telemetry-producers-table'
+import { TelemetryEntitiesTable } from '@/components/telemetry/telemetry-entities-table'
 import { WeaverDefinition } from '@/components/telemetry-catalog/features/weaver-definition/WeaverDefinition'
 
 interface SchemaDetailsModalProps {
@@ -36,21 +36,31 @@ export function SchemaDetailsModal({
   isLoading = false,
 }: SchemaDetailsModalProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [filteredProducers, setFilteredProducers] = useState(viewingSchema?.producers || [])
+  const [filteredEntities, setFilteredEntities] = useState(viewingSchema?.entities || {})
 
-  // Update filtered producers when search query or viewingSchema changes
+  // Update filtered entities when search query or viewingSchema changes
   useEffect(() => {
-    if (viewingSchema?.producers) {
-      const filtered = viewingSchema.producers.filter((producer) => {
-        if (!searchQuery) return true
+    if (viewingSchema?.entities) {
+      if (!searchQuery) {
+        setFilteredEntities(viewingSchema.entities)
+        return
+      }
 
-        const name = producer.name?.toLowerCase() || ''
-        const namespace = producer.namespace?.toLowerCase() || ''
-        const query = searchQuery.toLowerCase()
+      const query = searchQuery.toLowerCase()
+      const filtered = Object.fromEntries(
+        Object.entries(viewingSchema.entities).filter(([_, entity]) => {
+          const entityType = entity.type.toLowerCase()
+          const entityId = entity.id.toLowerCase()
+          const attributeValues = Object.values(entity.attributes)
+            .map(val => String(val).toLowerCase())
+            .join(' ')
 
-        return name.includes(query) || namespace.includes(query)
-      })
-      setFilteredProducers(filtered)
+          return entityType.includes(query) || 
+                 entityId.includes(query) || 
+                 attributeValues.includes(query)
+        })
+      )
+      setFilteredEntities(filtered)
     }
   }, [searchQuery, viewingSchema])
 
@@ -64,7 +74,7 @@ export function SchemaDetailsModal({
           </DialogTitle>
           <DialogDescription>
             Detailed information about this schema variant including all
-            attributes and producers
+            attributes and entities
           </DialogDescription>
         </DialogHeader>
         <div className="overflow-y-auto max-h-[60vh] mt-4">
@@ -77,12 +87,12 @@ export function SchemaDetailsModal({
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="schema">Schema Definition</TabsTrigger>
                 <TabsTrigger
-                  value="producers"
+                  value="entities"
                   className="flex items-center gap-2"
                 >
-                  Producers
+                  Entities
                   <Badge variant="secondary" className="ml-1">
-                    {filteredProducers.length}
+                    {Object.keys(filteredEntities).length}
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="weaver">Weaver Definition</TabsTrigger>
@@ -92,22 +102,22 @@ export function SchemaDetailsModal({
                 <AttributesView attributes={viewingSchema.attributes} telemetry={telemetry} />
               </TabsContent>
 
-              <TabsContent value="producers" className="mt-4 space-y-4">
+              <TabsContent value="entities" className="mt-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       <Users className="h-5 w-5 text-primary" />
-                      Telemetry Producers
+                      Telemetry Entities
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Services currently producing this schema variant
+                      Entities currently producing this schema variant
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                        placeholder="Search producers..."
+                        placeholder="Search entities..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-9 w-64"
@@ -116,7 +126,7 @@ export function SchemaDetailsModal({
                   </div>
                 </div>
 
-                <TelemetryProducersTable producers={filteredProducers} />
+                <TelemetryEntitiesTable entities={filteredEntities} />
               </TabsContent>
 
               <TabsContent value="weaver" className="mt-4">

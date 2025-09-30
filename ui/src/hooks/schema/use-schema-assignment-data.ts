@@ -44,7 +44,16 @@ export const useSchemaAssignmentData = (
             ? Status.Active
             : Status.Experimental,
         version: item.version === 'Unassigned' ? null : item.version,
-        producers: Array(item.producerCount).fill({}),
+        entities: Object.fromEntries(
+          Array(item.entityCount).fill(0).map((_, i) => [`entity${i}`, {
+            id: `entity${i}`,
+            type: 'unknown',
+            attributes: {},
+            firstSeen: item.lastSeen,
+            lastSeen: item.lastSeen,
+          }])
+        ),
+        attributes: [],
         lastSeen: item.lastSeen,
         discoveredAt: '',
         resourceAttributes: [],

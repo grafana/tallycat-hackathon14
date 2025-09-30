@@ -59,20 +59,6 @@ func (r *TelemetrySchemaRepository) RegisterTelemetrySchemas(ctx context.Context
 	}
 	defer attrStmt.Close()
 
-	producerStmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO schema_producers (
-			schema_id, producer_id, name, namespace, version, instance_id,
-			first_seen, last_seen
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT (schema_id, producer_id) DO UPDATE SET
-			last_seen = excluded.last_seen
-		WHERE excluded.last_seen > schema_producers.last_seen;
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to prepare producer insert statement: %w", err)
-	}
-	defer producerStmt.Close()
-
 	for _, schema := range schemas {
 		_, err = schemaStmt.ExecContext(ctx,
 			schema.SchemaID,
@@ -120,20 +106,39 @@ func (r *TelemetrySchemaRepository) RegisterTelemetrySchemas(ctx context.Context
 			}
 		}
 
-		// Insert producers
-		for _, producer := range schema.Producers {
-			_, err = producerStmt.ExecContext(ctx,
-				schema.SchemaID,
-				producer.ProducerID(),
-				producer.Name,
-				producer.Namespace,
-				producer.Version,
-				producer.InstanceID,
-				producer.FirstSeen,
-				producer.LastSeen,
-			)
+		// Insert entities
+		for _, entity := range schema.Entities {
+			// First insert the entity itself
+			_, err = tx.ExecContext(ctx, `
+				INSERT INTO telemetry_entities (entity_id, entity_type, first_seen, last_seen)
+				VALUES (?, ?, ?, ?)
+				ON CONFLICT (entity_id) DO UPDATE SET
+					last_seen = excluded.last_seen
+				WHERE excluded.last_seen > telemetry_entities.last_seen
+			`, entity.ID, entity.Type, entity.FirstSeen, entity.LastSeen)
 			if err != nil {
-				return fmt.Errorf("failed to insert producer for schema %v: %w", schema.SchemaID, err)
+				return fmt.Errorf("failed to insert entity: %w", err)
+			}
+
+			// Insert entity attributes
+			for attrName, attrValue := range entity.Attributes {
+				_, err = tx.ExecContext(ctx, `
+					INSERT INTO entity_attributes (entity_id, name, value, type)
+					VALUES (?, ?, ?, ?)
+				`, entity.ID, attrName, fmt.Sprintf("%v", attrValue), "string")
+				if err != nil {
+					return fmt.Errorf("failed to insert entity attribute: %w", err)
+				}
+			}
+
+			// Link schema to entity
+			_, err = tx.ExecContext(ctx, `
+				INSERT INTO schema_entities (schema_id, entity_id)
+				VALUES (?, ?)
+				ON CONFLICT (schema_id, entity_id) DO NOTHING
+			`, schema.SchemaID, entity.ID)
+			if err != nil {
+				return fmt.Errorf("failed to link schema to entity: %w", err)
 			}
 		}
 	}
@@ -469,46 +474,61 @@ func (r *TelemetrySchemaRepository) GetTelemetry(ctx context.Context, schemaKey 
 
 	s.Attributes = attributes
 
-	// Get producers for this schema
-	producerQuery := `
-		SELECT producer_id, name, namespace, version, instance_id,
-			   first_seen, last_seen
-		FROM schema_producers
-		INNER JOIN telemetry_schemas ON schema_producers.schema_id = telemetry_schemas.schema_id
-		WHERE schema_key = ?`
+	// Get entities for this schema
+	entityQuery := `
+		SELECT te.entity_id, te.entity_type, te.first_seen, te.last_seen
+		FROM telemetry_entities te
+		INNER JOIN schema_entities se ON te.entity_id = se.entity_id
+		INNER JOIN telemetry_schemas ts ON se.schema_id = ts.schema_id
+		WHERE ts.schema_key = ?`
 
-	rows, err = db.QueryContext(ctx, producerQuery, s.SchemaKey)
+	rows, err = db.QueryContext(ctx, entityQuery, s.SchemaKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query schema producers: %w", err)
+		return nil, fmt.Errorf("failed to query schema entities: %w", err)
 	}
 	defer rows.Close()
 
-	s.Producers = make(map[string]*schema.Producer)
+	s.Entities = make(map[string]*schema.Entity)
 	for rows.Next() {
-		var producer schema.Producer
-		var producerID string
+		var entity schema.Entity
 		if err := rows.Scan(
-			&producerID,
-			&producer.Name,
-			&producer.Namespace,
-			&producer.Version,
-			&producer.InstanceID,
-			&producer.FirstSeen,
-			&producer.LastSeen,
+			&entity.ID,
+			&entity.Type,
+			&entity.FirstSeen,
+			&entity.LastSeen,
 		); err != nil {
-			return nil, fmt.Errorf("failed to scan producer row: %w", err)
+			return nil, fmt.Errorf("failed to scan entity row: %w", err)
 		}
 
-		if _, ok := s.Producers[producerID]; !ok {
-			s.Producers[producerID] = &producer
-		} else {
-			slog.Warn("producer already exists", "producer_id", producerID)
+		// Get entity attributes
+		attrQuery := `
+			SELECT name, value, type
+			FROM entity_attributes
+			WHERE entity_id = ?`
+
+		attrRows, err := db.QueryContext(ctx, attrQuery, entity.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query entity attributes: %w", err)
 		}
 
+		entity.Attributes = make(map[string]interface{})
+		for attrRows.Next() {
+			var name, value, attrType string
+			if err := attrRows.Scan(&name, &value, &attrType); err != nil {
+				attrRows.Close()
+				return nil, fmt.Errorf("failed to scan entity attribute: %w", err)
+			}
+			entity.Attributes[name] = value
+		}
+		attrRows.Close()
+
+		if _, ok := s.Entities[entity.ID]; !ok {
+			s.Entities[entity.ID] = &entity
+		}
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating producer rows: %w", err)
+		return nil, fmt.Errorf("error iterating entity rows: %w", err)
 	}
 
 	return &s, nil
@@ -592,14 +612,15 @@ func (r *TelemetrySchemaRepository) ListTelemetrySchemas(ctx context.Context, sc
 		SELECT
 			t.schema_id,
 			COALESCE(sv.version, 'Unassigned') AS version,
-			COUNT(DISTINCT sp.producer_id) AS producer_count,
-			MAX(sp.last_seen) AS last_seen
+			COUNT(DISTINCT se.entity_id) AS entity_count,
+			MAX(te.last_seen) AS last_seen
 		FROM telemetry_schemas t
 		LEFT JOIN schema_versions sv ON t.schema_id = sv.schema_id
-		LEFT JOIN schema_producers sp ON t.schema_id = sp.schema_id
+		LEFT JOIN schema_entities se ON t.schema_id = se.schema_id
+		LEFT JOIN telemetry_entities te ON se.entity_id = te.entity_id
 		WHERE 1=1` + where + `
 		GROUP BY t.schema_id, sv.version
-		ORDER BY MAX(sp.last_seen) DESC NULLS LAST
+		ORDER BY MAX(te.last_seen) DESC NULLS LAST
 		LIMIT ? OFFSET ?`
 
 	args = append(args, params.PageSize, (params.Page-1)*params.PageSize)
@@ -617,7 +638,7 @@ func (r *TelemetrySchemaRepository) ListTelemetrySchemas(ctx context.Context, sc
 	for rows.Next() {
 		var row schema.TelemetrySchema
 		var lastSeen sql.NullTime
-		if err := rows.Scan(&row.SchemaId, &row.Version, &row.ProducerCount, &lastSeen); err != nil {
+		if err := rows.Scan(&row.SchemaId, &row.Version, &row.EntityCount, &lastSeen); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan schema assignment row: %w", err)
 		}
 		if lastSeen.Valid {
@@ -640,11 +661,12 @@ func (r *TelemetrySchemaRepository) GetTelemetrySchema(ctx context.Context, sche
 		SELECT
 			t.schema_id,
 			COALESCE(sv.version, 'Unassigned') AS version,
-			COUNT(DISTINCT sp.producer_id) AS producer_count,
-			MAX(sp.last_seen) AS last_seen
+			COUNT(DISTINCT se.entity_id) AS entity_count,
+			MAX(te.last_seen) AS last_seen
 		FROM telemetry_schemas t
 		LEFT JOIN schema_versions sv ON t.schema_id = sv.schema_id
-		LEFT JOIN schema_producers sp ON t.schema_id = sp.schema_id
+		LEFT JOIN schema_entities se ON t.schema_id = se.schema_id
+		LEFT JOIN telemetry_entities te ON se.entity_id = te.entity_id
 		WHERE t.schema_id = ?
 		GROUP BY t.schema_id, sv.version`
 
@@ -660,7 +682,7 @@ func (r *TelemetrySchemaRepository) GetTelemetrySchema(ctx context.Context, sche
 	err := db.QueryRowContext(ctx, query, schemaId).Scan(
 		&s.SchemaId,
 		&s.Version,
-		&s.ProducerCount,
+		&s.EntityCount,
 		&lastSeen,
 	)
 	if err == sql.ErrNoRows {
@@ -702,176 +724,126 @@ func (r *TelemetrySchemaRepository) GetTelemetrySchema(ctx context.Context, sche
 
 	s.Attributes = attributes
 
-	// Get producers for this schema
-	producerQuery := `
-		SELECT producer_id, name, namespace, version, instance_id,
-			   first_seen, last_seen
-		FROM schema_producers
-		WHERE schema_id = ?`
+	// Get entities for this schema
+	entityQuery := `
+		SELECT te.entity_id, te.entity_type, te.first_seen, te.last_seen
+		FROM telemetry_entities te
+		INNER JOIN schema_entities se ON te.entity_id = se.entity_id
+		WHERE se.schema_id = ?`
 
-	rows, err = db.QueryContext(ctx, producerQuery, schemaId)
+	rows, err = db.QueryContext(ctx, entityQuery, schemaId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query schema producers: %w", err)
+		return nil, fmt.Errorf("failed to query schema entities: %w", err)
 	}
 	defer rows.Close()
 
-	var producers []schema.Producer
+	s.Entities = make(map[string]*schema.Entity)
 	for rows.Next() {
-		var producer schema.Producer
-		var producerID string
+		var entity schema.Entity
 		if err := rows.Scan(
-			&producerID,
-			&producer.Name,
-			&producer.Namespace,
-			&producer.Version,
-			&producer.InstanceID,
-			&producer.FirstSeen,
-			&producer.LastSeen,
+			&entity.ID,
+			&entity.Type,
+			&entity.FirstSeen,
+			&entity.LastSeen,
 		); err != nil {
-			return nil, fmt.Errorf("failed to scan producer row: %w", err)
+			return nil, fmt.Errorf("failed to scan entity row: %w", err)
 		}
-		producers = append(producers, producer)
+
+		// Get entity attributes
+		attrQuery := `
+			SELECT name, value, type
+			FROM entity_attributes
+			WHERE entity_id = ?`
+
+		attrRows, err := db.QueryContext(ctx, attrQuery, entity.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query entity attributes: %w", err)
+		}
+
+		entity.Attributes = make(map[string]interface{})
+		for attrRows.Next() {
+			var name, value, attrType string
+			if err := attrRows.Scan(&name, &value, &attrType); err != nil {
+				attrRows.Close()
+				return nil, fmt.Errorf("failed to scan entity attribute: %w", err)
+			}
+			entity.Attributes[name] = value
+		}
+		attrRows.Close()
+
+		s.Entities[entity.ID] = &entity
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating producer rows: %w", err)
+		return nil, fmt.Errorf("error iterating entity rows: %w", err)
 	}
-
-	s.Producers = producers
 
 	return &s, nil
 }
 
-func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Context, producerName, producerVersion string) ([]schema.Telemetry, error) {
-	// Handle empty version by checking for NULL or empty string in database
-	var query string
-	var args []interface{}
-
-	if producerVersion == "" {
-		query = `
-			WITH latest_schemas AS (
-				SELECT 
-					t.schema_id,
-					t.schema_version,
-					t.schema_url,
-					t.signal_type,
-					t.schema_key,
-					-- Metric fields
-					t.unit,
-					t.metric_type,
-					t.temporality,
-					t.brief,
-					-- Log fields
-					t.log_severity_number,
-					t.log_severity_text,
-					t.log_body,
-					t.log_flags,
-					t.log_trace_id,
-					t.log_span_id,
-					t.log_event_name,
-					t.log_dropped_attributes_count,
-					-- Span fields
-					t.span_kind,
-					t.span_name,
-					t.span_id,
-					t.span_trace_id,
-					-- Profile fields
-					t.profile_sample_aggregation_temporality,
-					t.profile_sample_unit,
-					-- Common fields
-					t.note,
-					t.protocol,
-					t.seen_count,
-					t.created_at,
-					t.updated_at,
-					ROW_NUMBER() OVER (
-						PARTITION BY t.signal_type, t.schema_key 
-						ORDER BY t.updated_at DESC
-					) as rn
-				FROM telemetry_schemas t
-				INNER JOIN schema_producers sp ON t.schema_id = sp.schema_id
-				WHERE sp.name = ? AND (sp.version IS NULL OR sp.version = '')
-			)
+func (r *TelemetrySchemaRepository) ListTelemetriesByEntity(ctx context.Context, entityType string) ([]schema.Telemetry, error) {
+	query := `
+		WITH latest_schemas AS (
 			SELECT 
-				schema_id, schema_version, schema_url, signal_type, schema_key,
-				unit, metric_type, temporality, brief,
-				log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
-				span_kind, span_name, span_id, span_trace_id,
-				profile_sample_aggregation_temporality, profile_sample_unit,
-				note, protocol, seen_count,
-				created_at, updated_at
-			FROM latest_schemas
-			WHERE rn = 1
-			ORDER BY updated_at DESC`
-		args = []interface{}{producerName}
-	} else {
-		query = `
-			WITH latest_schemas AS (
-				SELECT 
-					t.schema_id,
-					t.schema_version,
-					t.schema_url,
-					t.signal_type,
-					t.schema_key,
-					-- Metric fields
-					t.unit,
-					t.metric_type,
-					t.temporality,
-					t.brief,
-					-- Log fields
-					t.log_severity_number,
-					t.log_severity_text,
-					t.log_body,
-					t.log_flags,
-					t.log_trace_id,
-					t.log_span_id,
-					t.log_event_name,
-					t.log_dropped_attributes_count,
-					-- Span fields
-					t.span_kind,
-					t.span_name,
-					t.span_id,
-					t.span_trace_id,
-					-- Profile fields
-					t.profile_sample_aggregation_temporality,
-					t.profile_sample_unit,
-					-- Common fields
-					t.note,
-					t.protocol,
-					t.seen_count,
-					t.created_at,
-					t.updated_at,
-					ROW_NUMBER() OVER (
-						PARTITION BY t.signal_type, t.schema_key 
-						ORDER BY t.updated_at DESC
-					) as rn
-				FROM telemetry_schemas t
-				INNER JOIN schema_producers sp ON t.schema_id = sp.schema_id
-				WHERE sp.name = ? AND sp.version = ?
-			)
-			SELECT 
-				schema_id, schema_version, schema_url, signal_type, schema_key,
-				unit, metric_type, temporality, brief,
-				log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
-				span_kind, span_name, span_id, span_trace_id,
-				profile_sample_aggregation_temporality, profile_sample_unit,
-				note, protocol, seen_count,
-				created_at, updated_at
-			FROM latest_schemas
-			WHERE rn = 1
-			ORDER BY updated_at DESC`
-		args = []interface{}{producerName, producerVersion}
-	}
+				t.schema_id,
+				t.schema_version,
+				t.schema_url,
+				t.signal_type,
+				t.schema_key,
+				-- Metric fields
+				t.unit,
+				t.metric_type,
+				t.temporality,
+				t.brief,
+				-- Log fields
+				t.log_severity_number,
+				t.log_severity_text,
+				t.log_body,
+				t.log_flags,
+				t.log_trace_id,
+				t.log_span_id,
+				t.log_event_name,
+				t.log_dropped_attributes_count,
+				-- Span fields
+				t.span_kind,
+				t.span_name,
+				t.span_id,
+				t.span_trace_id,
+				-- Profile fields
+				t.profile_sample_aggregation_temporality,
+				t.profile_sample_unit,
+				-- Common fields
+				t.note,
+				t.protocol,
+				t.seen_count,
+				t.created_at,
+				t.updated_at,
+				ROW_NUMBER() OVER (
+					PARTITION BY t.signal_type, t.schema_key 
+					ORDER BY t.updated_at DESC
+				) as rn
+			FROM telemetry_schemas t
+			INNER JOIN schema_entities se ON t.schema_id = se.schema_id
+			INNER JOIN telemetry_entities te ON se.entity_id = te.entity_id
+			WHERE te.entity_type = ?
+		)
+		SELECT 
+			schema_id, schema_version, schema_url, signal_type, schema_key,
+			unit, metric_type, temporality, brief,
+			log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
+			span_kind, span_name, span_id, span_trace_id,
+			profile_sample_aggregation_temporality, profile_sample_unit,
+			note, protocol, seen_count,
+			created_at, updated_at
+		FROM latest_schemas
+		WHERE rn = 1
+		ORDER BY updated_at DESC`
 
 	db := r.pool.GetConnection()
 
-	// Use context timeout for query
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	rows, err := db.QueryContext(ctx, query, args...)
+	rows, err := db.QueryContext(ctx, query, entityType)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query telemetries by producer: %w", err)
+		return nil, fmt.Errorf("failed to query telemetries by entity: %w", err)
 	}
 	defer rows.Close()
 
@@ -920,7 +892,7 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 		return nil, fmt.Errorf("error iterating telemetry rows: %w", err)
 	}
 
-	// For each telemetry, get its attributes and producers
+	// For each telemetry, get its attributes and entities
 	for i := range telemetries {
 		// Get attributes
 		attrQuery := `
@@ -945,47 +917,63 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByProducer(ctx context.Contex
 		}
 		attrRows.Close()
 
-		if err := attrRows.Err(); err != nil {
-			return nil, fmt.Errorf("error iterating attribute rows: %w", err)
-		}
-
 		telemetries[i].Attributes = attributes
 
-		// Get producers
-		producerQuery := `
-			SELECT producer_id, name, namespace, version, instance_id,
-				   first_seen, last_seen
-			FROM schema_producers
-			WHERE schema_id = ?`
+		// Get entities
+		entityQuery := `
+			SELECT te.entity_id, te.entity_type, te.first_seen, te.last_seen
+			FROM telemetry_entities te
+			INNER JOIN schema_entities se ON te.entity_id = se.entity_id
+			WHERE se.schema_id = ?`
 
-		prodRows, err := db.QueryContext(ctx, producerQuery, telemetries[i].SchemaID)
+		entityRows, err := db.QueryContext(ctx, entityQuery, telemetries[i].SchemaID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to query schema producers: %w", err)
+			return nil, fmt.Errorf("failed to query schema entities: %w", err)
 		}
 
-		telemetries[i].Producers = make(map[string]*schema.Producer)
-		for prodRows.Next() {
-			var producer schema.Producer
-			var producerID string
-			if err := prodRows.Scan(
-				&producerID,
-				&producer.Name,
-				&producer.Namespace,
-				&producer.Version,
-				&producer.InstanceID,
-				&producer.FirstSeen,
-				&producer.LastSeen,
+		telemetries[i].Entities = make(map[string]*schema.Entity)
+		for entityRows.Next() {
+			var entity schema.Entity
+			if err := entityRows.Scan(
+				&entity.ID,
+				&entity.Type,
+				&entity.FirstSeen,
+				&entity.LastSeen,
 			); err != nil {
-				prodRows.Close()
-				return nil, fmt.Errorf("failed to scan producer row: %w", err)
+				entityRows.Close()
+				return nil, fmt.Errorf("failed to scan entity row: %w", err)
 			}
 
-			telemetries[i].Producers[producerID] = &producer
-		}
-		prodRows.Close()
+			// Get entity attributes
+			attrQuery := `
+				SELECT name, value, type
+				FROM entity_attributes
+				WHERE entity_id = ?`
 
-		if err := prodRows.Err(); err != nil {
-			return nil, fmt.Errorf("error iterating producer rows: %w", err)
+			attrRows, err := db.QueryContext(ctx, attrQuery, entity.ID)
+			if err != nil {
+				entityRows.Close()
+				return nil, fmt.Errorf("failed to query entity attributes: %w", err)
+			}
+
+			entity.Attributes = make(map[string]interface{})
+			for attrRows.Next() {
+				var name, value, attrType string
+				if err := attrRows.Scan(&name, &value, &attrType); err != nil {
+					attrRows.Close()
+					entityRows.Close()
+					return nil, fmt.Errorf("failed to scan entity attribute: %w", err)
+				}
+				entity.Attributes[name] = value
+			}
+			attrRows.Close()
+
+			telemetries[i].Entities[entity.ID] = &entity
+		}
+		entityRows.Close()
+
+		if err := entityRows.Err(); err != nil {
+			return nil, fmt.Errorf("error iterating entity rows: %w", err)
 		}
 	}
 

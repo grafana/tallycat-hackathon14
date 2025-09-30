@@ -89,9 +89,9 @@ func registerAPIRoutes(r chi.Router, srv *Server) {
 				r.Get("/{schemaId}", api.HandleGetTelemetrySchema(srv.schemaRepo))
 			})
 		})
-		r.Route("/producers", func(r chi.Router) {
-			r.Get("/{producerNameVersion}/weaver-schema.zip", api.HandleProducerWeaverSchemaExport(srv.schemaRepo))
-			r.Get("/{producerNameVersion}/{type}", api.HandleProducerSchemaExport(srv.schemaRepo))
+		r.Route("/entities", func(r chi.Router) {
+			r.Get("/{entityType}/weaver-schema.zip", api.HandleEntityWeaverSchemaExport(srv.schemaRepo))
+			r.Get("/{entityType}/{type}", api.HandleEntitySchemaExport(srv.schemaRepo))
 		})
 	})
 }

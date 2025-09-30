@@ -18,7 +18,7 @@ import (
 	"github.com/tallycat/tallycat/internal/schema"
 )
 
-func TestProducerWeaverSchemaExport_Integration(t *testing.T) {
+func TestEntityWeaverSchemaExport_Integration(t *testing.T) {
 	// Setup test database
 	testDB := testutil.NewTestDB(t)
 	defer testDB.Close()
@@ -26,7 +26,7 @@ func TestProducerWeaverSchemaExport_Integration(t *testing.T) {
 
 	// Create router and register our handler
 	r := chi.NewRouter()
-	r.Get("/api/v1/producers/{producerNameVersion}/weaver-schema.zip", api.HandleProducerWeaverSchemaExport(testDB.Repo()))
+	r.Get("/api/v1/entities/{entityType}/weaver-schema.zip", api.HandleEntityWeaverSchemaExport(testDB.Repo()))
 
 	// Setup test data - create telemetries with producers
 	ctx := context.Background()
@@ -56,11 +56,15 @@ func TestProducerWeaverSchemaExport_Integration(t *testing.T) {
 					Source: schema.AttributeSourceDataPoint,
 				},
 			},
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "my-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: now,
 					LastSeen:  now,
 				},
@@ -89,11 +93,15 @@ func TestProducerWeaverSchemaExport_Integration(t *testing.T) {
 					Source: schema.AttributeSourceDataPoint,
 				},
 			},
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "my-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "my-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: now,
 					LastSeen:  now,
 				},
@@ -117,11 +125,15 @@ func TestProducerWeaverSchemaExport_Integration(t *testing.T) {
 					Source: schema.AttributeSourceDataPoint,
 				},
 			},
-			Producers: map[string]*schema.Producer{
-				"producer2": {
-					Name:      "other-service",
-					Version:   "2.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity2": {
+					ID:   "entity2",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "other-service",
+						"service.version":   "2.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: now,
 					LastSeen:  now,
 				},
@@ -133,16 +145,16 @@ func TestProducerWeaverSchemaExport_Integration(t *testing.T) {
 	err := testDB.Repo().RegisterTelemetrySchemas(ctx, testTelemetries)
 	require.NoError(t, err)
 
-	// Test 1: Producer with multiple metrics
-	t.Run("producer with multiple metrics", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/v1/producers/my-service---1.0.0/weaver-schema.zip", nil)
+	// Test 1: Entity with multiple metrics
+	t.Run("entity with multiple metrics", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/v1/entities/service/weaver-schema.zip", nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
 
 		require.Equal(t, http.StatusOK, w.Code)
 		require.Equal(t, "application/zip", w.Header().Get("Content-Type"))
-		require.Equal(t, "attachment; filename=my-service---1.0.0.zip", w.Header().Get("Content-Disposition"))
+		require.Equal(t, "attachment; filename=service.zip", w.Header().Get("Content-Disposition"))
 		require.NotEmpty(t, w.Body.Bytes())
 
 		// Verify ZIP content contains expected YAML structure
@@ -150,22 +162,22 @@ func TestProducerWeaverSchemaExport_Integration(t *testing.T) {
 		require.NotEmpty(t, body)
 	})
 
-	// Test 2: Producer with single metric
-	t.Run("producer with single metric", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/v1/producers/other-service---2.0.0/weaver-schema.zip", nil)
+	// Test 2: Entity with single metric
+	t.Run("entity with single metric", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/v1/entities/service/weaver-schema.zip", nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
 
 		require.Equal(t, http.StatusOK, w.Code)
 		require.Equal(t, "application/zip", w.Header().Get("Content-Type"))
-		require.Equal(t, "attachment; filename=other-service---2.0.0.zip", w.Header().Get("Content-Disposition"))
+		require.Equal(t, "attachment; filename=service.zip", w.Header().Get("Content-Disposition"))
 		require.NotEmpty(t, w.Body.Bytes())
 	})
 
-	// Test 3: Non-existent producer
-	t.Run("non-existent producer", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/v1/producers/non-existent-service---1.0.0/weaver-schema.zip", nil)
+	// Test 3: Non-existent entity
+	t.Run("non-existent entity", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/v1/entities/k8s/weaver-schema.zip", nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
@@ -173,21 +185,18 @@ func TestProducerWeaverSchemaExport_Integration(t *testing.T) {
 		require.Equal(t, http.StatusNoContent, w.Code)
 	})
 
-	// Test 4: Invalid producer format
-	t.Run("invalid producer format", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/v1/producers/invalid/weaver-schema.zip", nil)
+	// Test 4: Valid entity type (no invalid format for entity types)
+	t.Run("valid entity type", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/v1/entities/service/weaver-schema.zip", nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
 
-		require.Equal(t, http.StatusBadRequest, w.Code)
-		body, err := io.ReadAll(w.Body)
-		require.NoError(t, err)
-		require.Contains(t, string(body), "invalid producer format")
+		require.Equal(t, http.StatusOK, w.Code)
 	})
 }
 
-func TestProducerWeaverSchemaExport_YAMLContent(t *testing.T) {
+func TestEntityWeaverSchemaExport_YAMLContent(t *testing.T) {
 	// Setup test database
 	testDB := testutil.NewTestDB(t)
 	defer testDB.Close()
@@ -195,7 +204,7 @@ func TestProducerWeaverSchemaExport_YAMLContent(t *testing.T) {
 
 	// Create router and register our handler
 	r := chi.NewRouter()
-	r.Get("/api/v1/producers/{producerNameVersion}/weaver-schema.zip", api.HandleProducerWeaverSchemaExport(testDB.Repo()))
+	r.Get("/api/v1/entities/{entityType}/weaver-schema.zip", api.HandleEntityWeaverSchemaExport(testDB.Repo()))
 
 	// Setup simple test data
 	ctx := context.Background()
@@ -221,11 +230,15 @@ func TestProducerWeaverSchemaExport_YAMLContent(t *testing.T) {
 					Brief:  "A test attribute",
 				},
 			},
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "test-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "test-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: now,
 					LastSeen:  now,
 				},
@@ -238,7 +251,7 @@ func TestProducerWeaverSchemaExport_YAMLContent(t *testing.T) {
 	require.NoError(t, err)
 
 	// Make request
-	req := httptest.NewRequest("GET", "/api/v1/producers/test-service---1.0.0/weaver-schema.zip", nil)
+	req := httptest.NewRequest("GET", "/api/v1/entities/service/weaver-schema.zip", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -257,7 +270,7 @@ func TestProducerWeaverSchemaExport_YAMLContent(t *testing.T) {
 	require.Equal(t, byte(0x4B), body[1])
 }
 
-func TestProducerWeaverSchemaExport_RouteIntegration(t *testing.T) {
+func TestEntityWeaverSchemaExport_RouteIntegration(t *testing.T) {
 	// Setup test database
 	testDB := testutil.NewTestDB(t)
 	defer testDB.Close()
@@ -265,7 +278,7 @@ func TestProducerWeaverSchemaExport_RouteIntegration(t *testing.T) {
 
 	// Create router and register our handler
 	r := chi.NewRouter()
-	r.Get("/api/v1/producers/{producerNameVersion}/weaver-schema.zip", api.HandleProducerWeaverSchemaExport(testDB.Repo()))
+	r.Get("/api/v1/entities/{entityType}/weaver-schema.zip", api.HandleEntityWeaverSchemaExport(testDB.Repo()))
 
 	// Test that the route is properly registered and accessible
 	testCases := []struct {
@@ -274,18 +287,18 @@ func TestProducerWeaverSchemaExport_RouteIntegration(t *testing.T) {
 		expectCode int
 	}{
 		{
-			name:       "valid producer route",
-			path:       "/api/v1/producers/service---1.0.0/weaver-schema.zip",
+			name:       "valid entity route",
+			path:       "/api/v1/entities/service/weaver-schema.zip",
 			expectCode: http.StatusNoContent, // No metrics, so 204
 		},
 		{
-			name:       "invalid producer route",
-			path:       "/api/v1/producers/invalid/weaver-schema.zip",
-			expectCode: http.StatusBadRequest,
+			name:       "valid entity route",
+			path:       "/api/v1/entities/service/weaver-schema.zip",
+			expectCode: http.StatusNoContent, // No metrics, so 204
 		},
 		{
 			name:       "non-existent route",
-			path:       "/api/v1/producers/service---1.0.0/invalid",
+			path:       "/api/v1/entities/service/invalid",
 			expectCode: http.StatusNotFound,
 		},
 	}
@@ -302,7 +315,7 @@ func TestProducerWeaverSchemaExport_RouteIntegration(t *testing.T) {
 	}
 }
 
-func TestProducerWeaverSchemaExport_ZipContents(t *testing.T) {
+func TestEntityWeaverSchemaExport_ZipContents(t *testing.T) {
 	testDB := testutil.NewTestDB(t)
 	defer testDB.Close()
 	testDB.SetupTestDB(t)
@@ -321,11 +334,15 @@ func TestProducerWeaverSchemaExport_ZipContents(t *testing.T) {
 			SeenCount:     1,
 			CreatedAt:     now,
 			UpdatedAt:     now,
-			Producers: map[string]*schema.Producer{
-				"producer1": {
-					Name:      "test-service",
-					Version:   "1.0.0",
-					Namespace: "default",
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "test-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "default",
+					},
 					FirstSeen: now,
 					LastSeen:  now,
 				},
@@ -342,11 +359,11 @@ func TestProducerWeaverSchemaExport_ZipContents(t *testing.T) {
 	// Create router and register routes
 	router := chi.NewRouter()
 	router.Route("/api/v1", func(r chi.Router) {
-		r.Get("/producers/{producerNameVersion}/weaver-schema.zip", api.HandleProducerWeaverSchemaExport(testDB.Repo()))
+		r.Get("/entities/{entityType}/weaver-schema.zip", api.HandleEntityWeaverSchemaExport(testDB.Repo()))
 	})
 
 	// Test request
-	req := httptest.NewRequest("GET", "/api/v1/producers/test-service---1.0.0/weaver-schema.zip", nil)
+	req := httptest.NewRequest("GET", "/api/v1/entities/service/weaver-schema.zip", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -378,7 +395,7 @@ func TestProducerWeaverSchemaExport_ZipContents(t *testing.T) {
 	}
 
 	expectedFiles := []string{
-		"test-service---1.0.0-metrics.yaml",
+		"service-metrics.yaml",
 		"registry_manifest.yaml",
 	}
 
@@ -409,10 +426,9 @@ func TestProducerWeaverSchemaExport_ZipContents(t *testing.T) {
 
 	// Verify manifest contains expected content
 	expectedManifestLines := []string{
-		"name: test-service",
-		"description: Schema for test-service, version 1.0.0",
-		"semconv_version: 1.0.0",
-		"schema_base_url: http://github.com/nicolastakashi/tallycat/test-service---1.0.0",
+		"name: service",
+		"description: Schema for service, version",
+		"schema_base_url: http://github.com/nicolastakashi/tallycat/service---",
 	}
 
 	for _, expectedLine := range expectedManifestLines {

@@ -6,37 +6,27 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import type { Telemetry, TelemetryProducer } from '@/types/telemetry'
-import { TelemetryProducersTable } from './telemetry-producers-table'
+import type { Telemetry, TelemetryEntity } from '@/types/telemetry'
+import { TelemetryEntitiesTable } from './telemetry-entities-table'
 
-interface TelemetryProducersPanelProps {
+interface TelemetryEntitiesPanelProps {
   schemaData: Telemetry | null
   isOpen: boolean
   onClose: () => void
 }
 
-export function TelemetryProducersPanel({
+export function TelemetryEntitiesPanel({
   schemaData,
   isOpen,
   onClose,
-}: TelemetryProducersPanelProps) {
+}: TelemetryEntitiesPanelProps) {
   // State for the sources panel
   const [searchQuery, setSearchQuery] = useState('')
-  const [filteredSources, setFilteredSources] = useState<TelemetryProducer[]>([])
+  const [filteredEntities, setFilteredEntities] = useState<Record<string, TelemetryEntity>>({})
 
   useEffect(() => {
-    if (schemaData?.producers) {
-      // Add mock data for namespace, firstSeen, and lastSeen
-      const sourcesWithMockData = Object.values(schemaData.producers).map(
-        (source: TelemetryProducer) => ({
-          ...source,
-          namespace: source.namespace,
-          firstSeen: source.firstSeen,
-          lastSeen: source.lastSeen,
-        }),
-      )
-
-      setFilteredSources(sourcesWithMockData)
+    if (schemaData?.entities) {
+      setFilteredEntities(schemaData.entities)
     }
   }, [schemaData])
 
@@ -48,26 +38,27 @@ export function TelemetryProducersPanel({
   }, [isOpen])
 
   useEffect(() => {
-    if (schemaData?.producers) {
-      const sourcesWithMockData = Object.values(schemaData.producers).map(
-        (source: TelemetryProducer) => ({
-          ...source,
-          namespace: source.namespace || '',
-          firstSeen: source.firstSeen,
-          lastSeen: source.lastSeen,
-        }),
+    if (schemaData?.entities) {
+      if (!searchQuery) {
+        setFilteredEntities(schemaData.entities)
+        return
+      }
+
+      const query = searchQuery.toLowerCase()
+      const filtered = Object.fromEntries(
+        Object.entries(schemaData.entities).filter(([_, entity]) => {
+          const entityType = entity.type.toLowerCase()
+          const entityId = entity.id.toLowerCase()
+          const attributeValues = Object.values(entity.attributes)
+            .map(val => String(val).toLowerCase())
+            .join(' ')
+
+          return entityType.includes(query) || 
+                 entityId.includes(query) || 
+                 attributeValues.includes(query)
+        })
       )
-
-      const newFilteredSources = sourcesWithMockData?.filter((source: any) => {
-        if (!searchQuery) return true
-
-        const name = source.name?.toLowerCase() || ''
-        const namespace = source.namespace?.toLowerCase() || ''
-        const query = searchQuery.toLowerCase()
-
-        return name.includes(query) || namespace.includes(query)
-      })
-      setFilteredSources(newFilteredSources)
+      setFilteredEntities(filtered)
     }
   }, [searchQuery, schemaData])
 
@@ -90,9 +81,9 @@ export function TelemetryProducersPanel({
           <div className="flex items-center justify-between border-b px-6 py-4">
             <div className="flex items-center gap-3">
               <Server className="h-5 w-5 text-indigo-500" />
-              <h2 className="text-lg font-semibold">Telemetry Producers</h2>
+              <h2 className="text-lg font-semibold">Telemetry Entities</h2>
               <Badge variant="secondary" className="ml-1">
-                {filteredSources?.length || 0}
+                {Object.keys(filteredEntities).length || 0}
               </Badge>
             </div>
             <Button variant="ghost" size="icon" onClick={onClose}>
@@ -106,7 +97,7 @@ export function TelemetryProducersPanel({
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search producers..."
+                placeholder="Search entities..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -119,25 +110,25 @@ export function TelemetryProducersPanel({
             <ScrollArea className="h-full">
               <div className="px-6 py-4">
                 <div className="text-sm text-muted-foreground mb-6">
-                  {filteredSources?.length || 0} producers generating{' '}
+                  {Object.keys(filteredEntities).length || 0} entities generating{' '}
                   <span className="font-mono font-medium text-foreground">
                     {schemaData?.schemaKey}
                   </span>{' '}
                   telemetry
                 </div>
 
-                <TelemetryProducersTable producers={filteredSources} />
+                <TelemetryEntitiesTable entities={filteredEntities} />
 
-                {filteredSources?.length === 0 && (
+                {Object.keys(filteredEntities).length === 0 && (
                   <div className="text-center py-12">
                     <Server className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-2">
-                      No producers found
+                      No entities found
                     </h3>
                     <p className="text-muted-foreground">
                       {searchQuery
                         ? 'Try adjusting your search terms.'
-                        : 'No telemetry producers are available.'}
+                        : 'No telemetry entities are available.'}
                     </p>
                   </div>
                 )}
