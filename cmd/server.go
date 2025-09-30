@@ -117,36 +117,40 @@ and processes log data according to the OpenTelemetry protocol.`,
 				switch sig {
 				case syscall.SIGTERM, syscall.SIGINT:
 					slog.Info("Received shutdown signal", "signal", sig)
-					pool.Close()
+
+					shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTimeout)
+					defer shutdownCancel()
+
+					shutdownDone := make(chan struct{})
+					go func() {
+						defer close(shutdownDone)
+						srv.Stop()
+						httpSrv.Shutdown(shutdownCtx)
+						pool.Close()
+					}()
+
+					select {
+					case <-shutdownDone:
+						slog.Info("Server stopped gracefully")
+					case <-shutdownCtx.Done():
+						slog.Warn("Server shutdown timed out, forcing stop")
+						srv.ForceStop()
+					}
+
 					cancel()
+					return fmt.Errorf("shutdown signal received")
 				case syscall.SIGHUP:
 					slog.Info("Received reload signal", "signal", sig)
-					// TODO: Implement configuration reload
 				}
 			}
 			return nil
 		})
 
 		if err := g.Wait(); err != nil {
+			if err.Error() == "shutdown signal received" {
+				return nil
+			}
 			return err
-		}
-
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTimeout)
-		defer shutdownCancel()
-
-		shutdownDone := make(chan struct{})
-		go func() {
-			defer close(shutdownDone)
-			srv.Stop()
-			httpSrv.Shutdown(shutdownCtx)
-		}()
-
-		select {
-		case <-shutdownDone:
-			slog.Info("Server stopped gracefully")
-		case <-shutdownCtx.Done():
-			slog.Warn("Server shutdown timed out, forcing stop")
-			srv.ForceStop()
 		}
 
 		return nil
