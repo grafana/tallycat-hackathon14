@@ -18,6 +18,8 @@ jobs:
     steps:
     - name: Check out code
       uses: actions/checkout@v4
+    - name: Stub dist directory
+      run: mkdir -p ui/dist && touch ui/dist/.gitkeep
       
     - name: Set up Go
       uses: actions/setup-go@v5

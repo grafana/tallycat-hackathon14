@@ -2,9 +2,13 @@ package httpserver
 
 import (
 	"context"
+	"fmt"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -12,6 +16,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/tallycat/tallycat/internal/httpserver/api"
 	"github.com/tallycat/tallycat/internal/repository"
+	"github.com/tallycat/tallycat/ui"
 )
 
 type Server struct {
@@ -94,6 +99,7 @@ func registerAPIRoutes(r chi.Router, srv *Server) {
 			r.Get("/{entityType}/{type}", api.HandleEntitySchemaExport(srv.schemaRepo))
 		})
 	})
+	r.Handle("/*", SPAHandler())
 }
 
 func (s *Server) Start() error {
@@ -104,4 +110,21 @@ func (s *Server) Start() error {
 
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.httpServer.Shutdown(ctx)
+}
+
+func SPAHandler() http.HandlerFunc {
+	spaFS, err := fs.Sub(ui.DistFiles, "dist")
+	if err != nil {
+		panic(fmt.Errorf("failed getting the sub tree for the site files: %w", err))
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		f, err := spaFS.Open(strings.TrimPrefix(path.Clean(r.URL.Path), "/"))
+		if err == nil {
+			defer f.Close()
+		}
+		if os.IsNotExist(err) {
+			r.URL.Path = "/"
+		}
+		http.FileServer(http.FS(spaFS)).ServeHTTP(w, r)
+	}
 }

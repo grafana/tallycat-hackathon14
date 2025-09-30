@@ -8,67 +8,36 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-// Import Routes
-
-import { Route as rootRoute } from './routes/__root'
-import { Route as DataGovernanceTelemetryCatalogImport } from './routes/data-governance/telemetry-catalog'
-import { Route as DataGovernanceTelemetryNameImport } from './routes/data-governance/$telemetryName'
-
-// Create/Update Routes
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as DataGovernanceTelemetryCatalogRouteImport } from './routes/data-governance/telemetry-catalog'
+import { Route as DataGovernanceTelemetryNameRouteImport } from './routes/data-governance/$telemetryName'
 
 const DataGovernanceTelemetryCatalogRoute =
-  DataGovernanceTelemetryCatalogImport.update({
+  DataGovernanceTelemetryCatalogRouteImport.update({
     id: '/data-governance/telemetry-catalog',
     path: '/data-governance/telemetry-catalog',
-    getParentRoute: () => rootRoute,
+    getParentRoute: () => rootRouteImport,
   } as any)
-
 const DataGovernanceTelemetryNameRoute =
-  DataGovernanceTelemetryNameImport.update({
+  DataGovernanceTelemetryNameRouteImport.update({
     id: '/data-governance/$telemetryName',
     path: '/data-governance/$telemetryName',
-    getParentRoute: () => rootRoute,
+    getParentRoute: () => rootRouteImport,
   } as any)
-
-// Populate the FileRoutesByPath interface
-
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/data-governance/$telemetryName': {
-      id: '/data-governance/$telemetryName'
-      path: '/data-governance/$telemetryName'
-      fullPath: '/data-governance/$telemetryName'
-      preLoaderRoute: typeof DataGovernanceTelemetryNameImport
-      parentRoute: typeof rootRoute
-    }
-    '/data-governance/telemetry-catalog': {
-      id: '/data-governance/telemetry-catalog'
-      path: '/data-governance/telemetry-catalog'
-      fullPath: '/data-governance/telemetry-catalog'
-      preLoaderRoute: typeof DataGovernanceTelemetryCatalogImport
-      parentRoute: typeof rootRoute
-    }
-  }
-}
-
-// Create and export the route tree
 
 export interface FileRoutesByFullPath {
   '/data-governance/$telemetryName': typeof DataGovernanceTelemetryNameRoute
   '/data-governance/telemetry-catalog': typeof DataGovernanceTelemetryCatalogRoute
 }
-
 export interface FileRoutesByTo {
   '/data-governance/$telemetryName': typeof DataGovernanceTelemetryNameRoute
   '/data-governance/telemetry-catalog': typeof DataGovernanceTelemetryCatalogRoute
 }
-
 export interface FileRoutesById {
-  __root__: typeof rootRoute
+  __root__: typeof rootRouteImport
   '/data-governance/$telemetryName': typeof DataGovernanceTelemetryNameRoute
   '/data-governance/telemetry-catalog': typeof DataGovernanceTelemetryCatalogRoute
 }
-
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
@@ -82,37 +51,34 @@ export interface FileRouteTypes {
     | '/data-governance/telemetry-catalog'
   fileRoutesById: FileRoutesById
 }
-
 export interface RootRouteChildren {
   DataGovernanceTelemetryNameRoute: typeof DataGovernanceTelemetryNameRoute
   DataGovernanceTelemetryCatalogRoute: typeof DataGovernanceTelemetryCatalogRoute
+}
+
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/data-governance/telemetry-catalog': {
+      id: '/data-governance/telemetry-catalog'
+      path: '/data-governance/telemetry-catalog'
+      fullPath: '/data-governance/telemetry-catalog'
+      preLoaderRoute: typeof DataGovernanceTelemetryCatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/data-governance/$telemetryName': {
+      id: '/data-governance/$telemetryName'
+      path: '/data-governance/$telemetryName'
+      fullPath: '/data-governance/$telemetryName'
+      preLoaderRoute: typeof DataGovernanceTelemetryNameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+  }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   DataGovernanceTelemetryNameRoute: DataGovernanceTelemetryNameRoute,
   DataGovernanceTelemetryCatalogRoute: DataGovernanceTelemetryCatalogRoute,
 }
-
-export const routeTree = rootRoute
+export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-/* ROUTE_MANIFEST_START
-{
-  "routes": {
-    "__root__": {
-      "filePath": "__root.tsx",
-      "children": [
-        "/data-governance/$telemetryName",
-        "/data-governance/telemetry-catalog"
-      ]
-    },
-    "/data-governance/$telemetryName": {
-      "filePath": "data-governance/$telemetryName.tsx"
-    },
-    "/data-governance/telemetry-catalog": {
-      "filePath": "data-governance/telemetry-catalog.tsx"
-    }
-  }
-}
-ROUTE_MANIFEST_END */
