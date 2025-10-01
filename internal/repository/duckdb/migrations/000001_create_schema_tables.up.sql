@@ -69,3 +69,31 @@ CREATE TABLE IF NOT EXISTS schema_entities (
     FOREIGN KEY (entity_id) REFERENCES telemetry_entities(entity_id),
     PRIMARY KEY (schema_id, entity_id)
 );
+
+-- Create telemetry_scopes table
+CREATE TABLE IF NOT EXISTS telemetry_scopes (
+    scope_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    version TEXT,
+    schema_url TEXT,
+    first_seen TIMESTAMP NOT NULL,
+    last_seen TIMESTAMP NOT NULL
+);
+
+-- Create scope_attributes table
+CREATE TABLE IF NOT EXISTS scope_attributes (
+    scope_id TEXT,
+    name TEXT,
+    value TEXT,
+    type TEXT,
+    FOREIGN KEY (scope_id) REFERENCES telemetry_scopes(scope_id)
+);
+
+-- Create schema_scopes table (many-to-many relationship)
+CREATE TABLE IF NOT EXISTS schema_scopes (
+    schema_id TEXT,
+    scope_id TEXT,
+    FOREIGN KEY (schema_id) REFERENCES telemetry_schemas(schema_id),
+    FOREIGN KEY (scope_id) REFERENCES telemetry_scopes(scope_id),
+    PRIMARY KEY (schema_id, scope_id)
+);

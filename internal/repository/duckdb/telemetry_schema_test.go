@@ -9,6 +9,7 @@ import (
 
 	_ "github.com/marcboeker/go-duckdb/v2"
 	"github.com/stretchr/testify/require"
+	"github.com/tallycat/tallycat/internal/repository/query"
 	"github.com/tallycat/tallycat/internal/schema"
 )
 
@@ -94,6 +95,34 @@ func setupTestDB(t *testing.T) *TelemetrySchemaRepository {
 			FOREIGN KEY (schema_id) REFERENCES telemetry_schemas(schema_id),
 			FOREIGN KEY (entity_id) REFERENCES telemetry_entities(entity_id),
 			PRIMARY KEY (schema_id, entity_id)
+		);
+
+		-- Create telemetry_scopes table
+		CREATE TABLE IF NOT EXISTS telemetry_scopes (
+			scope_id TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			version TEXT,
+			schema_url TEXT,
+			first_seen TIMESTAMP NOT NULL,
+			last_seen TIMESTAMP NOT NULL
+		);
+
+		-- Create scope_attributes table
+		CREATE TABLE IF NOT EXISTS scope_attributes (
+			scope_id TEXT,
+			name TEXT,
+			value TEXT,
+			type TEXT,
+			FOREIGN KEY (scope_id) REFERENCES telemetry_scopes(scope_id)
+		);
+
+		-- Create schema_scopes table (many-to-many relationship)
+		CREATE TABLE IF NOT EXISTS schema_scopes (
+			schema_id TEXT,
+			scope_id TEXT,
+			FOREIGN KEY (schema_id) REFERENCES telemetry_schemas(schema_id),
+			FOREIGN KEY (scope_id) REFERENCES telemetry_scopes(scope_id),
+			PRIMARY KEY (schema_id, scope_id)
 		);
 	`)
 	require.NoError(t, err)
@@ -1064,4 +1093,229 @@ func TestListTelemetriesByEntity_LatestSchemaVersionOnly(t *testing.T) {
 	require.Len(t, telemetries, 1)
 	require.Equal(t, "metric1_v2_schema_id", telemetries[0].SchemaID)
 	require.Equal(t, "HTTP server request duration v2", telemetries[0].Brief)
+}
+
+func TestListScopes_NoScopes(t *testing.T) {
+	repo := setupTestDB(t)
+	ctx := context.Background()
+
+	params := query.ListQueryParams{
+		Page:     1,
+		PageSize: 10,
+	}
+
+	scopes, total, err := repo.ListScopes(ctx, params)
+
+	require.NoError(t, err)
+	require.Empty(t, scopes)
+	require.Equal(t, 0, total)
+}
+
+func TestListScopes_WithScopes(t *testing.T) {
+	repo := setupTestDB(t)
+	ctx := context.Background()
+
+	// Insert test data - minimal telemetries with scopes
+	testTelemetries := []schema.Telemetry{
+		{
+			SchemaID:      "metric1_schema_id",
+			SchemaKey:     "http.server.duration",
+			TelemetryType: schema.TelemetryTypeMetric,
+			Protocol:      schema.TelemetryProtocolOTLP,
+			SeenCount:     1,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+			Scope: &schema.Scope{
+				ID:         "scope1",
+				Name:       "@opentelemetry/instrumentation-http",
+				Version:    "0.45.0",
+				SchemaURL:  "https://opentelemetry.io/schemas/1.21.0",
+				Attributes: map[string]interface{}{"library.language": "javascript"},
+				FirstSeen:  time.Now(),
+				LastSeen:   time.Now(),
+			},
+		},
+		{
+			SchemaID:      "metric2_schema_id",
+			SchemaKey:     "http.client.duration",
+			TelemetryType: schema.TelemetryTypeMetric,
+			Protocol:      schema.TelemetryProtocolOTLP,
+			SeenCount:     1,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+			Scope: &schema.Scope{
+				ID:         "scope2",
+				Name:       "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+				Version:    "0.46.1",
+				SchemaURL:  "https://opentelemetry.io/schemas/1.22.0",
+				Attributes: map[string]interface{}{"library.language": "go"},
+				FirstSeen:  time.Now(),
+				LastSeen:   time.Now(),
+			},
+		},
+	}
+
+	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
+	require.NoError(t, err)
+
+	// Test: List all scopes
+	params := query.ListQueryParams{
+		Page:     1,
+		PageSize: 10,
+	}
+
+	scopes, total, err := repo.ListScopes(ctx, params)
+
+	require.NoError(t, err)
+	require.Len(t, scopes, 2)
+	require.Equal(t, 2, total)
+
+	// Verify scope data
+	scopeMap := make(map[string]schema.Scope)
+	for _, scope := range scopes {
+		scopeMap[scope.ID] = scope
+	}
+
+	// Check first scope
+	scope1, exists := scopeMap["scope1"]
+	require.True(t, exists)
+	require.Equal(t, "@opentelemetry/instrumentation-http", scope1.Name)
+	require.Equal(t, "0.45.0", scope1.Version)
+	require.Equal(t, "https://opentelemetry.io/schemas/1.21.0", scope1.SchemaURL)
+	require.Equal(t, "javascript", scope1.Attributes["library.language"])
+
+	// Check second scope
+	scope2, exists := scopeMap["scope2"]
+	require.True(t, exists)
+	require.Equal(t, "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp", scope2.Name)
+	require.Equal(t, "0.46.1", scope2.Version)
+	require.Equal(t, "https://opentelemetry.io/schemas/1.22.0", scope2.SchemaURL)
+	require.Equal(t, "go", scope2.Attributes["library.language"])
+}
+
+func TestListScopes_WithSearch(t *testing.T) {
+	repo := setupTestDB(t)
+	ctx := context.Background()
+
+	// Insert test data
+	testTelemetries := []schema.Telemetry{
+		{
+			SchemaID:      "metric_search_schema_id",
+			SchemaKey:     "http.server.duration",
+			TelemetryType: schema.TelemetryTypeMetric,
+			Protocol:      schema.TelemetryProtocolOTLP,
+			SeenCount:     1,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+			Scope: &schema.Scope{
+				ID:        "scope_search",
+				Name:      "@opentelemetry/instrumentation-http",
+				Version:   "0.45.0",
+				SchemaURL: "https://opentelemetry.io/schemas/1.21.0",
+				FirstSeen: time.Now(),
+				LastSeen:  time.Now(),
+			},
+		},
+	}
+
+	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
+	require.NoError(t, err)
+
+	// Test: Search by name
+	params := query.ListQueryParams{
+		Page:     1,
+		PageSize: 10,
+		Search:   "instrumentation-http",
+	}
+
+	scopes, total, err := repo.ListScopes(ctx, params)
+
+	require.NoError(t, err)
+	require.Len(t, scopes, 1)
+	require.Equal(t, 1, total)
+	require.Equal(t, "@opentelemetry/instrumentation-http", scopes[0].Name)
+
+	// Test: Search with no matches
+	params.Search = "nonexistent"
+	scopes, total, err = repo.ListScopes(ctx, params)
+
+	require.NoError(t, err)
+	require.Empty(t, scopes)
+	require.Equal(t, 0, total)
+}
+
+func TestListScopes_ScopeConflictResolution(t *testing.T) {
+	repo := setupTestDB(t)
+	ctx := context.Background()
+
+	now := time.Now()
+	later := now.Add(1 * time.Hour)
+
+	// First telemetry with scope
+	firstTelemetry := []schema.Telemetry{
+		{
+			SchemaID:      "metric1_schema_id",
+			SchemaKey:     "http.server.duration",
+			TelemetryType: schema.TelemetryTypeMetric,
+			Protocol:      schema.TelemetryProtocolOTLP,
+			SeenCount:     1,
+			CreatedAt:     now,
+			UpdatedAt:     now,
+			Scope: &schema.Scope{
+				ID:        "scope_conflict",
+				Name:      "@opentelemetry/instrumentation-http",
+				Version:   "0.45.0",
+				SchemaURL: "https://opentelemetry.io/schemas/1.21.0",
+				FirstSeen: now,
+				LastSeen:  now,
+			},
+		},
+	}
+
+	// Second telemetry with same scope but later timestamp
+	secondTelemetry := []schema.Telemetry{
+		{
+			SchemaID:      "metric2_schema_id",
+			SchemaKey:     "http.client.duration",
+			TelemetryType: schema.TelemetryTypeMetric,
+			Protocol:      schema.TelemetryProtocolOTLP,
+			SeenCount:     1,
+			CreatedAt:     later,
+			UpdatedAt:     later,
+			Scope: &schema.Scope{
+				ID:        "scope_conflict", // Same scope ID
+				Name:      "@opentelemetry/instrumentation-http",
+				Version:   "0.45.0",
+				SchemaURL: "https://opentelemetry.io/schemas/1.21.0",
+				FirstSeen: now,
+				LastSeen:  later, // Updated last_seen
+			},
+		},
+	}
+
+	// Register first telemetry
+	err := repo.RegisterTelemetrySchemas(ctx, firstTelemetry)
+	require.NoError(t, err)
+
+	// Register second telemetry (should update last_seen)
+	err = repo.RegisterTelemetrySchemas(ctx, secondTelemetry)
+	require.NoError(t, err)
+
+	// Verify scope was updated correctly
+	params := query.ListQueryParams{
+		Page:     1,
+		PageSize: 10,
+	}
+
+	scopes, total, err := repo.ListScopes(ctx, params)
+
+	require.NoError(t, err)
+	require.Len(t, scopes, 1)
+	require.Equal(t, 1, total)
+
+	scope := scopes[0]
+	require.Equal(t, "scope_conflict", scope.ID)
+	require.Equal(t, "@opentelemetry/instrumentation-http", scope.Name)
+	// LastSeen should be updated to the later time
+	require.True(t, scope.LastSeen.After(scope.FirstSeen) || scope.LastSeen.Equal(later))
 }
