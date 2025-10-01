@@ -67,6 +67,7 @@ export interface Telemetry {
   updatedAt: string
   attributes: Attribute[]
   entities: Record<string, TelemetryEntity>
+  scope: TelemetryScope | null
 }
 
 export interface Attribute {
