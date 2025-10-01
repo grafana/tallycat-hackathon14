@@ -87,6 +87,7 @@ func registerAPIRoutes(r chi.Router, srv *Server) {
 			r.Get("/", api.HandleTelemetryList(srv.schemaRepo))
 			r.Get("/{key}", api.HandleGetTelemetry(srv.schemaRepo))
 			r.Get("/{key}/history", api.HandleTelemetryHistory(srv.historyRepo))
+			r.Get("/{key}/entities", api.HandleTelemetryEntityList(srv.schemaRepo))
 			r.Get("/{key}/scopes", api.HandleTelemetryScopeList(srv.schemaRepo))
 			r.Route("/{key}/schemas", func(r chi.Router) {
 				r.Get("/", api.HandleTelemetrySchemas(srv.schemaRepo))
@@ -96,6 +97,7 @@ func registerAPIRoutes(r chi.Router, srv *Server) {
 			})
 		})
 		r.Route("/entities", func(r chi.Router) {
+			r.Get("/", api.HandleEntityList(srv.schemaRepo))
 			r.Get("/{entityType}/weaver-schema.zip", api.HandleEntityWeaverSchemaExport(srv.schemaRepo))
 			r.Get("/{entityType}/{type}", api.HandleEntitySchemaExport(srv.schemaRepo))
 		})

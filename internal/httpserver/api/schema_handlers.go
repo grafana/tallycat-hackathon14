@@ -445,6 +445,55 @@ func HandleTelemetryHistory(historyRepo repository.TelemetryHistoryRepository) h
 	}
 }
 
+// HandleEntityList returns a paginated, filtered, and searched list of entities as JSON.
+func HandleEntityList(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		params := ParseListQueryParams(r)
+		entities, total, err := schemaRepo.ListEntities(ctx, params)
+		if err != nil {
+			slog.Error("failed to list entities", "error", err)
+			http.Error(w, "failed to list entities", http.StatusInternalServerError)
+			return
+		}
+
+		resp := ListResponse[schema.Entity]{
+			Items:    entities,
+			Total:    total,
+			Page:     params.Page,
+			PageSize: params.PageSize,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}
+}
+
+// HandleTelemetryEntityList returns all entities for a specific telemetry as JSON.
+func HandleTelemetryEntityList(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		telemetryKey := chi.URLParam(r, "key")
+
+		entities, err := schemaRepo.ListEntitiesByTelemetry(ctx, telemetryKey)
+		if err != nil {
+			slog.Error("failed to list entities for telemetry", "error", err, "telemetry_key", telemetryKey)
+			http.Error(w, "failed to list entities for telemetry", http.StatusInternalServerError)
+			return
+		}
+
+		resp := ListResponse[schema.Entity]{
+			Items:    entities,
+			Total:    len(entities),
+			Page:     1,
+			PageSize: len(entities),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}
+}
+
 // HandleScopeList returns a paginated, filtered, and searched list of scopes as JSON.
 func HandleScopeList(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
