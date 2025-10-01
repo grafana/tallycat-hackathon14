@@ -228,6 +228,8 @@ func ExtractFromLogs(logs plog.Logs) []Telemetry {
 						schemaKey = serviceAttr.Str()
 					} else if serviceAttr, exists := logRecord.Attributes().Get("msg"); exists {
 						schemaKey = serviceAttr.Str()
+					} else if logRecord.Body().AsString() != "" {
+						schemaKey = logRecord.Body().AsString()
 					} else {
 						// Fallback to a generic log schema key
 						schemaKey = "application_log"
