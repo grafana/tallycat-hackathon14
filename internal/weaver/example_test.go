@@ -38,6 +38,14 @@ func ExampleGenerateYAML() {
 				Source: schema.AttributeSourceResource, // This will be filtered out
 			},
 		},
+		Scope: &schema.Scope{
+			Name:      "django",
+			Version:   "1.0.0",
+			SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+			Attributes: map[string]interface{}{
+				"service.name": "django",
+			},
+		},
 	}
 
 	yaml, err := GenerateYAML(telemetry, nil)
@@ -49,7 +57,7 @@ func ExampleGenerateYAML() {
 
 	// Output:
 	// groups:
-	//   - id: metric.http.server.duration
+	//   - id: metric.django.http.server.duration
 	//     type: metric
 	//     metric_name: http.server.duration
 	//     brief: "Measures the duration of HTTP server requests"

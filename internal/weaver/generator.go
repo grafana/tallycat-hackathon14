@@ -17,6 +17,19 @@ func quoteYAMLString(s string) string {
 	return fmt.Sprintf(`"%s"`, strings.ReplaceAll(s, `"`, `\"`))
 }
 
+// buildGroupID creates a group ID in the format: {telemetryType}.{sanitized_scope_name}.{schemaKey}
+// Falls back to "unknown" for scope name when telemetry.Scope is nil or scope name is empty/UNKNOWN
+func buildGroupID(telemetryType string, telemetry *schema.Telemetry) string {
+	var scopeName string
+	if telemetry.Scope != nil && telemetry.Scope.Name != "" {
+		scopeName = schema.SanitizeScopeName(telemetry.Scope.Name)
+	} else {
+		scopeName = "unknown"
+	}
+
+	return fmt.Sprintf("%s.%s.%s", telemetryType, scopeName, telemetry.SchemaKey)
+}
+
 // GenerateYAML generates a Weaver format YAML string from telemetry schema data
 func GenerateYAML(telemetry *schema.Telemetry, telemetrySchema *schema.TelemetrySchema) (string, error) {
 	if telemetry == nil {
@@ -44,7 +57,7 @@ func generateMetricYAML(telemetry *schema.Telemetry, telemetrySchema *schema.Tel
 
 	// Start with the groups section
 	yamlLines = append(yamlLines, "groups:")
-	yamlLines = append(yamlLines, fmt.Sprintf("  - id: metric.%s", telemetry.SchemaKey))
+	yamlLines = append(yamlLines, fmt.Sprintf("  - id: %s", buildGroupID("metric", telemetry)))
 	yamlLines = append(yamlLines, "    type: metric")
 	yamlLines = append(yamlLines, fmt.Sprintf("    metric_name: %s", telemetry.SchemaKey))
 
@@ -101,7 +114,7 @@ func generateLogEventYAML(telemetry *schema.Telemetry, telemetrySchema *schema.T
 
 	// Start with the groups section
 	yamlLines = append(yamlLines, "groups:")
-	yamlLines = append(yamlLines, fmt.Sprintf("  - id: event.%s", eventName))
+	yamlLines = append(yamlLines, fmt.Sprintf("  - id: %s", buildGroupID("event", telemetry)))
 	yamlLines = append(yamlLines, "    type: event")
 	yamlLines = append(yamlLines, fmt.Sprintf("    name: %s", eventName))
 	yamlLines = append(yamlLines, fmt.Sprintf("    brief: %s", quoteYAMLString(telemetry.Brief)))
@@ -147,7 +160,7 @@ func generateSpanYAML(telemetry *schema.Telemetry, telemetrySchema *schema.Telem
 
 	// Start with the groups section
 	yamlLines = append(yamlLines, "groups:")
-	yamlLines = append(yamlLines, fmt.Sprintf("  - id: span.%s", telemetry.SchemaKey))
+	yamlLines = append(yamlLines, fmt.Sprintf("  - id: %s", buildGroupID("span", telemetry)))
 	yamlLines = append(yamlLines, "    type: span")
 	yamlLines = append(yamlLines, fmt.Sprintf("    brief: %s", quoteYAMLString(telemetry.Brief)))
 	yamlLines = append(yamlLines, "    stability: stable")

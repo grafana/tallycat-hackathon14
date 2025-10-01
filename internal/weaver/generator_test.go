@@ -41,6 +41,14 @@ func TestGenerateYAML_BasicTelemetry(t *testing.T) {
 				Source: schema.AttributeSourceResource, // Should be filtered out
 			},
 		},
+		Scope: &schema.Scope{
+			Name:      "django",
+			Version:   "1.0.0",
+			SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+			Attributes: map[string]interface{}{
+				"service.name": "django",
+			},
+		},
 	}
 
 	yaml, err := GenerateYAML(telemetry, nil)
@@ -52,7 +60,7 @@ func TestGenerateYAML_BasicTelemetry(t *testing.T) {
 	// Verify the basic structure
 	expectedLines := []string{
 		"groups:",
-		"  - id: metric.http.server.duration",
+		"  - id: metric.django.http.server.duration",
 		"    type: metric",
 		"    metric_name: http.server.duration",
 		"    brief: \"Measures the duration of HTTP server requests\"",
@@ -221,6 +229,14 @@ func TestGenerateMultiMetricYAML_SingleMetric(t *testing.T) {
 					Brief:            "HTTP request method",
 				},
 			},
+			Scope: &schema.Scope{
+				Name:      "django",
+				Version:   "1.0.0",
+				SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+				Attributes: map[string]interface{}{
+					"service.name": "django",
+				},
+			},
 		},
 	}
 
@@ -235,7 +251,7 @@ func TestGenerateMultiMetricYAML_SingleMetric(t *testing.T) {
 	// Verify the basic structure
 	expectedLines := []string{
 		"groups:",
-		"  - id: metric.http.server.duration",
+		"  - id: metric.django.http.server.duration",
 		"    type: metric",
 		"    metric_name: http.server.duration",
 		"    brief: \"Measures the duration of HTTP server requests\"",
@@ -273,6 +289,14 @@ func TestGenerateMultiMetricYAML_MultipleMetrics(t *testing.T) {
 					Source: schema.AttributeSourceDataPoint,
 				},
 			},
+			Scope: &schema.Scope{
+				Name:      "django",
+				Version:   "1.0.0",
+				SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+				Attributes: map[string]interface{}{
+					"service.name": "django",
+				},
+			},
 		},
 		{
 			SchemaID:      "metric2_schema_id",
@@ -286,6 +310,14 @@ func TestGenerateMultiMetricYAML_MultipleMetrics(t *testing.T) {
 					Name:   "http.status_code",
 					Type:   schema.AttributeTypeInt,
 					Source: schema.AttributeSourceDataPoint,
+				},
+			},
+			Scope: &schema.Scope{
+				Name:      "django",
+				Version:   "1.0.0",
+				SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+				Attributes: map[string]interface{}{
+					"service.name": "django",
 				},
 			},
 		},
@@ -302,9 +334,9 @@ func TestGenerateMultiMetricYAML_MultipleMetrics(t *testing.T) {
 	// Should contain both metrics
 	expectedLines := []string{
 		"groups:",
-		"  - id: metric.http.server.duration",
+		"  - id: metric.django.http.server.duration",
 		"    instrument: histogram",
-		"  - id: metric.http.server.requests",
+		"  - id: metric.django.http.server.requests",
 		"    instrument: counter",
 		"      - id: http.method",
 		"      - id: http.status_code",
@@ -461,6 +493,14 @@ func TestGenerateYAML_MetricWithoutUnit(t *testing.T) {
 		MetricType: schema.MetricTypeGauge,
 		// MetricUnit is intentionally not set (empty string)
 		TelemetryType: schema.TelemetryTypeMetric,
+		Scope: &schema.Scope{
+			Name:      "django",
+			Version:   "1.0.0",
+			SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+			Attributes: map[string]interface{}{
+				"service.name": "django",
+			},
+		},
 	}
 
 	yaml, err := GenerateYAML(telemetry, nil)
@@ -476,7 +516,7 @@ func TestGenerateYAML_MetricWithoutUnit(t *testing.T) {
 
 	// Should contain the metric with empty unit (quoted)
 	expectedLines := []string{
-		"  - id: metric.test.metric",
+		"  - id: metric.django.test.metric",
 		"    type: metric",
 		"    metric_name: test.metric",
 		"    brief: \"Test metric\"",
@@ -547,6 +587,14 @@ func TestGenerateYAML_LogEvent_BasicTelemetry(t *testing.T) {
 				Source: schema.AttributeSourceResource, // Should be filtered out
 			},
 		},
+		Scope: &schema.Scope{
+			Name:      "django",
+			Version:   "1.0.0",
+			SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+			Attributes: map[string]interface{}{
+				"service.name": "django",
+			},
+		},
 	}
 
 	yaml, err := GenerateYAML(telemetry, nil)
@@ -558,7 +606,7 @@ func TestGenerateYAML_LogEvent_BasicTelemetry(t *testing.T) {
 	// Verify the basic structure for log events
 	expectedLines := []string{
 		"groups:",
-		"  - id: event.user.login",
+		"  - id: event.django.user.login",
 		"    type: event",
 		"    name: user.login",
 		"    brief: \"User login event\"",
@@ -608,6 +656,14 @@ func TestGenerateYAML_LogEvent_NoEventName(t *testing.T) {
 				Source: schema.AttributeSourceLogRecord,
 			},
 		},
+		Scope: &schema.Scope{
+			Name:      "django",
+			Version:   "1.0.0",
+			SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+			Attributes: map[string]interface{}{
+				"service.name": "django",
+			},
+		},
 	}
 
 	yaml, err := GenerateYAML(telemetry, nil)
@@ -618,7 +674,7 @@ func TestGenerateYAML_LogEvent_NoEventName(t *testing.T) {
 
 	// Should use SchemaKey when LogEventName is empty (no 'name' property should be included)
 	expectedLines := []string{
-		"  - id: event.error.occurred",
+		"  - id: event.django.error.occurred",
 		"    type: event",
 		"    brief:",
 	}
@@ -642,6 +698,14 @@ func TestGenerateYAML_LogEvent_NoLogRecordAttributes(t *testing.T) {
 				Source: schema.AttributeSourceResource, // Not LogRecord
 			},
 		},
+		Scope: &schema.Scope{
+			Name:      "django",
+			Version:   "1.0.0",
+			SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+			Attributes: map[string]interface{}{
+				"service.name": "django",
+			},
+		},
 	}
 
 	yaml, err := GenerateYAML(telemetry, nil)
@@ -653,7 +717,7 @@ func TestGenerateYAML_LogEvent_NoLogRecordAttributes(t *testing.T) {
 	// Should still contain log severity attributes even if no LogRecord attributes
 	expectedLines := []string{
 		"groups:",
-		"  - id: event.simple.event",
+		"  - id: event.django.simple.event",
 		"    type: event",
 		"    name: simple.event",
 		"    attributes:",
@@ -724,6 +788,14 @@ func TestGenerateMultiMetricYAML_MixedTelemetries(t *testing.T) {
 					Source: schema.AttributeSourceDataPoint,
 				},
 			},
+			Scope: &schema.Scope{
+				Name:      "django",
+				Version:   "1.0.0",
+				SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+				Attributes: map[string]interface{}{
+					"service.name": "django",
+				},
+			},
 		},
 		{
 			SchemaID:          "log1_schema_id",
@@ -740,6 +812,14 @@ func TestGenerateMultiMetricYAML_MixedTelemetries(t *testing.T) {
 					Source: schema.AttributeSourceLogRecord,
 				},
 			},
+			Scope: &schema.Scope{
+				Name:      "django",
+				Version:   "1.0.0",
+				SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+				Attributes: map[string]interface{}{
+					"service.name": "django",
+				},
+			},
 		},
 	}
 
@@ -754,7 +834,7 @@ func TestGenerateMultiMetricYAML_MixedTelemetries(t *testing.T) {
 	// Should contain ONLY the metric, not the log event
 	expectedLines := []string{
 		"groups:",
-		"  - id: metric.http.server.duration",
+		"  - id: metric.django.http.server.duration",
 		"    type: metric",
 		"    instrument: histogram",
 		"      - id: http.method",
@@ -768,7 +848,7 @@ func TestGenerateMultiMetricYAML_MixedTelemetries(t *testing.T) {
 
 	// Should NOT contain log-related content
 	unexpectedLines := []string{
-		"  - id: event.user.login",
+		"  - id: event.django.user.login",
 		"    type: event",
 		"    name: user.login",
 		"      - id: user.id",
@@ -817,6 +897,14 @@ func TestGenerateMultiLogYAML_SingleLog(t *testing.T) {
 					Brief:  "User identifier",
 				},
 			},
+			Scope: &schema.Scope{
+				Name:      "django",
+				Version:   "1.0.0",
+				SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+				Attributes: map[string]interface{}{
+					"service.name": "django",
+				},
+			},
 		},
 	}
 
@@ -830,7 +918,7 @@ func TestGenerateMultiLogYAML_SingleLog(t *testing.T) {
 
 	expectedLines := []string{
 		"groups:",
-		"  - id: event.user.login",
+		"  - id: event.django.user.login",
 		"    type: event",
 		"    name: user.login",
 		"    brief: \"User login event\"",
@@ -868,6 +956,14 @@ func TestGenerateMultiLogYAML_MixedTelemetries(t *testing.T) {
 					Source: schema.AttributeSourceDataPoint,
 				},
 			},
+			Scope: &schema.Scope{
+				Name:      "django",
+				Version:   "1.0.0",
+				SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+				Attributes: map[string]interface{}{
+					"service.name": "django",
+				},
+			},
 		},
 		{
 			SchemaID:          "log1_schema_id",
@@ -884,6 +980,14 @@ func TestGenerateMultiLogYAML_MixedTelemetries(t *testing.T) {
 					Source: schema.AttributeSourceLogRecord,
 				},
 			},
+			Scope: &schema.Scope{
+				Name:      "django",
+				Version:   "1.0.0",
+				SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+				Attributes: map[string]interface{}{
+					"service.name": "django",
+				},
+			},
 		},
 	}
 
@@ -898,7 +1002,7 @@ func TestGenerateMultiLogYAML_MixedTelemetries(t *testing.T) {
 	// Should contain ONLY the log event, not the metric
 	expectedLines := []string{
 		"groups:",
-		"  - id: event.user.login",
+		"  - id: event.django.user.login",
 		"    type: event",
 		"    name: user.login",
 		"      - id: user.id",
@@ -913,7 +1017,7 @@ func TestGenerateMultiLogYAML_MixedTelemetries(t *testing.T) {
 
 	// Should NOT contain metric-related content
 	unexpectedLines := []string{
-		"  - id: metric.http.server.duration",
+		"  - id: metric.django.http.server.duration",
 		"    type: metric",
 		"    instrument: histogram",
 		"      - id: http.method",
@@ -943,6 +1047,14 @@ func TestGenerateMultiLogYAML_MultipleLogs(t *testing.T) {
 					Source: schema.AttributeSourceLogRecord,
 				},
 			},
+			Scope: &schema.Scope{
+				Name:      "django",
+				Version:   "1.0.0",
+				SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+				Attributes: map[string]interface{}{
+					"service.name": "django",
+				},
+			},
 		},
 		{
 			SchemaID:          "log2_schema_id",
@@ -959,6 +1071,14 @@ func TestGenerateMultiLogYAML_MultipleLogs(t *testing.T) {
 					Source: schema.AttributeSourceLogRecord,
 				},
 			},
+			Scope: &schema.Scope{
+				Name:      "django",
+				Version:   "1.0.0",
+				SchemaURL: "https://opentelemetry.io/schemas/1.0.0",
+				Attributes: map[string]interface{}{
+					"service.name": "django",
+				},
+			},
 		},
 	}
 
@@ -972,11 +1092,11 @@ func TestGenerateMultiLogYAML_MultipleLogs(t *testing.T) {
 
 	expectedLines := []string{
 		"groups:",
-		"  - id: event.user.login",
+		"  - id: event.django.user.login",
 		"    type: event",
 		"    name: user.login",
 		"      - id: user.id",
-		"  - id: event.user.logout",
+		"  - id: event.django.user.logout",
 		"    type: event",
 		"    name: user.logout",
 		"      - id: session.id",
