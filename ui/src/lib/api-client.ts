@@ -97,7 +97,7 @@ export const api = {
     listWithParams: (params: ListTelemetriesParams) => {
       const searchParams = new URLSearchParams({
         page: params.page.toString(),
-        pageSize: params.pageSize.toString(),
+        page_size: params.pageSize.toString(),
       })
 
       if (params.search) {
