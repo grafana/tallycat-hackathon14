@@ -22,6 +22,16 @@ export interface TelemetryEntity {
   lastSeen: string
 }
 
+export interface TelemetryScope {
+  id: string
+  name: string
+  version: string
+  schemaURL: string
+  attributes: Record<string, any>
+  firstSeen: string
+  lastSeen: string
+}
+
 export interface Telemetry {
   schemaId: string
   schemaKey: string

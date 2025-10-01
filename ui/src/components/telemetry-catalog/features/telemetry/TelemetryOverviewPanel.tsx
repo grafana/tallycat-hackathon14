@@ -8,17 +8,23 @@ import {
   Calendar,
   Clock,
   Database,
+  Package,
 } from 'lucide-react'
 import { type Telemetry } from '@/types/telemetry'
 import { formatDate, DateFormat } from '@/lib/utils'
 
 interface TelemetryOverviewPanelProps {
   telemetry: Telemetry
+  scopesCount?: number
   onViewAllSources: () => void
+  onViewAllScopes?: () => void
 }
 
 export function TelemetryOverviewPanel({
   telemetry,
+  scopesCount = 0,
+  onViewAllSources,
+  onViewAllScopes,
 }: TelemetryOverviewPanelProps) {
   // Calculate source health counts
 
@@ -37,8 +43,8 @@ export function TelemetryOverviewPanel({
         </p>
       </div>
 
-      {/* Main Content Area - 3 columns (removed Source & Format column) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
+      {/* Main Content Area - 4 columns */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-0">
         {/* Technical Details Column 1 - Metrics & Structure */}
         <div className="p-5 border-r">
           <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
@@ -131,8 +137,8 @@ export function TelemetryOverviewPanel({
           </div>
         </div>
 
-        {/* Entities Column - Renamed from "Sources" */}
-        <div className="p-5">
+        {/* Entities Column */}
+        <div className="p-5 border-r">
           <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
             <Database className="h-4 w-4 text-indigo-500" />
             Entities
@@ -150,6 +156,17 @@ export function TelemetryOverviewPanel({
                   : ' Entity'}
               </span>
             </div>
+
+            {onViewAllSources && Object.keys(telemetry.entities).length > 0 && (
+              <div className="pt-1">
+                <button
+                  onClick={onViewAllSources}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  View all entities →
+                </button>
+              </div>
+            )}
 
             {/* <div>
               <div className="flex items-center justify-between mb-1.5">
@@ -220,6 +237,37 @@ export function TelemetryOverviewPanel({
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div> */}
+          </div>
+        </div>
+
+        {/* Scopes Column */}
+        <div className="p-5">
+          <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+            <Package className="h-4 w-4 text-blue-500" />
+            Scopes
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-sm">Scopes</span>
+              </div>
+              <span className="text-sm font-medium">
+                {scopesCount}
+                {scopesCount > 1 ? ' Scopes' : ' Scope'}
+              </span>
+            </div>
+
+            {onViewAllScopes && scopesCount > 0 && (
+              <div className="pt-1">
+                <button
+                  onClick={onViewAllScopes}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  View all scopes →
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

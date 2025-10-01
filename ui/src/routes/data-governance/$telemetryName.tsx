@@ -1,13 +1,14 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useParams } from '@tanstack/react-router'
+import { Link, createFileRoute, useParams  } from '@tanstack/react-router'
+import { ArrowLeft, ChevronRight } from 'lucide-react'
+import { useState } from 'react'
 import { TelemetryTypeIcon } from '@/components/telemetry/telemetry-icons'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, ChevronRight, Server } from 'lucide-react'
-import { useState } from 'react'
 import { useTelemetryDetails } from '@/hooks'
+import { useTelemetryScopes } from '@/hooks/schema'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
 import { TelemetryEntitiesPanel } from '@/components/telemetry/telemetry-sources-panel'
+import { TelemetryScopesPanel } from '@/components/telemetry/telemetry-scopes-panel'
 import { VersionAssignmentView } from '@/components/telemetry-catalog/VersionAssignment'
 import { TelemetryOverviewPanel } from '@/components/telemetry-catalog/features/telemetry/TelemetryOverviewPanel'
 import { SchemaHistoryView } from '@/components/telemetry-catalog/features/history/SchemaHistoryView'
@@ -24,9 +25,20 @@ export const TelemetryDetails = () => {
     error,
   } = useTelemetryDetails({ telemetryName })
   const [isEntitiesPanelOpen, setIsEntitiesPanelOpen] = useState(false)
+  const [isScopesPanelOpen, setIsScopesPanelOpen] = useState(false)
+
+  // Fetch scopes data for this specific telemetry
+  const { data: scopesData } = useTelemetryScopes(telemetry?.schemaKey || '', {
+    page: 1,
+    pageSize: 1000, // Get all scopes for counting
+  })
 
   const handleViewAllSources = () => {
     setIsEntitiesPanelOpen(true)
+  }
+
+  const handleViewAllScopes = () => {
+    setIsScopesPanelOpen(true)
   }
 
   if (isLoading) {
@@ -89,52 +101,30 @@ export const TelemetryDetails = () => {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
-              {TelemetryTypeIcon({ type: telemetry.telemetryType })}
-            </div>
-            <div>
-              <h1 className="text-2xl font-medium font-mono">
-                {telemetry.schemaKey}
-              </h1>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <span className="capitalize">
-                    {telemetry.telemetryType} ({telemetry.telemetryType})
-                  </span>
-                </div>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
+            {TelemetryTypeIcon({ type: telemetry.telemetryType })}
+          </div>
+          <div>
+            <h1 className="text-2xl font-medium font-mono">
+              {telemetry.schemaKey}
+            </h1>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <span className="capitalize">
+                  {telemetry.telemetryType} ({telemetry.telemetryType})
+                </span>
               </div>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {/* Sources Badge */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 px-2 text-xs flex items-center gap-1.5"
-              onClick={handleViewAllSources}
-            >
-              <Server className="h-3.5 w-3.5" />
-              {Object.keys(telemetry.entities).length} Entities
-            </Button>
-
-            {/* View Validation Button */}
-            {/* <Button
-              variant="outline"
-              size="sm"
-              className="h-7 px-2 text-xs"
-              onClick={() => setActiveTab('validation')}
-            >
-              View Validation
-            </Button> */}
           </div>
         </div>
       </div>
 
       <TelemetryOverviewPanel
         telemetry={telemetry}
+        scopesCount={scopesData?.total || 0}
         onViewAllSources={handleViewAllSources}
+        onViewAllScopes={handleViewAllScopes}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -172,6 +162,12 @@ export const TelemetryDetails = () => {
         schemaData={telemetry}
         isOpen={isEntitiesPanelOpen}
         onClose={() => setIsEntitiesPanelOpen(false)}
+      />
+
+      <TelemetryScopesPanel
+        telemetryKey={telemetry?.schemaKey || ''}
+        isOpen={isScopesPanelOpen}
+        onClose={() => setIsScopesPanelOpen(false)}
       />
     </div>
   )
