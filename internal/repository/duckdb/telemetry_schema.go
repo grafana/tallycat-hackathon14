@@ -1116,6 +1116,109 @@ func (r *TelemetrySchemaRepository) ListScopes(ctx context.Context, params query
 	return scopes, total, nil
 }
 
+func (r *TelemetrySchemaRepository) ListScopesByTelemetry(ctx context.Context, telemetryKey string, params query.ListQueryParams) ([]schema.Scope, int, error) {
+	var args []any
+	where := ""
+
+	// Always filter by telemetry key using schema_scopes relationship
+	where += " AND EXISTS (SELECT 1 FROM schema_scopes ss INNER JOIN telemetry_schemas ts ON ss.schema_id = ts.schema_id WHERE ss.scope_id = scopes.scope_id AND ts.schema_key = ?)"
+	args = append(args, telemetryKey)
+
+	if params.Search != "" {
+		where += " AND (scopes.name LIKE ? OR scopes.version LIKE ? OR scopes.schema_url LIKE ?)"
+		searchTerm := "%" + params.Search + "%"
+		args = append(args, searchTerm, searchTerm, searchTerm)
+	}
+
+	db := r.pool.GetConnection()
+
+	countQuery := `
+		SELECT COUNT(DISTINCT scopes.scope_id)
+		FROM telemetry_scopes scopes
+		WHERE 1=1` + where
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	total := 0
+	if err := db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count scopes for telemetry: %w", err)
+	}
+
+	if total == 0 {
+		return []schema.Scope{}, 0, nil
+	}
+
+	query := `
+		SELECT 
+			scopes.scope_id,
+			scopes.name,
+			scopes.version,
+			scopes.schema_url,
+			scopes.first_seen,
+			scopes.last_seen
+		FROM telemetry_scopes scopes
+		WHERE 1=1` + where + `
+		ORDER BY scopes.last_seen DESC
+		LIMIT ? OFFSET ?`
+
+	args = append(args, params.PageSize, (params.Page-1)*params.PageSize)
+
+	ctx, cancel = context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	rows, err := db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query scopes for telemetry: %w", err)
+	}
+	defer rows.Close()
+
+	var scopes []schema.Scope
+	for rows.Next() {
+		var scope schema.Scope
+		if err := rows.Scan(
+			&scope.ID,
+			&scope.Name,
+			&scope.Version,
+			&scope.SchemaURL,
+			&scope.FirstSeen,
+			&scope.LastSeen,
+		); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan scope row: %w", err)
+		}
+
+		// Get scope attributes
+		attrQuery := `
+			SELECT name, value, type
+			FROM scope_attributes
+			WHERE scope_id = ?`
+
+		attrRows, err := db.QueryContext(ctx, attrQuery, scope.ID)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to query scope attributes: %w", err)
+		}
+
+		scope.Attributes = make(map[string]interface{})
+		for attrRows.Next() {
+			var name, value, attrType string
+			if err := attrRows.Scan(&name, &value, &attrType); err != nil {
+				attrRows.Close()
+				return nil, 0, fmt.Errorf("failed to scan scope attribute: %w", err)
+			}
+			scope.Attributes[name] = value
+		}
+		attrRows.Close()
+
+		scopes = append(scopes, scope)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating scope rows: %w", err)
+	}
+
+	return scopes, total, nil
+}
+
 func (r *TelemetrySchemaRepository) Pool() *ConnectionPool {
 	return r.pool
 }

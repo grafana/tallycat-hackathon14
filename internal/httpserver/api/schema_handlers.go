@@ -468,3 +468,29 @@ func HandleScopeList(schemaRepo repository.TelemetrySchemaRepository) http.Handl
 		json.NewEncoder(w).Encode(resp)
 	}
 }
+
+// HandleTelemetryScopeList returns a paginated, filtered, and searched list of scopes for a specific telemetry as JSON.
+func HandleTelemetryScopeList(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		telemetryKey := chi.URLParam(r, "key")
+		params := ParseListQueryParams(r)
+
+		scopes, total, err := schemaRepo.ListScopesByTelemetry(ctx, telemetryKey, params)
+		if err != nil {
+			slog.Error("failed to list scopes for telemetry", "error", err, "telemetry_key", telemetryKey)
+			http.Error(w, "failed to list scopes for telemetry", http.StatusInternalServerError)
+			return
+		}
+
+		resp := ListResponse[schema.Scope]{
+			Items:    scopes,
+			Total:    total,
+			Page:     params.Page,
+			PageSize: params.PageSize,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}
+}
