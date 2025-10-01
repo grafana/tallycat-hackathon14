@@ -47,6 +47,10 @@ const data = {
           title: 'Entity Catalog',
           url: '/data-governance/entity-catalog',
         },
+        {
+          title: 'Scope Catalog',
+          url: '/data-governance/scope-catalog',
+        },
       ],
     },
   ],
