@@ -23,7 +23,7 @@ import type { Telemetry } from '@/types/telemetry'
 import { TelemetryEntitiesTable } from '@/components/telemetry/telemetry-entities-table'
 import { TelemetryScopesTable } from '@/components/telemetry/telemetry-scopes-table'
 import { WeaverDefinition } from '@/components/telemetry-catalog/features/weaver-definition/WeaverDefinition'
-import { useScopes } from '@/hooks/schema'
+import { useTelemetryScopes } from '@/hooks/schema'
 
 interface SchemaDetailsModalProps {
   viewingSchema: TelemetrySchema | null
@@ -41,12 +41,10 @@ export function SchemaDetailsModal({
   const [searchQuery, setSearchQuery] = useState('')
   const [scopeSearchQuery, setScopeSearchQuery] = useState('')
   const [filteredEntities, setFilteredEntities] = useState(viewingSchema?.entities || {})
+  const [filteredScopes, setFilteredScopes] = useState<any[]>([])
   
-  // Fetch scopes with search
-  const { data: scopesData, isLoading: scopesLoading } = useScopes({
-    search: scopeSearchQuery,
-    pageSize: 100,
-  })
+  // Fetch telemetry-specific scopes
+  const { data: scopesData, isLoading: scopesLoading } = useTelemetryScopes(telemetry?.schemaKey || '')
 
   // Update filtered entities when search query or viewingSchema changes
   useEffect(() => {
@@ -73,6 +71,32 @@ export function SchemaDetailsModal({
       setFilteredEntities(filtered)
     }
   }, [searchQuery, viewingSchema])
+
+  // Update filtered scopes when search query or scopesData changes
+  useEffect(() => {
+    if (scopesData?.items) {
+      if (!scopeSearchQuery) {
+        setFilteredScopes(scopesData.items)
+        return
+      }
+
+      const query = scopeSearchQuery.toLowerCase()
+      const filtered = scopesData.items.filter(scope => {
+        const scopeName = scope.name.toLowerCase()
+        const scopeVersion = scope.version.toLowerCase()
+        const scopeSchemaURL = scope.schemaURL.toLowerCase()
+        const attributeValues = Object.values(scope.attributes)
+          .map(val => String(val).toLowerCase())
+          .join(' ')
+
+        return scopeName.includes(query) || 
+               scopeVersion.includes(query) || 
+               scopeSchemaURL.includes(query) ||
+               attributeValues.includes(query)
+      })
+      setFilteredScopes(filtered)
+    }
+  }, [scopeSearchQuery, scopesData])
 
   return (
     <Dialog open={!!viewingSchema} onOpenChange={onClose}>
@@ -111,7 +135,7 @@ export function SchemaDetailsModal({
                 >
                   Scopes
                   <Badge variant="secondary" className="ml-1">
-                    {scopesData?.total || 0}
+                    {filteredScopes.length || 0}
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="weaver">Weaver Definition</TabsTrigger>
@@ -176,11 +200,13 @@ export function SchemaDetailsModal({
                   <div className="flex items-center justify-center h-32">
                     <p className="text-muted-foreground">Loading scopes...</p>
                   </div>
-                ) : scopesData?.items ? (
-                  <TelemetryScopesTable scopes={scopesData.items} />
+                ) : filteredScopes.length > 0 ? (
+                  <TelemetryScopesTable scopes={filteredScopes} />
                 ) : (
                   <div className="flex items-center justify-center h-32">
-                    <p className="text-muted-foreground">No scopes found</p>
+                    <p className="text-muted-foreground">
+                      {scopeSearchQuery ? 'No scopes match your search' : 'No scopes found for this telemetry'}
+                    </p>
                   </div>
                 )}
               </TabsContent>
