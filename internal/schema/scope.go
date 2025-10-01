@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -19,6 +20,29 @@ type Scope struct {
 	Attributes map[string]interface{} `json:"attributes"`
 	FirstSeen  time.Time              `json:"firstSeen"`
 	LastSeen   time.Time              `json:"lastSeen"`
+}
+
+// SanitizeScopeName sanitizes a scope name for use in group IDs
+// Rules:
+// - Convert to lowercase
+// - Replace non-alphanumeric characters with underscores
+// - Use "unknown" for empty, "UNKNOWN", or whitespace-only names
+func SanitizeScopeName(scopeName string) string {
+	// Handle empty or UNKNOWN scope names
+	trimmed := strings.TrimSpace(scopeName)
+	if trimmed == "" || strings.ToUpper(trimmed) == "UNKNOWN" {
+		return "unknown"
+	}
+
+	// Convert to lowercase
+	sanitized := strings.ToLower(trimmed)
+
+	// Replace non-alphanumeric characters with underscores
+	// This regex matches any character that is NOT alphanumeric
+	nonAlphanumeric := regexp.MustCompile(`[^a-z0-9]`)
+	sanitized = nonAlphanumeric.ReplaceAllString(sanitized, "_")
+
+	return sanitized
 }
 
 // ScopeID generates a unique ID for an scope using deterministic hashing
