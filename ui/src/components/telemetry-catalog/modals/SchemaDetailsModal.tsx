@@ -5,6 +5,7 @@ import {
   Database,
   Users,
   Search,
+  Package,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -20,7 +21,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { TelemetrySchema } from '@/types/telemetry-schema'
 import type { Telemetry } from '@/types/telemetry'
 import { TelemetryEntitiesTable } from '@/components/telemetry/telemetry-entities-table'
+import { TelemetryScopesTable } from '@/components/telemetry/telemetry-scopes-table'
 import { WeaverDefinition } from '@/components/telemetry-catalog/features/weaver-definition/WeaverDefinition'
+import { useScopes } from '@/hooks/schema'
 
 interface SchemaDetailsModalProps {
   viewingSchema: TelemetrySchema | null
@@ -36,7 +39,14 @@ export function SchemaDetailsModal({
   isLoading = false,
 }: SchemaDetailsModalProps) {
   const [searchQuery, setSearchQuery] = useState('')
+  const [scopeSearchQuery, setScopeSearchQuery] = useState('')
   const [filteredEntities, setFilteredEntities] = useState(viewingSchema?.entities || {})
+  
+  // Fetch scopes with search
+  const { data: scopesData, isLoading: scopesLoading } = useScopes({
+    search: scopeSearchQuery,
+    pageSize: 100,
+  })
 
   // Update filtered entities when search query or viewingSchema changes
   useEffect(() => {
@@ -84,7 +94,7 @@ export function SchemaDetailsModal({
             </div>
           ) : viewingSchema ? (
             <Tabs defaultValue="schema" className="w-full h-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="schema">Schema Definition</TabsTrigger>
                 <TabsTrigger
                   value="entities"
@@ -93,6 +103,15 @@ export function SchemaDetailsModal({
                   Entities
                   <Badge variant="secondary" className="ml-1">
                     {Object.keys(filteredEntities).length}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="scopes"
+                  className="flex items-center gap-2"
+                >
+                  Scopes
+                  <Badge variant="secondary" className="ml-1">
+                    {scopesData?.total || 0}
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="weaver">Weaver Definition</TabsTrigger>
@@ -127,6 +146,43 @@ export function SchemaDetailsModal({
                 </div>
 
                 <TelemetryEntitiesTable entities={filteredEntities} />
+              </TabsContent>
+
+              <TabsContent value="scopes" className="mt-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Package className="h-5 w-5 text-primary" />
+                      Telemetry Scopes
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Instrumentation scopes that generate telemetry data
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search scopes..."
+                        value={scopeSearchQuery}
+                        onChange={(e) => setScopeSearchQuery(e.target.value)}
+                        className="pl-9 w-64"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {scopesLoading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <p className="text-muted-foreground">Loading scopes...</p>
+                  </div>
+                ) : scopesData?.items ? (
+                  <TelemetryScopesTable scopes={scopesData.items} />
+                ) : (
+                  <div className="flex items-center justify-center h-32">
+                    <p className="text-muted-foreground">No scopes found</p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="weaver" className="mt-4">

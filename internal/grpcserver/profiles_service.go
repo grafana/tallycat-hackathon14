@@ -60,6 +60,7 @@ func (s *ProfilesServiceServer) Export(ctx context.Context, req *profilespb.Expo
 			if sp.Scope != nil {
 				scopeProfile.Scope().SetName(sp.Scope.Name)
 				scopeProfile.Scope().SetVersion(sp.Scope.Version)
+				scopeProfile.SetSchemaUrl(sp.SchemaUrl)
 				for _, attr := range sp.Scope.Attributes {
 					scopeProfile.Scope().Attributes().PutStr(attr.Key, attr.Value.GetStringValue())
 				}
@@ -98,7 +99,7 @@ func (s *ProfilesServiceServer) Export(ctx context.Context, req *profilespb.Expo
 	}
 
 	if err := s.schemaRepo.RegisterTelemetrySchemas(ctx, schemas); err != nil {
-		slog.Error("failed to register schemas", "error", err)
+		slog.Error("failed to register schemas", "error", err, "signal", "profiles")
 		return nil, err
 	}
 

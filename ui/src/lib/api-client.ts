@@ -1,4 +1,4 @@
-import type { Telemetry } from '@/types/telemetry'
+import type { Telemetry, TelemetryScope } from '@/types/telemetry'
 import type { TelemetrySchema } from '@/types/telemetry-schema'
 import { API_BASE_URL } from '@/config/api'
 import type { ListTelemetrySchemasResponse } from '@/types/telemetry-schema'
@@ -84,6 +84,10 @@ interface ListTelemetriesParams extends ListParams {
   type?: string
 }
 
+// Scope types
+interface ListScopesResponse extends ListResponse<TelemetryScope> {}
+interface ListScopesParams extends ListParams {}
+
 // API endpoints organized by domain
 export const api = {
   telemetries: {
@@ -154,6 +158,33 @@ export const api = {
     },
     getSchemaById: (schemaKey: string, schemaId: string) =>
       apiClient.get<TelemetrySchema>(`/api/v1/telemetries/${schemaKey}/schemas/${schemaId}`),
+  },
+  scopes: {
+    list: (params: ListScopesParams) => {
+      const searchParams = new URLSearchParams({
+        page: params.page.toString(),
+        page_size: params.pageSize.toString(),
+      })
+
+      if (params.search) {
+        searchParams.append('search', params.search)
+      }
+      if (params.sortField) {
+        searchParams.append('sort_field', params.sortField)
+      }
+      if (params.sortDirection) {
+        searchParams.append('sort_direction', params.sortDirection)
+      }
+
+      return apiClient.get<ListScopesResponse>(
+        `/api/v1/scopes?${searchParams.toString()}`,
+      )
+    },
+    listByTelemetry: (telemetryKey: string) => {
+      return apiClient.get<ListScopesResponse>(
+        `/api/v1/telemetries/${encodeURIComponent(telemetryKey)}/scopes`,
+      )
+    },
   },
   // Example of how to add new domains:
   // users: {

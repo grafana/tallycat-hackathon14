@@ -76,3 +76,29 @@ export const formatDate = (
     return 'Invalid date'
   }
 }
+
+/**
+ * Formats scope names for better readability in the UI
+ * Trims GitHub hostname and repository owner from scope names
+ * 
+ * Examples:
+ * - "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver" 
+ *   -> "receiver/prometheusreceiver"
+ * - "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+ *   -> "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp" (unchanged)
+ */
+export const formatScopeName = (scopeName: string): string => {
+  if (!scopeName || scopeName === 'UNKNOWN') {
+    return scopeName
+  }
+
+  // Handle GitHub repository paths
+  const githubPattern = /^github\.com\/[^\/]+\/[^\/]+\/(.+)$/
+  const githubMatch = scopeName.match(githubPattern)
+  if (githubMatch) {
+    return githubMatch[1]
+  }
+
+  // Return original name if no pattern matches
+  return scopeName
+}

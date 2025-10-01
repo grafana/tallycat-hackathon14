@@ -15,6 +15,8 @@ type TelemetrySchemaRepository interface {
 	AssignTelemetrySchemaVersion(ctx context.Context, assignment schema.SchemaAssignment) error
 	GetTelemetrySchema(ctx context.Context, schemaId string) (*schema.TelemetrySchema, error)
 	ListTelemetriesByEntity(ctx context.Context, entityType string) ([]schema.Telemetry, error)
+	ListScopes(ctx context.Context, params query.ListQueryParams) ([]schema.Scope, int, error)
+	ListScopesByTelemetry(ctx context.Context, telemetryKey string) ([]schema.Scope, error)
 }
 
 type TelemetryHistoryRepository interface {

@@ -52,6 +52,10 @@ func (s *MetricsServiceServer) Export(ctx context.Context, req *metricspb.Export
 			if sm.Scope != nil {
 				scopeMetric.Scope().SetName(sm.Scope.Name)
 				scopeMetric.Scope().SetVersion(sm.Scope.Version)
+				scopeMetric.SetSchemaUrl(sm.SchemaUrl)
+				for _, attr := range sm.Scope.Attributes {
+					scopeMetric.Scope().Attributes().PutStr(attr.Key, attr.Value.GetStringValue())
+				}
 			}
 
 			// Convert metrics
@@ -173,7 +177,7 @@ func (s *MetricsServiceServer) Export(ctx context.Context, req *metricspb.Export
 	schemas := schema.ExtractFromMetrics(metrics)
 
 	if err := s.schemaRepo.RegisterTelemetrySchemas(ctx, schemas); err != nil {
-		slog.Error("failed to register schemas", "error", err)
+		slog.Error("failed to register schemas", "error", err, "signal", "metrics")
 		return nil, err
 	}
 
