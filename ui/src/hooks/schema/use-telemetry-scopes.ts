@@ -1,11 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
-import type { ListScopesParams } from '@/lib/api-client'
 
-export const useTelemetryScopes = (telemetryKey: string, params: ListScopesParams) => {
+export const useTelemetryScopes = (telemetryKey: string) => {
   return useQuery({
-    queryKey: ['telemetry-scopes', telemetryKey, params],
-    queryFn: () => api.scopes.listByTelemetry(telemetryKey, params),
+    queryKey: ['telemetry-scopes', telemetryKey],
+    queryFn: () => api.scopes.listByTelemetry(telemetryKey),
     placeholderData: (previousData) => previousData,
     enabled: !!telemetryKey,
   })

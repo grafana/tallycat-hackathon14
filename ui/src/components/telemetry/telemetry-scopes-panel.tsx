@@ -25,11 +25,7 @@ export function TelemetryScopesPanel({
   const [filteredScopes, setFilteredScopes] = useState<TelemetryScope[]>([])
 
   // Fetch scopes data for this specific telemetry
-  const { data: scopesData, isLoading } = useTelemetryScopes(telemetryKey, {
-    page: 1,
-    pageSize: 1000, // Get all scopes
-    search: searchQuery,
-  })
+  const { data: scopesData, isLoading } = useTelemetryScopes(telemetryKey)
 
   useEffect(() => {
     if (scopesData?.items) {

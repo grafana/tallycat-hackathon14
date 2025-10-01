@@ -28,10 +28,7 @@ export const TelemetryDetails = () => {
   const [isScopesPanelOpen, setIsScopesPanelOpen] = useState(false)
 
   // Fetch scopes data for this specific telemetry
-  const { data: scopesData } = useTelemetryScopes(telemetry?.schemaKey || '', {
-    page: 1,
-    pageSize: 1000, // Get all scopes for counting
-  })
+  const { data: scopesData } = useTelemetryScopes(telemetry?.schemaKey || '')
 
   const handleViewAllSources = () => {
     setIsEntitiesPanelOpen(true)

@@ -180,24 +180,9 @@ export const api = {
         `/api/v1/scopes?${searchParams.toString()}`,
       )
     },
-    listByTelemetry: (telemetryKey: string, params: ListScopesParams) => {
-      const searchParams = new URLSearchParams({
-        page: params.page.toString(),
-        page_size: params.pageSize.toString(),
-      })
-
-      if (params.search) {
-        searchParams.append('search', params.search)
-      }
-      if (params.sortField) {
-        searchParams.append('sort_field', params.sortField)
-      }
-      if (params.sortDirection) {
-        searchParams.append('sort_direction', params.sortDirection)
-      }
-
+    listByTelemetry: (telemetryKey: string) => {
       return apiClient.get<ListScopesResponse>(
-        `/api/v1/telemetries/${encodeURIComponent(telemetryKey)}/scopes?${searchParams.toString()}`,
+        `/api/v1/telemetries/${encodeURIComponent(telemetryKey)}/scopes`,
       )
     },
   },

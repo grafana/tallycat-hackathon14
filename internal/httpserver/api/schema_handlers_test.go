@@ -67,9 +67,9 @@ func (m *MockTelemetrySchemaRepository) ListScopes(ctx context.Context, params q
 	return args.Get(0).([]schema.Scope), args.Int(1), args.Error(2)
 }
 
-func (m *MockTelemetrySchemaRepository) ListScopesByTelemetry(ctx context.Context, telemetryKey string, params query.ListQueryParams) ([]schema.Scope, int, error) {
-	args := m.Called(ctx, telemetryKey, params)
-	return args.Get(0).([]schema.Scope), args.Int(1), args.Error(2)
+func (m *MockTelemetrySchemaRepository) ListScopesByTelemetry(ctx context.Context, telemetryKey string) ([]schema.Scope, error) {
+	args := m.Called(ctx, telemetryKey)
+	return args.Get(0).([]schema.Scope), args.Error(1)
 }
 
 func TestHandleEntityWeaverSchemaExport_EntityNotFound(t *testing.T) {
