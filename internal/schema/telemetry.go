@@ -86,6 +86,7 @@ type Telemetry struct {
 	UpdatedAt  time.Time         `json:"updatedAt"`
 	// Entities maps entity IDs to their information
 	Entities map[string]*Entity `json:"entities"`
+	Scope    *Scope             `json:"scope"`
 }
 
 type TelemetryHistory struct {

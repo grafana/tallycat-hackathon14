@@ -106,6 +106,9 @@ func ExtractFromMetrics(metrics pmetric.Metrics) []Telemetry {
 					telemetry.Entities[entity.ID] = &entity
 				}
 
+				scope := DetectScopes(scopeMetric.Scope(), scopeMetric.SchemaUrl())
+				telemetry.Scope = &scope
+
 				resourceAttributes.Range(func(key string, value pcommon.Value) bool {
 					telemetry.Attributes = append(telemetry.Attributes, Attribute{
 						Name:   key,
@@ -223,6 +226,8 @@ func ExtractFromLogs(logs plog.Logs) []Telemetry {
 					// Try to get message from log attributes
 					if serviceAttr, exists := logRecord.Attributes().Get("message"); exists {
 						schemaKey = serviceAttr.Str()
+					} else if serviceAttr, exists := logRecord.Attributes().Get("msg"); exists {
+						schemaKey = serviceAttr.Str()
 					} else {
 						// Fallback to a generic log schema key
 						schemaKey = "application_log"
@@ -254,6 +259,9 @@ func ExtractFromLogs(logs plog.Logs) []Telemetry {
 				for _, entity := range entities {
 					telemetry.Entities[entity.ID] = &entity
 				}
+
+				scope := DetectScopes(scopeLog.Scope(), scopeLog.SchemaUrl())
+				telemetry.Scope = &scope
 
 				resourceAttributes.Range(func(key string, value pcommon.Value) bool {
 					telemetry.Attributes = append(telemetry.Attributes, Attribute{
@@ -335,6 +343,9 @@ func ExtractFromTraces(traces ptrace.Traces) []Telemetry {
 				for _, entity := range entities {
 					telemetry.Entities[entity.ID] = &entity
 				}
+
+				scope := DetectScopes(scopeSpan.Scope(), scopeSpan.SchemaUrl())
+				telemetry.Scope = &scope
 
 				resourceAttributes.Range(func(key string, value pcommon.Value) bool {
 					telemetry.Attributes = append(telemetry.Attributes, Attribute{
@@ -462,6 +473,9 @@ func ExtractFromProfiles(profiles pprofile.Profiles, dictionary *profilepb.Profi
 					for _, entity := range entities {
 						telemetry.Entities[entity.ID] = &entity
 					}
+
+					scope := DetectScopes(scopeProfile.Scope(), scopeProfile.SchemaUrl())
+					telemetry.Scope = &scope
 
 					resourceAttributes.Range(func(key string, value pcommon.Value) bool {
 						telemetry.Attributes = append(telemetry.Attributes, Attribute{

@@ -83,6 +83,7 @@ func (s *TracesServiceServer) Export(ctx context.Context, req *tracespb.ExportTr
 			if st.Scope != nil {
 				scopeSpan.Scope().SetName(st.Scope.Name)
 				scopeSpan.Scope().SetVersion(st.Scope.Version)
+				scopeSpan.SetSchemaUrl(st.SchemaUrl)
 				for _, attr := range st.Scope.Attributes {
 					convertAttributeValue(scopeSpan.Scope().Attributes(), attr.Key, attr.Value)
 				}
@@ -166,7 +167,7 @@ func (s *TracesServiceServer) Export(ctx context.Context, req *tracespb.ExportTr
 	schemas := schema.ExtractFromTraces(traces)
 
 	if err := s.schemaRepo.RegisterTelemetrySchemas(ctx, schemas); err != nil {
-		slog.Error("failed to register schemas", "error", err)
+		slog.Error("failed to register schemas", "error", err, "signal", "traces")
 		return nil, err
 	}
 

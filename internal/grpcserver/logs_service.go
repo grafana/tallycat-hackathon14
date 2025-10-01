@@ -52,6 +52,7 @@ func (s *LogsServiceServer) Export(ctx context.Context, req *logspb.ExportLogsSe
 			if sl.Scope != nil {
 				scopeLog.Scope().SetName(sl.Scope.Name)
 				scopeLog.Scope().SetVersion(sl.Scope.Version)
+				scopeLog.SetSchemaUrl(sl.SchemaUrl)
 				for _, attr := range sl.Scope.Attributes {
 					scopeLog.Scope().Attributes().PutStr(attr.Key, attr.Value.GetStringValue())
 				}
@@ -89,7 +90,7 @@ func (s *LogsServiceServer) Export(ctx context.Context, req *logspb.ExportLogsSe
 	schemas := schema.ExtractFromLogs(logs)
 
 	if err := s.schemaRepo.RegisterTelemetrySchemas(ctx, schemas); err != nil {
-		slog.Error("failed to register schemas", "error", err)
+		slog.Error("failed to register schemas", "error", err, "signal", "logs")
 		return nil, err
 	}
 

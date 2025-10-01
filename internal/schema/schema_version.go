@@ -14,5 +14,6 @@ type TelemetrySchema struct {
 	EntityCount int                `json:"entityCount"`
 	LastSeen    *time.Time         `json:"lastSeen,omitempty"`
 	Entities    map[string]*Entity `json:"entities"`
+	Scope       *Scope             `json:"scope"`
 	Attributes  []Attribute        `json:"attributes"`
 }
