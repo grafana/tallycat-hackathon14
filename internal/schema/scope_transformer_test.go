@@ -80,7 +80,7 @@ func TestScopeTransformer_Transform(t *testing.T) {
 		{
 			name:           "Nginx receiver",
 			input:          "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/nginxreceiver",
-			expectedOutput: "http",
+			expectedOutput: "nginx",
 		},
 
 		// 4. gRPC -> "grpc"
@@ -192,12 +192,12 @@ func TestScopeTransformer_Transform(t *testing.T) {
 		{
 			name:           "Python requests instrumentation",
 			input:          "opentelemetry.instrumentation.requests",
-			expectedOutput: "python",
+			expectedOutput: "http",
 		},
 		{
 			name:           "Python system metrics instrumentation",
 			input:          "opentelemetry.instrumentation.system_metrics",
-			expectedOutput: "python",
+			expectedOutput: "host",
 		},
 
 		// 10. .NET -> "dotnet"

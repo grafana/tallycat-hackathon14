@@ -43,7 +43,7 @@ func (st *ScopeTransformer) initializeTransformations() {
 	st.transformations["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"] = "http"
 	st.transformations["@opentelemetry/instrumentation-http"] = "http"
 	st.transformations["io.opentelemetry.exporters.otlp-http"] = "http"
-	st.transformations["github.com/open-telemetry/opentelemetry-collector-contrib/receiver/nginxreceiver"] = "http"
+	st.transformations["opentelemetry.instrumentation.requests"] = "http"
 
 	// 4. gRPC -> "grpc"
 	st.transformations["go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"] = "grpc"
@@ -61,6 +61,7 @@ func (st *ScopeTransformer) initializeTransformations() {
 	st.transformations["github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/processesscraper"] = "host"
 	st.transformations["github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/processscraper"] = "host"
 	st.transformations["github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/systemscraper"] = "host"
+	st.transformations["opentelemetry.instrumentation.system_metrics"] = "host"
 
 	// 6. Go -> "go"
 	st.transformations["go.opentelemetry.io/contrib/instrumentation/runtime"] = "go"
@@ -74,13 +75,12 @@ func (st *ScopeTransformer) initializeTransformations() {
 	st.transformations["io.opentelemetry.sdk.logs"] = "java"
 	st.transformations["io.opentelemetry.sdk.trace"] = "java"
 
-	// 9. Python -> "python"
-	st.transformations["opentelemetry.instrumentation.requests"] = "python"
-	st.transformations["opentelemetry.instrumentation.system_metrics"] = "python"
-
-	// 10. .NET -> "dotnet"
+	// 9. .NET -> "dotnet"
 	st.transformations["OpenTelemetry.Instrumentation.Process"] = "dotnet"
 	st.transformations["OpenTelemetry.Instrumentation.Runtime"] = "dotnet"
+
+	// 10. Nginx -> "nginx"
+	st.transformations["github.com/open-telemetry/opentelemetry-collector-contrib/receiver/nginxreceiver"] = "nginx"
 
 	// All others keep their original names (no transformation needed)
 }
