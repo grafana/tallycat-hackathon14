@@ -351,6 +351,66 @@ func (r *TelemetrySchemaRepository) ListTelemetries(ctx context.Context, params 
 		return nil, 0, fmt.Errorf("error iterating schema rows: %w", err)
 	}
 
+	// Populate entities for each telemetry schema
+	for i := range schemas {
+		// Get entities for this schema
+		entityQuery := `
+			SELECT te.entity_id, te.entity_type, te.first_seen, te.last_seen
+			FROM telemetry_entities te
+			INNER JOIN schema_entities se ON te.entity_id = se.entity_id
+			WHERE se.schema_id = ?`
+
+		entityRows, err := db.QueryContext(ctx, entityQuery, schemas[i].SchemaID)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to query schema entities: %w", err)
+		}
+
+		schemas[i].Entities = make(map[string]*schema.Entity)
+		for entityRows.Next() {
+			var entity schema.Entity
+			if err := entityRows.Scan(
+				&entity.ID,
+				&entity.Type,
+				&entity.FirstSeen,
+				&entity.LastSeen,
+			); err != nil {
+				entityRows.Close()
+				return nil, 0, fmt.Errorf("failed to scan entity row: %w", err)
+			}
+
+			// Get entity attributes
+			attrQuery := `
+				SELECT name, value, type
+				FROM entity_attributes
+				WHERE entity_id = ?`
+
+			attrRows, err := db.QueryContext(ctx, attrQuery, entity.ID)
+			if err != nil {
+				entityRows.Close()
+				return nil, 0, fmt.Errorf("failed to query entity attributes: %w", err)
+			}
+
+			entity.Attributes = make(map[string]interface{})
+			for attrRows.Next() {
+				var name, value, attrType string
+				if err := attrRows.Scan(&name, &value, &attrType); err != nil {
+					attrRows.Close()
+					entityRows.Close()
+					return nil, 0, fmt.Errorf("failed to scan entity attribute: %w", err)
+				}
+				entity.Attributes[name] = value
+			}
+			attrRows.Close()
+
+			schemas[i].Entities[entity.ID] = &entity
+		}
+		entityRows.Close()
+
+		if err := entityRows.Err(); err != nil {
+			return nil, 0, fmt.Errorf("error iterating entity rows: %w", err)
+		}
+	}
+
 	return schemas, total, nil
 }
 

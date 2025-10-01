@@ -43,6 +43,10 @@ const data = {
           title: 'Telemetry Catalog',
           url: '/data-governance/telemetry-catalog',
         },
+        {
+          title: 'Entity Catalog',
+          url: '/data-governance/entity-catalog',
+        },
       ],
     },
   ],
