@@ -444,3 +444,27 @@ func HandleTelemetryHistory(historyRepo repository.TelemetryHistoryRepository) h
 		json.NewEncoder(w).Encode(resp)
 	}
 }
+
+// HandleScopeList returns a paginated, filtered, and searched list of scopes as JSON.
+func HandleScopeList(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		params := ParseListQueryParams(r)
+		scopes, total, err := schemaRepo.ListScopes(ctx, params)
+		if err != nil {
+			slog.Error("failed to list scopes", "error", err)
+			http.Error(w, "failed to list scopes", http.StatusInternalServerError)
+			return
+		}
+
+		resp := ListResponse[schema.Scope]{
+			Items:    scopes,
+			Total:    total,
+			Page:     params.Page,
+			PageSize: params.PageSize,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}
+}

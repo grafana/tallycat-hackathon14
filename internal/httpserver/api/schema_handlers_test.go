@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -213,6 +214,69 @@ func TestHandleEntityWeaverSchemaExport_RepositoryError(t *testing.T) {
 
 	require.Equal(t, http.StatusInternalServerError, w.Code)
 	require.Contains(t, w.Body.String(), "failed to get telemetries for entity")
+
+	mockRepo.AssertExpectations(t)
+}
+
+func TestHandleScopeList_EmptyResult(t *testing.T) {
+	mockRepo := new(MockTelemetrySchemaRepository)
+	mockRepo.On("ListScopes", mock.Anything, mock.AnythingOfType("query.ListQueryParams")).
+		Return([]schema.Scope{}, 0, nil)
+
+	handler := HandleScopeList(mockRepo)
+
+	req := httptest.NewRequest("GET", "/api/v1/scopes", nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, "application/json", w.Header().Get("Content-Type"))
+
+	var response ListResponse[schema.Scope]
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	require.Empty(t, response.Items)
+	require.Equal(t, 0, response.Total)
+
+	mockRepo.AssertExpectations(t)
+}
+
+func TestHandleScopeList_WithScopes(t *testing.T) {
+	mockScopes := []schema.Scope{
+		{
+			ID:        "scope1",
+			Name:      "@opentelemetry/instrumentation-http",
+			Version:   "0.45.0",
+			SchemaURL: "https://opentelemetry.io/schemas/1.21.0",
+		},
+		{
+			ID:        "scope2",
+			Name:      "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+			Version:   "0.46.1",
+			SchemaURL: "https://opentelemetry.io/schemas/1.22.0",
+		},
+	}
+
+	mockRepo := new(MockTelemetrySchemaRepository)
+	mockRepo.On("ListScopes", mock.Anything, mock.AnythingOfType("query.ListQueryParams")).
+		Return(mockScopes, 2, nil)
+
+	handler := HandleScopeList(mockRepo)
+
+	req := httptest.NewRequest("GET", "/api/v1/scopes", nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, "application/json", w.Header().Get("Content-Type"))
+
+	var response ListResponse[schema.Scope]
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	require.Len(t, response.Items, 2)
+	require.Equal(t, 2, response.Total)
+	require.Equal(t, "@opentelemetry/instrumentation-http", response.Items[0].Name)
+	require.Equal(t, "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp", response.Items[1].Name)
 
 	mockRepo.AssertExpectations(t)
 }

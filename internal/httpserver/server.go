@@ -98,6 +98,9 @@ func registerAPIRoutes(r chi.Router, srv *Server) {
 			r.Get("/{entityType}/weaver-schema.zip", api.HandleEntityWeaverSchemaExport(srv.schemaRepo))
 			r.Get("/{entityType}/{type}", api.HandleEntitySchemaExport(srv.schemaRepo))
 		})
+		r.Route("/scopes", func(r chi.Router) {
+			r.Get("/", api.HandleScopeList(srv.schemaRepo))
+		})
 	})
 	r.Handle("/*", SPAHandler())
 }
