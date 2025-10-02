@@ -1,5 +1,5 @@
-{% set metrics = ctx.metrics %}
-
+{%- set metrics = ctx.metrics -%}
+{%- set all_required_attrs = metrics | map(attribute="attributes") | flatten | required | unique(attribute="name") | selectattr('name','in',params.available_labels) | sort(attribute="name") -%}
 {
   "annotations": [
     {
@@ -39,13 +39,31 @@
                     "kind": "prometheus",
                     "spec": {
                       "editorMode": "code",
-    	              {%- if metric.instrument == "histogram" %}
-                      "expr": "histogram_quantile(0.99, rate({\"{{name}}_bucket\"}[$__rate_interval]))",
-    	              {%- elif metric.instrument == "updowncounter" %}
-                      "expr": "sum({\"{{ name  }}\"})",
-                    {%- else -%}
-                      "expr": "{\"{{ name  }}\"}",
-                    {%- endif -%}
+                  {%- if metric.instrument == "histogram" %}
+                      "expr": "histogram_quantile(0.99, sum(rate({\"{{name}}_bucket\"
+									{%- for attr in all_required_attrs -%}
+									, \"{{attr.name | replace(".","_")}}\"=~\"${{ attr.name | replace(".","_") }}\"
+									{%- endfor -%}
+                      }[$__rate_interval])) by (le {%- for attr in all_required_attrs -%}, {{attr.name | replace(".","_")}} {%- endfor -%}))",
+  	              {%- elif metric.instrument == "updowncounter" %}
+                      "expr": "sum({\"{{ name }}\"
+                      {%- for attr in all_required_attrs -%}
+                      , \"{{attr.name | replace(".","_")}}\"=~\"${{ attr.name | replace(".","_") }}\"
+                      {%- endfor -%}
+                      }) by ({%- for attr in all_required_attrs -%}{{attr.name | replace(".","_")}}{%- if not loop.last -%}, {% endif -%}{%- endfor -%})",
+                  {%- elif  metric.instrument == "counter" %}
+                      "expr": "sum(rate({\"{{ name }}\"
+                      {%- for attr in all_required_attrs -%}
+                      , \"{{attr.name | replace(".","_")}}\"=~\"${{ attr.name | replace(".","_") }}\"
+                      {%- endfor -%}
+                      }[$__rate_interval])) by ({%- for attr in all_required_attrs -%}{{attr.name | replace(".","_")}}{%- if not loop.last -%}, {% endif -%}{%- endfor -%})",
+                  {%- else -%}
+                      "expr": "{\"{{ name  }}\"
+                        {%- for attr in all_required_attrs -%}
+                        , \"{{attr.name | replace(".","_")}}\"=~\"${{ attr.name | replace(".","_") }}\"
+                        {%- endfor -%}
+                      }",
+                  {%- endif -%}
                       "legendFormat": "__auto",
                       "range": true
                     }
@@ -140,12 +158,12 @@
     {%- endfor -%}
     },
   "layout": {
-    "kind": "TabsLayout",
+    "kind": "RowsLayout",
     "spec": {
-    "tabs": [
+    "rows": [
     {%- for tab in ctx.tabs -%}
         {
-          "kind": "TabsLayoutTab",
+          "kind": "RowsLayoutRow",
           "spec": {
             "layout": {
               "kind": "AutoGridLayout",
@@ -199,7 +217,7 @@
     "timezone": "browser",
     "to": "now"
   },
-  "variables": [
+    "variables": [
     {
       "kind": "DatasourceVariable",
       "spec": {
@@ -217,6 +235,41 @@
         "regex": "",
         "skipUrlSync": false
       }
-    }
+    },
+    {%- for attr in all_required_attrs %}
+    {%- set attr_name = attr.name | replace(".","_") -%}
+    { 
+      "kind": "QueryVariable",
+      "spec": {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROM}"
+        },
+        "definition": "label_values({{attr_name}})",
+        "hide": "dontHide",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": false,
+        "name": "{{attr_name}}",
+        "options": [],
+        "query": {
+          "kind": "prometheus",
+          "spec": {
+            "qryType": 1,
+            "query": "label_values({{attr_name}})",
+            "refId": "PrometheusVariableQueryEditor-VariableQuery"
+          }
+        },
+        "refresh": "onDashboardLoad",
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": "disabled"
+      }
+    }{% if not loop.last %},{% endif %}
+    {%- endfor -%} 
   ]
 }
