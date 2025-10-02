@@ -1,0 +1,222 @@
+{% set metrics = ctx.metrics %}
+
+{
+  "annotations": [
+    {
+      "kind": "AnnotationQuery",
+      "spec": {
+        "builtIn": true,
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts"
+      }
+    }
+  ],
+  "cursorSync": "Off",
+  "description": "",
+  "editable": true,
+  "title": "{{ ctx.root_namespace }}",
+  "elements": {
+{%- for metric in metrics %}
+  {%- set name = metric.metric_name | replace('.','_') -%}
+      "panel-{{metric.metric_name}}": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "$DS_PROM"
+                  },
+                  "query": {
+                    "kind": "prometheus",
+                    "spec": {
+                      "editorMode": "code",
+    	              {%- if metric.instrument == "histogram" %}
+                      "expr": "histogram_quantile(0.99, rate({\"{{name}}_bucket\"}[$__rate_interval]))",
+    	              {%- elif metric.instrument == "updowncounter" %}
+                      "expr": "sum({\"{{ name  }}\"})",
+                    {%- else -%}
+                      "expr": "{\"{{ name  }}\"}",
+                    {%- endif -%}
+                      "legendFormat": "__auto",
+                      "range": true
+                    }
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "{{ metric.note | replace('"',"'") | replace("\n","\\n")  }}",
+        "id": {{ loop.index }},
+        "links": [],
+        "title": "{{ metric.brief | replace('"',"'") | replace("\n","\\n") }}",
+        "vizConfig": {
+          "kind": "timeseries",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 0,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "auto",
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "single",
+                "sort": "none"
+              }
+            },
+            "pluginVersion": "12.0.0"
+          }
+        }
+      }
+    }{% if not loop.last %},{% endif %}
+    {%- endfor -%}
+    },
+  "layout": {
+    "kind": "TabsLayout",
+    "spec": {
+    "tabs": [
+    {%- for tab in ctx.tabs -%}
+        {
+          "kind": "TabsLayoutTab",
+          "spec": {
+            "layout": {
+              "kind": "AutoGridLayout",
+              "spec": {
+                "columnWidthMode": "standard",
+                "items": [
+	    {%- for metric in metrics | selectattr("without_root_ns", "==", tab)  %}
+                  {
+                    "kind": "AutoGridLayoutItem",
+                    "spec": { 
+                      "element": { 
+                        "kind": "ElementReference", 
+                        "name": "panel-{{ metric.metric_name }}" 
+                      } 
+                    } 
+    }{% if not loop.last %},{% endif %} 
+    {% endfor %} 
+                ],
+                "maxColumnCount": 3,
+                "rowHeightMode": "standard"
+              }
+            },
+            "title": "{{ tab }}"
+          }
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+      ]
+    }
+  },
+  "links": [],
+  "liveNow": false,
+  "preload": false,
+  "tags": [],
+  "timeSettings": {
+    "autoRefresh": "",
+    "autoRefreshIntervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "fiscalYearStartMonth": 0,
+    "from": "now-6h",
+    "hideTimepicker": false,
+    "timezone": "browser",
+    "to": "now"
+  },
+  "variables": [
+    {
+      "kind": "DatasourceVariable",
+      "spec": {
+        "current": {
+          "text": "grafana-k3d-cortex-prom",
+          "value": "grafana-prom-cortex"
+        },
+        "hide": "dontHide",
+        "includeAll": false,
+        "multi": false,
+        "name": "DS_PROM",
+        "options": [],
+        "pluginId": "prometheus",
+        "refresh": "onDashboardLoad",
+        "regex": "",
+        "skipUrlSync": false
+      }
+    }
+  ]
+}

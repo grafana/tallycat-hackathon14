@@ -397,6 +397,57 @@ func HandleEntitySchemaExport(schemaRepo repository.TelemetrySchemaRepository) h
 	}
 }
 
+func HandleEntityDashboardExport(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		entityType := chi.URLParam(r, "entityType")
+
+		// Get all telemetries for this entity type
+		telemetries, err := schemaRepo.ListTelemetriesByEntity(ctx, entityType)
+		if err != nil {
+			slog.Error("failed to get telemetries for entity", "entityType", entityType, "error", err)
+			http.Error(w, "failed to get telemetries for entity", http.StatusInternalServerError)
+			return
+		}
+
+		// Check if producer exists but has no telemetries
+		if len(telemetries) == 0 {
+			// According to our specification: return 204 for producers with no telemetries
+			// We can't distinguish between "producer doesn't exist" and "producer has no telemetries"
+			// from the current repository implementation, so we treat empty results as "no telemetries"
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		metricsSchema, err := weaver.GenerateMultiMetricYAML(telemetries, nil)
+		if err != nil {
+			slog.Error("failed to generate schema YAML", "entityType", entityType, "error", err)
+			http.Error(w, "failed to generate metrics YAML", http.StatusInternalServerError)
+			return
+		}
+		// logSchema, err := weaver.GenerateMultiLogYAML(telemetries, nil)
+		// if err != nil {
+		// 	slog.Error("failed to generate schema YAML", "entityType", entityType, "error", err)
+		// 	http.Error(w, "failed to generate log YAML", http.StatusInternalServerError)
+		// 	return
+		// }
+		// spanSchema, err := weaver.GenerateMultiSpanYAML(telemetries, nil)
+		// if err != nil {
+		// 	slog.Error("failed to generate schema YAML", "entityType", entityType, "error", err)
+		// 	http.Error(w, "failed to generate span YAML", http.StatusInternalServerError)
+		// 	return
+		// }
+
+		dashboards, err := weaver.RenderDashboards(ctx, entityType, []string{metricsSchema})
+		if err != nil {
+			slog.Error("failed to generate dashboards", "entityType", entityType, "error", err)
+			http.Error(w, "failed to generate dashboards", http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(dashboards)
+	}
+}
+
 // parseProducerNameVersion parses the producer name---version format
 // Supports empty versions (e.g., "node-exporter---" for producers without version)
 func parseProducerNameVersion(nameVersion string) (string, string, error) {

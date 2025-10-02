@@ -1,0 +1,18 @@
+params:
+  # you can specify namespaces here or pass them as a command line argument, it'd override the value here
+  # e.g. `weaver registry generate  --registry=../semantic-conventions/model --templates=./templates dashboards ./output --param included_namespaces="db,http"`
+  # TODO -param as string slightly buggy - string inclusion is not the same as exact match with list element
+  included_namespaces: []
+
+templates:
+  - template: dashboard.j2
+    file_name: "{{ctx.root_namespace}}.json"
+    application_mode: each
+    filter: >
+      semconv_grouped_metrics({"exclude_deprecated": true})
+      | .[]
+      | select (($included_namespaces | length == 0) or (.root_namespace as $ns | $included_namespaces | index($ns)))
+      | .metrics = [.metrics[] | .prefixes=(.metric_name | split(".")) | .without_root_ns=.prefixes[1]]
+      | .tabs = ([.metrics[] | .prefixes[1]] | unique)
+
+acronyms: [TLS, RTT, DNS, SHA]
