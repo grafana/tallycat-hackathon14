@@ -1319,3 +1319,402 @@ func TestListScopes_ScopeConflictResolution(t *testing.T) {
 	// LastSeen should be updated to the later time
 	require.True(t, scope.LastSeen.After(scope.FirstSeen) || scope.LastSeen.Equal(later))
 }
+
+func TestListTelemetriesByScope_ScopeNotFound(t *testing.T) {
+	repo := setupTestDB(t)
+	ctx := context.Background()
+
+	telemetries, err := repo.ListTelemetriesByScope(ctx, "nonexistent-scope")
+
+	require.NoError(t, err)
+	require.Empty(t, telemetries)
+}
+
+func TestListTelemetriesByScope_ScopeWithMetrics(t *testing.T) {
+	repo := setupTestDB(t)
+	ctx := context.Background()
+
+	// Insert test data with scopes
+	testTelemetries := []schema.Telemetry{
+		{
+			SchemaID:      "metric1_schema_id",
+			SchemaKey:     "http.server.duration",
+			TelemetryType: schema.TelemetryTypeMetric,
+			MetricType:    schema.MetricTypeHistogram,
+			MetricUnit:    "ms",
+			Brief:         "HTTP server request duration",
+			// Log fields
+			LogSeverityNumber:         0,
+			LogSeverityText:           "",
+			LogBody:                   "",
+			LogFlags:                  0,
+			LogTraceID:                "",
+			LogSpanID:                 "",
+			LogEventName:              "",
+			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "",
+			SpanName:    "",
+			SpanID:      "",
+			SpanTraceID: "",
+			// Profile fields
+			ProfileSampleAggregationTemporality: "",
+			ProfileSampleUnit:                   "",
+			// Common fields
+			Protocol:  schema.TelemetryProtocolOTLP,
+			SeenCount: 10,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "my-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "default",
+					},
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
+				},
+			},
+			Scope: &schema.Scope{
+				ID:         "scope1",
+				Name:       "@opentelemetry/instrumentation-http",
+				Version:    "1.0.0",
+				SchemaURL:  "https://opentelemetry.io/schemas/1.0.0",
+				Attributes: map[string]interface{}{},
+				FirstSeen:  time.Now(),
+				LastSeen:   time.Now(),
+			},
+		},
+		{
+			SchemaID:      "metric2_schema_id",
+			SchemaKey:     "http.server.requests",
+			TelemetryType: schema.TelemetryTypeMetric,
+			MetricType:    schema.MetricTypeSum,
+			MetricUnit:    "1",
+			Brief:         "HTTP server request count",
+			// Log fields
+			LogSeverityNumber:         0,
+			LogSeverityText:           "",
+			LogBody:                   "",
+			LogFlags:                  0,
+			LogTraceID:                "",
+			LogSpanID:                 "",
+			LogEventName:              "",
+			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "",
+			SpanName:    "",
+			SpanID:      "",
+			SpanTraceID: "",
+			// Profile fields
+			ProfileSampleAggregationTemporality: "",
+			ProfileSampleUnit:                   "",
+			// Common fields
+			Protocol:  schema.TelemetryProtocolOTLP,
+			SeenCount: 5,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Entities: map[string]*schema.Entity{
+				"entity2": {
+					ID:   "entity2",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name":      "other-service",
+						"service.version":   "1.0.0",
+						"service.namespace": "other-namespace",
+					},
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
+				},
+			},
+			Scope: &schema.Scope{
+				ID:         "scope2",
+				Name:       "@opentelemetry/instrumentation-http",
+				Version:    "1.1.0",
+				SchemaURL:  "https://opentelemetry.io/schemas/1.1.0",
+				Attributes: map[string]interface{}{},
+				FirstSeen:  time.Now(),
+				LastSeen:   time.Now(),
+			},
+		},
+		{
+			SchemaID:      "metric3_schema_id",
+			SchemaKey:     "cpu.usage",
+			TelemetryType: schema.TelemetryTypeMetric,
+			MetricType:    schema.MetricTypeGauge,
+			MetricUnit:    "%",
+			Brief:         "CPU usage percentage",
+			// Log fields
+			LogSeverityNumber:         0,
+			LogSeverityText:           "",
+			LogBody:                   "",
+			LogFlags:                  0,
+			LogTraceID:                "",
+			LogSpanID:                 "",
+			LogEventName:              "",
+			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "",
+			SpanName:    "",
+			SpanID:      "",
+			SpanTraceID: "",
+			// Profile fields
+			ProfileSampleAggregationTemporality: "",
+			ProfileSampleUnit:                   "",
+			// Common fields
+			Protocol:  schema.TelemetryProtocolOTLP,
+			SeenCount: 3,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Entities: map[string]*schema.Entity{
+				"entity3": {
+					ID:   "entity3",
+					Type: "k8s",
+					Attributes: map[string]interface{}{
+						"k8s.pod.name":       "my-pod",
+						"k8s.namespace.name": "default",
+					},
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
+				},
+			},
+			Scope: &schema.Scope{
+				ID:         "scope3",
+				Name:       "@opentelemetry/instrumentation-system",
+				Version:    "2.0.0",
+				SchemaURL:  "https://opentelemetry.io/schemas/2.0.0",
+				Attributes: map[string]interface{}{},
+				FirstSeen:  time.Now(),
+				LastSeen:   time.Now(),
+			},
+		},
+	}
+
+	// Register test telemetries
+	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
+	require.NoError(t, err)
+
+	// Test: Get metrics for http instrumentation scope
+	telemetries, err := repo.ListTelemetriesByScope(ctx, "@opentelemetry/instrumentation-http")
+
+	require.NoError(t, err)
+	require.Len(t, telemetries, 2)
+
+	// Verify we got the right metrics for the scope
+	schemaKeys := make([]string, len(telemetries))
+	for i, telemetry := range telemetries {
+		schemaKeys[i] = telemetry.SchemaKey
+		require.Equal(t, schema.TelemetryTypeMetric, telemetry.TelemetryType)
+		require.NotNil(t, telemetry.Scope)
+		require.Equal(t, "@opentelemetry/instrumentation-http", telemetry.Scope.Name)
+		require.NotEmpty(t, telemetry.Entities)
+	}
+
+	// Should contain both http metrics
+	require.Contains(t, schemaKeys, "http.server.duration")
+	require.Contains(t, schemaKeys, "http.server.requests")
+	require.NotContains(t, schemaKeys, "cpu.usage")
+}
+
+func TestListTelemetriesByScope_ScopeWithNoTelemetries(t *testing.T) {
+	repo := setupTestDB(t)
+	ctx := context.Background()
+
+	// Insert test data with different scope
+	testTelemetries := []schema.Telemetry{
+		{
+			SchemaID:      "metric1_schema_id",
+			SchemaKey:     "cpu.usage",
+			TelemetryType: schema.TelemetryTypeMetric,
+			MetricType:    schema.MetricTypeGauge,
+			MetricUnit:    "%",
+			Brief:         "CPU usage percentage",
+			// Log fields
+			LogSeverityNumber:         0,
+			LogSeverityText:           "",
+			LogBody:                   "",
+			LogFlags:                  0,
+			LogTraceID:                "",
+			LogSpanID:                 "",
+			LogEventName:              "",
+			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "",
+			SpanName:    "",
+			SpanID:      "",
+			SpanTraceID: "",
+			// Profile fields
+			ProfileSampleAggregationTemporality: "",
+			ProfileSampleUnit:                   "",
+			// Common fields
+			Protocol:  schema.TelemetryProtocolOTLP,
+			SeenCount: 3,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "k8s",
+					Attributes: map[string]interface{}{
+						"k8s.pod.name":       "my-pod",
+						"k8s.namespace.name": "default",
+					},
+					FirstSeen: time.Now(),
+					LastSeen:  time.Now(),
+				},
+			},
+			Scope: &schema.Scope{
+				ID:         "scope1",
+				Name:       "@opentelemetry/instrumentation-system",
+				Version:    "2.0.0",
+				SchemaURL:  "https://opentelemetry.io/schemas/2.0.0",
+				Attributes: map[string]interface{}{},
+				FirstSeen:  time.Now(),
+				LastSeen:   time.Now(),
+			},
+		},
+	}
+
+	// Register test telemetries
+	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
+	require.NoError(t, err)
+
+	// Test: Get telemetries for a different scope that has no telemetries
+	telemetries, err := repo.ListTelemetriesByScope(ctx, "@opentelemetry/instrumentation-http")
+
+	require.NoError(t, err)
+	require.Empty(t, telemetries)
+}
+
+func TestListTelemetriesByScope_LatestSchemaVersionOnly(t *testing.T) {
+	repo := setupTestDB(t)
+	ctx := context.Background()
+
+	now := time.Now()
+	earlier := now.Add(-time.Hour)
+	later := now.Add(time.Hour)
+
+	// Insert test data with multiple versions of the same telemetry
+	testTelemetries := []schema.Telemetry{
+		{
+			SchemaID:      "metric1_v1_schema_id",
+			SchemaKey:     "http.server.duration",
+			TelemetryType: schema.TelemetryTypeMetric,
+			MetricType:    schema.MetricTypeHistogram,
+			MetricUnit:    "ms",
+			Brief:         "HTTP server request duration v1",
+			// Log fields
+			LogSeverityNumber:         0,
+			LogSeverityText:           "",
+			LogBody:                   "",
+			LogFlags:                  0,
+			LogTraceID:                "",
+			LogSpanID:                 "",
+			LogEventName:              "",
+			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "",
+			SpanName:    "",
+			SpanID:      "",
+			SpanTraceID: "",
+			// Profile fields
+			ProfileSampleAggregationTemporality: "",
+			ProfileSampleUnit:                   "",
+			// Common fields
+			Protocol:  schema.TelemetryProtocolOTLP,
+			SeenCount: 10,
+			CreatedAt: earlier,
+			UpdatedAt: earlier,
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name": "my-service",
+					},
+					FirstSeen: earlier,
+					LastSeen:  earlier,
+				},
+			},
+			Scope: &schema.Scope{
+				ID:         "scope1",
+				Name:       "@opentelemetry/instrumentation-http",
+				Version:    "1.0.0",
+				SchemaURL:  "https://opentelemetry.io/schemas/1.0.0",
+				Attributes: map[string]interface{}{},
+				FirstSeen:  earlier,
+				LastSeen:   earlier,
+			},
+		},
+		{
+			SchemaID:      "metric1_v2_schema_id",
+			SchemaKey:     "http.server.duration",
+			TelemetryType: schema.TelemetryTypeMetric,
+			MetricType:    schema.MetricTypeHistogram,
+			MetricUnit:    "s", // Changed unit
+			Brief:         "HTTP server request duration v2",
+			// Log fields
+			LogSeverityNumber:         0,
+			LogSeverityText:           "",
+			LogBody:                   "",
+			LogFlags:                  0,
+			LogTraceID:                "",
+			LogSpanID:                 "",
+			LogEventName:              "",
+			LogDroppedAttributesCount: 0,
+			// Span fields
+			SpanKind:    "",
+			SpanName:    "",
+			SpanID:      "",
+			SpanTraceID: "",
+			// Profile fields
+			ProfileSampleAggregationTemporality: "",
+			ProfileSampleUnit:                   "",
+			// Common fields
+			Protocol:  schema.TelemetryProtocolOTLP,
+			SeenCount: 15,
+			CreatedAt: later,
+			UpdatedAt: later,
+			Entities: map[string]*schema.Entity{
+				"entity1": {
+					ID:   "entity1",
+					Type: "service",
+					Attributes: map[string]interface{}{
+						"service.name": "my-service",
+					},
+					FirstSeen: later,
+					LastSeen:  later,
+				},
+			},
+			Scope: &schema.Scope{
+				ID:         "scope1",
+				Name:       "@opentelemetry/instrumentation-http",
+				Version:    "1.0.0",
+				SchemaURL:  "https://opentelemetry.io/schemas/1.0.0",
+				Attributes: map[string]interface{}{},
+				FirstSeen:  later,
+				LastSeen:   later,
+			},
+		},
+	}
+
+	// Register test telemetries
+	err := repo.RegisterTelemetrySchemas(ctx, testTelemetries)
+	require.NoError(t, err)
+
+	// Test: Should get only the latest version
+	telemetries, err := repo.ListTelemetriesByScope(ctx, "@opentelemetry/instrumentation-http")
+
+	require.NoError(t, err)
+	require.Len(t, telemetries, 1)
+
+	// Should be the latest version (v2)
+	telemetry := telemetries[0]
+	require.Equal(t, "http.server.duration", telemetry.SchemaKey)
+	require.Equal(t, "s", telemetry.MetricUnit) // Should be the updated unit
+	require.Equal(t, "HTTP server request duration v2", telemetry.Brief)
+	require.Equal(t, "metric1_v2_schema_id", telemetry.SchemaID)
+}
