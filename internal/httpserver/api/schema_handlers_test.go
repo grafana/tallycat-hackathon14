@@ -62,6 +62,11 @@ func (m *MockTelemetrySchemaRepository) ListTelemetriesByEntity(ctx context.Cont
 	return args.Get(0).([]schema.Telemetry), args.Error(1)
 }
 
+func (m *MockTelemetrySchemaRepository) ListTelemetriesByScope(ctx context.Context, scopeName string) ([]schema.Telemetry, error) {
+	args := m.Called(ctx, scopeName)
+	return args.Get(0).([]schema.Telemetry), args.Error(1)
+}
+
 func (m *MockTelemetrySchemaRepository) ListScopes(ctx context.Context, params query.ListQueryParams) ([]schema.Scope, int, error) {
 	args := m.Called(ctx, params)
 	return args.Get(0).([]schema.Scope), args.Int(1), args.Error(2)

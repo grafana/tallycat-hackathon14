@@ -448,6 +448,245 @@ func HandleEntityDashboardExport(schemaRepo repository.TelemetrySchemaRepository
 	}
 }
 
+func HandleScopeWeaverSchemaExport(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		scopeName := chi.URLParam(r, "scope")
+
+		// Get all telemetries for this scope
+		telemetries, err := schemaRepo.ListTelemetriesByScope(ctx, scopeName)
+		if err != nil {
+			slog.Error("failed to get telemetries for scope", "scopeName", scopeName, "error", err)
+			http.Error(w, "failed to get telemetries for scope", http.StatusInternalServerError)
+			return
+		}
+
+		// Check if scope exists but has no telemetries
+		if len(telemetries) == 0 {
+			// According to our specification: return 204 for scopes with no telemetries
+			// We can't distinguish between "scope doesn't exist" and "scope has no telemetries"
+			// from the current repository implementation, so we treat empty results as "no telemetries"
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		// Generate separate YAML files for metrics, logs, and spans
+		metricsYAML, err := weaver.GenerateMultiMetricYAML(telemetries, nil)
+		if err != nil {
+			slog.Error("failed to generate metrics YAML", "scopeName", scopeName, "error", err)
+			http.Error(w, "failed to generate metrics YAML", http.StatusInternalServerError)
+			return
+		}
+
+		logsYAML, err := weaver.GenerateMultiLogYAML(telemetries, nil)
+		if err != nil {
+			slog.Error("failed to generate logs YAML", "scopeName", scopeName, "error", err)
+			http.Error(w, "failed to generate logs YAML", http.StatusInternalServerError)
+			return
+		}
+
+		spansYAML, err := weaver.GenerateMultiSpanYAML(telemetries, nil)
+		if err != nil {
+			slog.Error("failed to generate spans YAML", "scopeName", scopeName, "error", err)
+			http.Error(w, "failed to generate spans YAML", http.StatusInternalServerError)
+			return
+		}
+
+		// Check if we have any content to include in the ZIP
+		hasMetrics := metricsYAML != ""
+		hasLogs := logsYAML != ""
+		hasSpans := spansYAML != ""
+
+		if !hasMetrics && !hasLogs && !hasSpans {
+			// No telemetries of any type found
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		// Generate registry manifest
+		manifest := weaver.GenerateRegistryManifest(scopeName, "")
+
+		// Create a ZIP file containing the YAML schemas and registry manifest
+		var buf bytes.Buffer
+		zipWriter := zip.NewWriter(&buf)
+
+		// Create the metrics YAML file inside the ZIP (only if we have metrics)
+		if hasMetrics {
+			metricsFileName := scopeName + "-metrics.yaml"
+			metricsFile, err := zipWriter.Create(metricsFileName)
+			if err != nil {
+				http.Error(w, "failed to create metrics file in zip", http.StatusInternalServerError)
+				return
+			}
+
+			// Write the metrics YAML content to the file inside the ZIP
+			_, err = metricsFile.Write([]byte(metricsYAML))
+			if err != nil {
+				http.Error(w, "failed to write metrics yaml to zip", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		// Create the logs/events YAML file inside the ZIP (only if we have logs)
+		if hasLogs {
+			eventsFileName := scopeName + "-events.yaml"
+			eventsFile, err := zipWriter.Create(eventsFileName)
+			if err != nil {
+				http.Error(w, "failed to create events file in zip", http.StatusInternalServerError)
+				return
+			}
+
+			// Write the logs YAML content to the file inside the ZIP
+			_, err = eventsFile.Write([]byte(logsYAML))
+			if err != nil {
+				http.Error(w, "failed to write events yaml to zip", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		// Create the spans YAML file inside the ZIP (only if we have spans)
+		if hasSpans {
+			spansFileName := scopeName + "-spans.yaml"
+			spansFile, err := zipWriter.Create(spansFileName)
+			if err != nil {
+				http.Error(w, "failed to create spans file in zip", http.StatusInternalServerError)
+				return
+			}
+
+			// Write the spans YAML content to the file inside the ZIP
+			_, err = spansFile.Write([]byte(spansYAML))
+			if err != nil {
+				http.Error(w, "failed to write spans yaml to zip", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		// Create the registry manifest file inside the ZIP
+		manifestFile, err := zipWriter.Create("registry_manifest.yaml")
+		if err != nil {
+			http.Error(w, "failed to create manifest file in zip", http.StatusInternalServerError)
+			return
+		}
+
+		// Write the manifest content to the manifest file inside the ZIP
+		_, err = manifestFile.Write([]byte(manifest))
+		if err != nil {
+			http.Error(w, "failed to write manifest to zip", http.StatusInternalServerError)
+			return
+		}
+
+		// Close the ZIP writer to finalize the archive
+		err = zipWriter.Close()
+		if err != nil {
+			http.Error(w, "failed to close zip file", http.StatusInternalServerError)
+			return
+		}
+
+		// Set the appropriate headers for ZIP file download
+		w.Header().Set("Content-Type", "application/zip")
+		w.Header().Set("Content-Disposition", "attachment; filename="+scopeName+".zip")
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", buf.Len()))
+
+		// Write the ZIP file content to the response
+		w.Write(buf.Bytes())
+	}
+}
+
+func HandleScopeDashboardExport(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		scopeName := chi.URLParam(r, "scope")
+
+		// Get all telemetries for this scope
+		telemetries, err := schemaRepo.ListTelemetriesByScope(ctx, scopeName)
+		if err != nil {
+			slog.Error("failed to get telemetries for scope", "scopeName", scopeName, "error", err)
+			http.Error(w, "failed to get telemetries for scope", http.StatusInternalServerError)
+			return
+		}
+
+		// Check if scope exists but has no telemetries
+		if len(telemetries) == 0 {
+			// According to our specification: return 204 for scopes with no telemetries
+			// We can't distinguish between "scope doesn't exist" and "scope has no telemetries"
+			// from the current repository implementation, so we treat empty results as "no telemetries"
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		metricsSchema, err := weaver.GenerateMultiMetricYAML(telemetries, nil)
+		if err != nil {
+			slog.Error("failed to generate schema YAML", "scopeName", scopeName, "error", err)
+			http.Error(w, "failed to generate metrics YAML", http.StatusInternalServerError)
+			return
+		}
+		// logSchema, err := weaver.GenerateMultiLogYAML(telemetries, nil)
+		// if err != nil {
+		// 	slog.Error("failed to generate schema YAML", "scopeName", scopeName, "error", err)
+		// 	http.Error(w, "failed to generate log YAML", http.StatusInternalServerError)
+		// 	return
+		// }
+		// spanSchema, err := weaver.GenerateMultiSpanYAML(telemetries, nil)
+		// if err != nil {
+		// 	slog.Error("failed to generate schema YAML", "scopeName", scopeName, "error", err)
+		// 	http.Error(w, "failed to generate span YAML", http.StatusInternalServerError)
+		// 	return
+		// }
+
+		dashboards, err := weaver.RenderDashboards(ctx, scopeName, []string{metricsSchema})
+		if err != nil {
+			slog.Error("failed to generate dashboards", "scopeName", scopeName, "error", err)
+			http.Error(w, "failed to generate dashboards", http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(dashboards)
+	}
+}
+
+func HandleScopeSchemaExport(schemaRepo repository.TelemetrySchemaRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		scopeName := chi.URLParam(r, "scope")
+		telemetryType := chi.URLParam(r, "type")
+
+		// Get all telemetries for this scope
+		telemetries, err := schemaRepo.ListTelemetriesByScope(ctx, scopeName)
+		if err != nil {
+			slog.Error("failed to get telemetries for scope", "scopeName", scopeName, "error", err)
+			http.Error(w, "failed to get telemetries for scope", http.StatusInternalServerError)
+			return
+		}
+
+		// Check if scope exists but has no telemetries
+		if len(telemetries) == 0 {
+			// According to our specification: return 204 for scopes with no telemetries
+			// We can't distinguish between "scope doesn't exist" and "scope has no telemetries"
+			// from the current repository implementation, so we treat empty results as "no telemetries"
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		outBuff := &bytes.Buffer{}
+		var genYaml func(telemetries []schema.Telemetry, schemas map[string]*schema.TelemetrySchema) (string, error)
+		switch telemetryType {
+		case "metrics":
+			genYaml = weaver.GenerateMultiMetricYAML
+		case "logs":
+			genYaml = weaver.GenerateMultiLogYAML
+		case "spans":
+			genYaml = weaver.GenerateMultiSpanYAML
+		}
+		schemaYAML, err := genYaml(telemetries, nil)
+		if err != nil {
+			slog.Error("failed to generate schema YAML", "scopeName", scopeName, "error", err)
+			http.Error(w, "failed to generate schema YAML", http.StatusInternalServerError)
+			return
+		}
+		outBuff.WriteString(schemaYAML)
+		io.Copy(w, outBuff)
+	}
+}
+
 // parseProducerNameVersion parses the producer name---version format
 // Supports empty versions (e.g., "node-exporter---" for producers without version)
 func parseProducerNameVersion(nameVersion string) (string, string, error) {
