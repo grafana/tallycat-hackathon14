@@ -35,7 +35,7 @@ func ExampleGenerateYAML() {
 			{
 				Name:   "service.name",
 				Type:   schema.AttributeTypeStr,
-				Source: schema.AttributeSourceResource, // This will be filtered out
+				Source: schema.AttributeSourceResource,
 			},
 		},
 		Scope: &schema.Scope{
@@ -75,4 +75,9 @@ func ExampleGenerateYAML() {
 	//         requirement_level: recommended
 	//         stability: stable
 	//         brief: "HTTP response status code"
+	//       - id: service.name
+	//         type: string
+	//         requirement_level: recommended
+	//         stability: stable
+	//         brief: ""
 }

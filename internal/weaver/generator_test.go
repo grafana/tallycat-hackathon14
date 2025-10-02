@@ -81,9 +81,9 @@ func TestGenerateYAML_BasicTelemetry(t *testing.T) {
 		}
 	}
 
-	// Verify that resource attributes are filtered out
-	if strings.Contains(yaml, "service.name") {
-		t.Error("YAML should not contain resource attributes")
+	// Verify that resource attributes are now included
+	if !strings.Contains(yaml, "service.name") {
+		t.Error("YAML should contain resource attributes")
 	}
 }
 
@@ -150,9 +150,17 @@ func TestGenerateYAML_NoDataPointAttributes(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	// Should NOT contain an attributes section when there are no DataPoint attributes
-	if strings.Contains(yaml, "attributes:") {
-		t.Error("YAML should not contain attributes section when there are no DataPoint attributes")
+	// Should contain attributes section with resource and scope attributes
+	if !strings.Contains(yaml, "attributes:") {
+		t.Error("YAML should contain attributes section with resource and scope attributes")
+	}
+
+	// Should contain resource and scope attributes
+	if !strings.Contains(yaml, "service.name") {
+		t.Error("YAML should contain resource attributes")
+	}
+	if !strings.Contains(yaml, "library.name") {
+		t.Error("YAML should contain scope attributes")
 	}
 
 	// Should not contain the old comment
@@ -635,9 +643,9 @@ func TestGenerateYAML_LogEvent_BasicTelemetry(t *testing.T) {
 		}
 	}
 
-	// Verify that resource attributes are filtered out
-	if strings.Contains(yaml, "service.name") {
-		t.Error("YAML should not contain resource attributes")
+	// Verify that resource attributes are now included
+	if !strings.Contains(yaml, "service.name") {
+		t.Error("YAML should contain resource attributes")
 	}
 }
 

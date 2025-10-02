@@ -83,7 +83,7 @@ func generateMetricYAML(telemetry *schema.Telemetry, telemetrySchema *schema.Tel
 
 	// Filter for DataPoint source attributes
 	for _, attr := range attributesToUse {
-		if attr.Source == schema.AttributeSourceDataPoint {
+		if attr.Source == schema.AttributeSourceDataPoint || attr.Source == schema.AttributeSourceResource || attr.Source == schema.AttributeSourceScope {
 			dataPointAttributes = append(dataPointAttributes, attr)
 		}
 	}
@@ -133,7 +133,7 @@ func generateLogEventYAML(telemetry *schema.Telemetry, telemetrySchema *schema.T
 
 	// Filter for LogRecord source attributes
 	for _, attr := range attributesToUse {
-		if attr.Source == schema.AttributeSourceLogRecord {
+		if attr.Source == schema.AttributeSourceLogRecord || attr.Source == schema.AttributeSourceResource || attr.Source == schema.AttributeSourceScope {
 			allAttributes = append(allAttributes, attr)
 		}
 	}
@@ -182,7 +182,7 @@ func generateSpanYAML(telemetry *schema.Telemetry, telemetrySchema *schema.Telem
 
 	// Filter for Span source attributes (span-level attributes)
 	for _, attr := range attributesToUse {
-		if attr.Source == schema.AttributeSourceSpan {
+		if attr.Source == schema.AttributeSourceSpan || attr.Source == schema.AttributeSourceResource || attr.Source == schema.AttributeSourceScope {
 			spanAttributes = append(spanAttributes, attr)
 		}
 	}
