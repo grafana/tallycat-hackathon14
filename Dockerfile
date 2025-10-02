@@ -30,7 +30,8 @@ USER 1000:1000
 WORKDIR /tallycat
 
 COPY --chown=1000:1000 --from=builder /tallycat/tallycat .
-
+COPY --from=otel/weaver:v0.18.0 /weaver/weaver /usr/bin/weaver
+COPY weaver/templates /opt/weaver/templates
 
 EXPOSE 8080
 EXPOSE 4317
