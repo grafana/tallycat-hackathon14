@@ -71,7 +71,7 @@ func generateMetricYAML(telemetry *schema.Telemetry, telemetrySchema *schema.Tel
 	yamlLines = append(yamlLines, fmt.Sprintf("    unit: %s", quoteYAMLString(telemetry.MetricUnit)))
 
 	// Filter and format attributes - only include DataPoint attributes as per frontend logic
-	var dataPointAttributes []schema.Attribute
+	dataPointAttributes := make(map[string]schema.Attribute)
 	var attributesToUse []schema.Attribute
 
 	// Determine which attributes to use
@@ -83,8 +83,19 @@ func generateMetricYAML(telemetry *schema.Telemetry, telemetrySchema *schema.Tel
 
 	// Filter for DataPoint source attributes
 	for _, attr := range attributesToUse {
-		if attr.Source == schema.AttributeSourceDataPoint || attr.Source == schema.AttributeSourceResource || attr.Source == schema.AttributeSourceScope {
-			dataPointAttributes = append(dataPointAttributes, attr)
+		switch attr.Source {
+		case schema.AttributeSourceResource, schema.AttributeSourceScope:
+			attr.RequirementLevel = schema.RequirementLevelRequired
+			fallthrough
+		case schema.AttributeSourceDataPoint:
+			_, ok := dataPointAttributes[attr.Name]
+			if !ok {
+				dataPointAttributes[attr.Name] = attr
+				continue
+			}
+			if attr.RequirementLevel == schema.RequirementLevelRequired {
+				dataPointAttributes[attr.Name] = attr
+			}
 		}
 	}
 
@@ -133,7 +144,11 @@ func generateLogEventYAML(telemetry *schema.Telemetry, telemetrySchema *schema.T
 
 	// Filter for LogRecord source attributes
 	for _, attr := range attributesToUse {
-		if attr.Source == schema.AttributeSourceLogRecord || attr.Source == schema.AttributeSourceResource || attr.Source == schema.AttributeSourceScope {
+		if attr.Source == schema.AttributeSourceLogRecord {
+			allAttributes = append(allAttributes, attr)
+		}
+		if attr.Source == schema.AttributeSourceResource || attr.Source == schema.AttributeSourceScope {
+			attr.RequirementLevel = schema.RequirementLevelRequired
 			allAttributes = append(allAttributes, attr)
 		}
 	}
@@ -182,7 +197,11 @@ func generateSpanYAML(telemetry *schema.Telemetry, telemetrySchema *schema.Telem
 
 	// Filter for Span source attributes (span-level attributes)
 	for _, attr := range attributesToUse {
-		if attr.Source == schema.AttributeSourceSpan || attr.Source == schema.AttributeSourceResource || attr.Source == schema.AttributeSourceScope {
+		if attr.Source == schema.AttributeSourceSpan {
+			spanAttributes = append(spanAttributes, attr)
+		}
+		if attr.Source == schema.AttributeSourceResource || attr.Source == schema.AttributeSourceScope {
+			attr.RequirementLevel = schema.RequirementLevelRequired
 			spanAttributes = append(spanAttributes, attr)
 		}
 	}

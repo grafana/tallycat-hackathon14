@@ -77,7 +77,7 @@ func ExampleGenerateYAML() {
 	//         brief: "HTTP response status code"
 	//       - id: service.name
 	//         type: string
-	//         requirement_level: recommended
+	//         requirement_level: required
 	//         stability: stable
 	//         brief: ""
 }
