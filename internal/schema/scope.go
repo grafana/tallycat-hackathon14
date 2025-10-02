@@ -113,15 +113,19 @@ func DetectScopes(scope pcommon.InstrumentationScope, schemaURL string) Scope {
 		scopeName = "UNKNOWN"
 	}
 
+	// Transform the scope name to human-readable format
+	transformer := NewScopeTransformer()
+	transformedScopeName := transformer.Transform(scopeName)
+
 	// Use default version if scope version is empty
 	scopeVersion := scope.Version()
 	if scopeVersion == "" {
 		scopeVersion = "UNKNOWN"
 	}
 
-	// Create scope object
+	// Create scope object with transformed name
 	s := Scope{
-		Name:       scopeName,
+		Name:       transformedScopeName,
 		Version:    scopeVersion,
 		SchemaURL:  schemaURL,
 		Attributes: attributes,
