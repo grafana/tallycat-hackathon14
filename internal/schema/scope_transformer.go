@@ -7,9 +7,9 @@ type ScopeTransformer struct {
 func NewScopeTransformer() *ScopeTransformer {
 	transformer := &ScopeTransformer{
 		transformations: make(map[string]string),
-	}	
+	}
 	transformer.initializeTransformations()
-	
+
 	return transformer
 }
 
@@ -17,11 +17,11 @@ func (st *ScopeTransformer) Transform(scopeName string) string {
 	if scopeName == "" {
 		return scopeName
 	}
-	
+
 	if transformed, exists := st.transformations[scopeName]; exists {
 		return transformed
 	}
-	
+
 	return scopeName
 }
 

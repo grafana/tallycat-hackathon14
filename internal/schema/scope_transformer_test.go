@@ -276,4 +276,3 @@ func TestScopeTransformer_Transform(t *testing.T) {
 		})
 	}
 }
-
