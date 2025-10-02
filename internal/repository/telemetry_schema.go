@@ -14,11 +14,12 @@ type TelemetrySchemaRepository interface {
 	ListTelemetrySchemas(ctx context.Context, schemaKey string, params query.ListQueryParams) ([]schema.TelemetrySchema, int, error)
 	AssignTelemetrySchemaVersion(ctx context.Context, assignment schema.SchemaAssignment) error
 	GetTelemetrySchema(ctx context.Context, schemaId string) (*schema.TelemetrySchema, error)
-	ListTelemetriesByEntity(ctx context.Context, entityType string) ([]schema.Telemetry, error)
 	ListEntities(ctx context.Context, params query.ListQueryParams) ([]schema.Entity, int, error)
 	ListEntitiesByTelemetry(ctx context.Context, telemetryKey string) ([]schema.Entity, error)
+	ListTelemetriesByEntity(ctx context.Context, entityType string) ([]schema.Telemetry, error)
 	ListScopes(ctx context.Context, params query.ListQueryParams) ([]schema.Scope, int, error)
 	ListScopesByTelemetry(ctx context.Context, telemetryKey string) ([]schema.Scope, error)
+	ListTelemetriesByScope(ctx context.Context, scopeName string) ([]schema.Telemetry, error)
 }
 
 type TelemetryHistoryRepository interface {

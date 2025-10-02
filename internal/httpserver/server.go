@@ -104,6 +104,9 @@ func registerAPIRoutes(r chi.Router, srv *Server) {
 		})
 		r.Route("/scopes", func(r chi.Router) {
 			r.Get("/", api.HandleScopeList(srv.schemaRepo))
+			r.Get("/{scope}/weaver-schema.zip", api.HandleScopeWeaverSchemaExport(srv.schemaRepo))
+			r.Get("/{scope}/dashboards", api.HandleScopeDashboardExport(srv.schemaRepo))
+			r.Get("/{scope}/{type}", api.HandleScopeSchemaExport(srv.schemaRepo))
 		})
 	})
 	r.Handle("/*", SPAHandler())

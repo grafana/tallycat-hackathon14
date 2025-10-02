@@ -1252,6 +1252,264 @@ func (r *TelemetrySchemaRepository) ListTelemetriesByEntity(ctx context.Context,
 	return telemetries, nil
 }
 
+func (r *TelemetrySchemaRepository) ListTelemetriesByScope(ctx context.Context, scopeName string) ([]schema.Telemetry, error) {
+	query := `
+		WITH latest_schemas AS (
+			SELECT 
+				t.schema_id,
+				t.schema_version,
+				t.schema_url,
+				t.signal_type,
+				t.schema_key,
+				-- Metric fields
+				t.unit,
+				t.metric_type,
+				t.temporality,
+				t.brief,
+				-- Log fields
+				t.log_severity_number,
+				t.log_severity_text,
+				t.log_body,
+				t.log_flags,
+				t.log_trace_id,
+				t.log_span_id,
+				t.log_event_name,
+				t.log_dropped_attributes_count,
+				-- Span fields
+				t.span_kind,
+				t.span_name,
+				t.span_id,
+				t.span_trace_id,
+				-- Profile fields
+				t.profile_sample_aggregation_temporality,
+				t.profile_sample_unit,
+				-- Common fields
+				t.note,
+				t.protocol,
+				t.seen_count,
+				t.created_at,
+				t.updated_at,
+				ROW_NUMBER() OVER (
+					PARTITION BY t.signal_type, t.schema_key 
+					ORDER BY t.updated_at DESC
+				) as rn
+			FROM telemetry_schemas t
+			INNER JOIN schema_scopes ss ON t.schema_id = ss.schema_id
+			INNER JOIN telemetry_scopes ts ON ss.scope_id = ts.scope_id
+			WHERE ts.name = ?
+		)
+		SELECT 
+			schema_id, schema_version, schema_url, signal_type, schema_key,
+			unit, metric_type, temporality, brief,
+			log_severity_number, log_severity_text, log_body, log_flags, log_trace_id, log_span_id, log_event_name, log_dropped_attributes_count,
+			span_kind, span_name, span_id, span_trace_id,
+			profile_sample_aggregation_temporality, profile_sample_unit,
+			note, protocol, seen_count,
+			created_at, updated_at
+		FROM latest_schemas
+		WHERE rn = 1
+		ORDER BY updated_at DESC`
+
+	db := r.pool.GetConnection()
+
+	rows, err := db.QueryContext(ctx, query, scopeName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query telemetries by scope: %w", err)
+	}
+	defer rows.Close()
+
+	var telemetries []schema.Telemetry
+	for rows.Next() {
+		var t schema.Telemetry
+
+		err := rows.Scan(
+			&t.SchemaID,
+			&t.SchemaVersion,
+			&t.SchemaURL,
+			&t.TelemetryType,
+			&t.SchemaKey,
+			&t.MetricUnit,
+			&t.MetricType,
+			&t.MetricTemporality,
+			&t.Brief,
+			&t.LogSeverityNumber,
+			&t.LogSeverityText,
+			&t.LogBody,
+			&t.LogFlags,
+			&t.LogTraceID,
+			&t.LogSpanID,
+			&t.LogEventName,
+			&t.LogDroppedAttributesCount,
+			&t.SpanKind,
+			&t.SpanName,
+			&t.SpanID,
+			&t.SpanTraceID,
+			&t.ProfileSampleAggregationTemporality,
+			&t.ProfileSampleUnit,
+			&t.Note,
+			&t.Protocol,
+			&t.SeenCount,
+			&t.CreatedAt,
+			&t.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan telemetry row: %w", err)
+		}
+
+		telemetries = append(telemetries, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating telemetry rows: %w", err)
+	}
+
+	// For each telemetry, get its attributes and entities
+	for i := range telemetries {
+		// Get attributes
+		attrQuery := `
+			SELECT DISTINCT name, type, source
+			FROM schema_attributes
+			WHERE schema_id = ?
+			ORDER BY name`
+
+		attrRows, err := db.QueryContext(ctx, attrQuery, telemetries[i].SchemaID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query schema attributes: %w", err)
+		}
+
+		var attributes []schema.Attribute
+		for attrRows.Next() {
+			var attr schema.Attribute
+			if err := attrRows.Scan(&attr.Name, &attr.Type, &attr.Source); err != nil {
+				attrRows.Close()
+				return nil, fmt.Errorf("failed to scan attribute row: %w", err)
+			}
+			attributes = append(attributes, attr)
+		}
+		attrRows.Close()
+
+		telemetries[i].Attributes = attributes
+
+		// Get entities
+		entityQuery := `
+			SELECT te.entity_id, te.entity_type, te.first_seen, te.last_seen
+			FROM telemetry_entities te
+			INNER JOIN schema_entities se ON te.entity_id = se.entity_id
+			WHERE se.schema_id = ?`
+
+		entityRows, err := db.QueryContext(ctx, entityQuery, telemetries[i].SchemaID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query schema entities: %w", err)
+		}
+
+		telemetries[i].Entities = make(map[string]*schema.Entity)
+		for entityRows.Next() {
+			var entity schema.Entity
+			if err := entityRows.Scan(
+				&entity.ID,
+				&entity.Type,
+				&entity.FirstSeen,
+				&entity.LastSeen,
+			); err != nil {
+				entityRows.Close()
+				return nil, fmt.Errorf("failed to scan entity row: %w", err)
+			}
+
+			// Get entity attributes
+			attrQuery := `
+				SELECT name, value, type
+				FROM entity_attributes
+				WHERE entity_id = ?`
+
+			attrRows, err := db.QueryContext(ctx, attrQuery, entity.ID)
+			if err != nil {
+				entityRows.Close()
+				return nil, fmt.Errorf("failed to query entity attributes: %w", err)
+			}
+
+			entity.Attributes = make(map[string]interface{})
+			for attrRows.Next() {
+				var name, value, attrType string
+				if err := attrRows.Scan(&name, &value, &attrType); err != nil {
+					attrRows.Close()
+					entityRows.Close()
+					return nil, fmt.Errorf("failed to scan entity attribute: %w", err)
+				}
+				entity.Attributes[name] = value
+			}
+			attrRows.Close()
+
+			telemetries[i].Entities[entity.ID] = &entity
+		}
+		entityRows.Close()
+
+		if err := entityRows.Err(); err != nil {
+			return nil, fmt.Errorf("error iterating entity rows: %w", err)
+		}
+
+		// Get scope for this schema
+		scopeQuery := `
+			SELECT ts.scope_id, ts.name, ts.version, ts.schema_url, ts.first_seen, ts.last_seen
+			FROM telemetry_scopes ts
+			INNER JOIN schema_scopes ss ON ts.scope_id = ss.scope_id
+			WHERE ss.schema_id = ?`
+
+		scopeRows, err := db.QueryContext(ctx, scopeQuery, telemetries[i].SchemaID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query schema scope: %w", err)
+		}
+
+		// Each schema should have at most one scope
+		if scopeRows.Next() {
+			var scope schema.Scope
+			if err := scopeRows.Scan(
+				&scope.ID,
+				&scope.Name,
+				&scope.Version,
+				&scope.SchemaURL,
+				&scope.FirstSeen,
+				&scope.LastSeen,
+			); err != nil {
+				scopeRows.Close()
+				return nil, fmt.Errorf("failed to scan scope row: %w", err)
+			}
+
+			// Get scope attributes
+			scopeAttrQuery := `
+				SELECT name, value, type
+				FROM scope_attributes
+				WHERE scope_id = ?`
+
+			scopeAttrRows, err := db.QueryContext(ctx, scopeAttrQuery, scope.ID)
+			if err != nil {
+				scopeRows.Close()
+				return nil, fmt.Errorf("failed to query scope attributes: %w", err)
+			}
+
+			scope.Attributes = make(map[string]interface{})
+			for scopeAttrRows.Next() {
+				var name, value, attrType string
+				if err := scopeAttrRows.Scan(&name, &value, &attrType); err != nil {
+					scopeAttrRows.Close()
+					scopeRows.Close()
+					return nil, fmt.Errorf("failed to scan scope attribute: %w", err)
+				}
+				scope.Attributes[name] = value
+			}
+			scopeAttrRows.Close()
+
+			telemetries[i].Scope = &scope
+		}
+		scopeRows.Close()
+
+		if err := scopeRows.Err(); err != nil {
+			return nil, fmt.Errorf("error iterating scope rows: %w", err)
+		}
+	}
+
+	return telemetries, nil
+}
+
 func (r *TelemetrySchemaRepository) ListEntities(ctx context.Context, params query.ListQueryParams) ([]schema.Entity, int, error) {
 	var args []any
 	where := ""
